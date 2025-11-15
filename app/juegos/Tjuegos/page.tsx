@@ -1,10 +1,15 @@
 // app/juegos/Tjuegos/page.tsx
-import dynamic from 'next/dynamic';
-
-const JuegosClient = dynamic(() => import('./JuegosClient'), { ssr: false });
+// (¡sin 'use client'!)
+import { Suspense } from 'react';
+import JuegosClient from './JuegosClient'; // mismo folder, export default
 
 export default function Page() {
-  return <JuegosClient />;
+  return (
+    <Suspense fallback={<div className="p-4">Cargando…</div>}>
+      <JuegosClient />
+    </Suspense>
+  );
 }
 
+// Si Vercel siguiera quejándose por prerender, puedes forzar dinámico:
 // export const dynamic = 'force-dynamic';
