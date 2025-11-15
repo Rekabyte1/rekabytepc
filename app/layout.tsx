@@ -16,7 +16,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Mi Tienda",
   description: "PCs armados",
-  // Si quieres, luego agrega:
   // metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://rekabytepc.vercel.app"),
 };
 
@@ -30,8 +29,14 @@ export default function RootLayout({
       <body className="bg-neutral-950 text-white antialiased min-h-screen">
         <CartProvider>
           <Header />
-          {/* un mínimo de alto para empujar el footer hacia abajo */}
-          <main className="min-h-[60vh]">{children}</main>
+
+          {/* Contenedor centrado y con padding lateral para todas las páginas */}
+          <main className="min-h-[60vh]">
+            <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6">
+              {children}
+            </div>
+          </main>
+
           <Footer />
           <WhatsAppButton />
         </CartProvider>
