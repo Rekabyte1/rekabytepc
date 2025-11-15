@@ -1,28 +1,37 @@
 // data/orders.ts
 
-// Métodos que puede enviar la UI
+// Métodos que puede mandar la UI
 export type PaymentUI = 'transferencia' | 'mercadopago' | 'webpay' | 'card' | 'transfer';
-// Método normalizado para backend/lógica
 export type NormalizedPayment = 'card' | 'transfer';
 
-export type OrderItem = {
-  id: string;
+// Ítem flexible (acepta tus claves actuales de CheckoutSummary)
+export type RawOrderItem = {
+  id?: string;
+  slug?: string;
+
   title?: string;
-  price: number | string;
-  qty: number | string;
+  name?: string;
+
+  qty?: number | string;
+  quantity?: number | string;
+
+  price?: number | string;          // precio genérico
+  priceTransfer?: number | string;  // precio si paga transferencia
+  priceCard?: number | string;      // precio si paga tarjeta
+
+  image?: string;
+  [key: string]: any;
 };
 
 export type CreateOrderInput = {
-  items: OrderItem[];
-  paymentMethod: PaymentUI; // ← acepta lo que manda tu UI
+  items: RawOrderItem[];
+  paymentMethod: PaymentUI; // lo que venga de la UI
   customer?: { name?: string; email?: string; phone?: string };
   shipping?: { tipo?: string; costoEnvio?: number };
 };
 
-function normalizePayment(method: PaymentUI): NormalizedPayment {
-  if (method === 'transferencia' || method === 'transfer') return 'transfer';
-  // Cualquier otra opción de tarjeta se normaliza a 'card'
-  return 'card'; // 'mercadopago' | 'webpay' | 'card'
+function normalizePayment(m: PaymentUI): NormalizedPayment {
+  return m === 'transferencia' || m === 'transfer' ? 'transfer' : 'card';
 }
 
 export function createOrder(input: CreateOrderInput) {
@@ -34,21 +43,39 @@ export function createOrder(input: CreateOrderInput) {
 
   const normalized = normalizePayment(input.paymentMethod);
 
-  // Normaliza números
-  const items = (input.items ?? []).map((i) => ({
-    ...i,
-    price: Number(i?.price ?? 0),
-    qty: Number(i?.qty ?? 0),
-  }));
+  // Normaliza ítems: id, título, qty y precio según método
+  const items = (input.items ?? []).map((i) => {
+    const normId = String(i.id ?? i.slug ?? '');
+    const normTitle = String(i.title ?? i.name ?? '');
+    const normQty = Number(i.qty ?? i.quantity ?? 0);
+
+    const priceForMethod =
+      normalized === 'transfer'
+        ? i.priceTransfer ?? i.price
+        : i.priceCard ?? i.price;
+
+    const normPrice = Number(priceForMethod ?? 0);
+
+    return {
+      id: normId,
+      title: normTitle,
+      qty: normQty,
+      price: normPrice,
+      image: i.image,
+      // conserva datos originales por si los quieres guardar:
+      raw: i,
+    };
+  });
 
   return {
     id,
     number,
     status: 'pending' as const,
-    paymentMethod: normalized, // ← ya normalizado
+    paymentMethod: normalized, // 'card' | 'transfer'
     items,
     customer: input.customer ?? {},
     shipping: input.shipping ?? { tipo: 'retiro', costoEnvio: 0 },
+    createdAt: new Date().toISOString(),
   };
 }
 
