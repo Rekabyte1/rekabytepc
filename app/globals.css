@@ -210,3 +210,24 @@ main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;d
 .rb-checkout [data-thumb],.rb-checkout .thumb{width:64px !important;height:64px !important}
 .rb-checkout [data-thumb] img,.rb-checkout .thumb img{width:64px !important;height:64px !important;object-fit:cover !important;display:block !important}
 .rb-checkout aside .card,.rb-checkout aside>div{border-radius:16px}
+
+/* --- Fixes móviles & helpers globales --- */
+
+* { min-width: 0; }                 /* evita que hijos fuercen desbordes */
+img, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;                     /* imágenes siempre fluidas */
+}
+
+.rb-container {                     /* tu contenedor centrado reutilizable */
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1100px;                /* ajústalo si quieres */
+  padding-inline: 1rem;
+}
+@media (min-width: 640px){ .rb-container{ padding-inline: 1.25rem } }
+@media (min-width: 1024px){ .rb-container{ padding-inline: 1.5rem } }
+
+/* Evita “scroll” lateral por contenedores tozudos */
+html, body { overflow-x: hidden; }
