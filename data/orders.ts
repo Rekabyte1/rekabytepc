@@ -28,22 +28,21 @@ export type RawOrderItem = {
   [key: string]: any;
 };
 
-// Payload opcional con subtotales y envío
+// Subtotales/envío/total que puede mandar la UI
 export type AmountsPayload = {
   subtotalTransfer?: number | string;
   subtotalCard?: number | string;
-  // Puede venir como número (costo) o como objeto { tipo, costoEnvio }
+  // puede venir número (costo) o { tipo, costoEnvio }
   shipping?: number | string | { tipo?: string; costoEnvio?: number };
+  total?: number | string; // ← agregado
 };
 
 export type CreateOrderInput = {
   items: RawOrderItem[];
-  paymentMethod: PaymentUI; // lo que venga de la UI
+  paymentMethod: PaymentUI;
   customer?: { name?: string; email?: string; phone?: string };
-  // shipping también puede venir arriba (legacy)
   shipping?: { tipo?: string; costoEnvio?: number };
-  // ← ahora aceptamos amounts desde la UI
-  amounts?: AmountsPayload;
+  amounts?: AmountsPayload; // ← UI puede enviar amounts
 };
 
 function normalizePayment(m: PaymentUI): NormalizedPayment {
@@ -57,18 +56,16 @@ export function createOrder(input: CreateOrderInput) {
       ? (crypto as any).randomUUID()
       : String(number);
 
-  const normalizedMethod = normalizePayment(input.paymentMethod);
+  const method = normalizePayment(input.paymentMethod);
 
-  // Normaliza ítems: id, título, qty y precio según método
+  // Normaliza ítems
   const items = (input.items ?? []).map((i) => {
     const normId = String(i.id ?? i.slug ?? '');
     const normTitle = String(i.title ?? i.name ?? '');
     const normQty = Number(i.qty ?? i.quantity ?? 0);
 
     const priceForMethod =
-      normalizedMethod === 'transfer'
-        ? i.priceTransfer ?? i.price
-        : i.priceCard ?? i.price;
+      method === 'transfer' ? i.priceTransfer ?? i.price : i.priceCard ?? i.price;
 
     const normPrice = Number(priceForMethod ?? 0);
 
@@ -78,34 +75,49 @@ export function createOrder(input: CreateOrderInput) {
       qty: normQty,
       price: normPrice,
       image: i.image,
-      raw: i, // conserva datos originales por si los quieres guardar
+      raw: i,
     };
   });
 
-  // Normaliza amounts (si viene)
-  const amounts = input.amounts
-    ? {
-        subtotalTransfer: Number((input.amounts as any).subtotalTransfer ?? 0),
-        subtotalCard: Number((input.amounts as any).subtotalCard ?? 0),
-        shipping:
-          typeof (input.amounts as any).shipping === 'object'
-            ? ((input.amounts as any).shipping as { tipo?: string; costoEnvio?: number })
-            : { tipo: 'envio', costoEnvio: Number((input.amounts as any).shipping ?? 0) },
-      }
-    : undefined;
+  // ---- amounts / shipping / total
+  const a = input.amounts ?? {};
 
-  // Shipping top-level (si no viene en amounts)
+  const subtotalTransfer = Number(a.subtotalTransfer ?? 0);
+  const subtotalCard = Number(a.subtotalCard ?? 0);
+
+  const shippingObj =
+    typeof a.shipping === 'object'
+      ? {
+          tipo: (a.shipping as any)?.tipo ?? 'envio',
+          costoEnvio: Number((a.shipping as any)?.costoEnvio ?? 0),
+        }
+      : a.shipping !== undefined
+      ? { tipo: 'envio', costoEnvio: Number(a.shipping) }
+      : undefined;
+
+  const baseSubtotal = method === 'transfer' ? subtotalTransfer : subtotalCard;
+  const shipCost = shippingObj ? Number(shippingObj.costoEnvio ?? 0) : 0;
+
+  const totalNumber =
+    a.total !== undefined ? Number(a.total) : Number(baseSubtotal) + shipCost;
+
+  const amounts = {
+    subtotalTransfer,
+    subtotalCard,
+    shipping: shippingObj ?? { tipo: 'retiro', costoEnvio: 0 },
+    total: totalNumber,
+  };
+
+  // Shipping top-level (si venía) prevalece; si no, usamos el normalizado
   const shipping =
     input.shipping ??
-    (amounts?.shipping && typeof amounts.shipping === 'object'
-      ? amounts.shipping
-      : { tipo: 'retiro', costoEnvio: 0 });
+    (amounts.shipping as { tipo?: string; costoEnvio?: number });
 
   return {
     id,
     number,
     status: 'pending' as const,
-    paymentMethod: normalizedMethod, // 'card' | 'transfer'
+    paymentMethod: method, // 'card' | 'transfer'
     items,
     customer: input.customer ?? {},
     shipping,
@@ -115,4 +127,3 @@ export function createOrder(input: CreateOrderInput) {
 }
 
 export default { createOrder };
-
