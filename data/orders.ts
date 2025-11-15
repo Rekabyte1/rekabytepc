@@ -34,7 +34,7 @@ export type AmountsPayload = {
   subtotalCard?: number | string;
   // puede venir número (costo) o { tipo, costoEnvio }
   shipping?: number | string | { tipo?: string; costoEnvio?: number };
-  total?: number | string; // ← agregado
+  total?: number | string;
 };
 
 export type CreateOrderInput = {
@@ -42,11 +42,22 @@ export type CreateOrderInput = {
   paymentMethod: PaymentUI;
   customer?: { name?: string; email?: string; phone?: string };
   shipping?: { tipo?: string; costoEnvio?: number };
-  amounts?: AmountsPayload; // ← UI puede enviar amounts
+  amounts?: AmountsPayload;
 };
 
 function normalizePayment(m: PaymentUI): NormalizedPayment {
   return m === 'transferencia' || m === 'transfer' ? 'transfer' : 'card';
+}
+
+// Código de retiro de 6 dígitos
+function genPickupCode(): string {
+  try {
+    const arr = new Uint32Array(1);
+    (crypto as any).getRandomValues?.(arr);
+    return String(arr[0] % 1_000_000).padStart(6, '0');
+  } catch {
+    return String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
+  }
 }
 
 export function createOrder(input: CreateOrderInput) {
@@ -113,6 +124,10 @@ export function createOrder(input: CreateOrderInput) {
     input.shipping ??
     (amounts.shipping as { tipo?: string; costoEnvio?: number });
 
+  // 👇 GENERAMOS pickupCode si es retiro
+  const pickupCode =
+    shipping?.tipo === 'retiro' ? genPickupCode() : undefined;
+
   return {
     id,
     number,
@@ -122,6 +137,7 @@ export function createOrder(input: CreateOrderInput) {
     customer: input.customer ?? {},
     shipping,
     amounts,
+    pickupCode, // ← ahora existe
     createdAt: new Date().toISOString(),
   };
 }
