@@ -19,24 +19,13 @@ export const metadata: Metadata = {
   // metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://rekabytepc.vercel.app"),
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="bg-neutral-950">
-      <body className="bg-neutral-950 text-white antialiased min-h-screen">
+    <html lang="es" className="h-full bg-neutral-950">
+      <body className="h-full bg-neutral-950 text-white antialiased overflow-x-hidden">
         <CartProvider>
           <Header />
-
-          {/* Contenedor centrado y con padding lateral para todas las páginas */}
-          <main className="min-h-[60vh]">
-            <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6">
-              {children}
-            </div>
-          </main>
-
+          <main className="min-h-[60vh]">{children}</main>
           <Footer />
           <WhatsAppButton />
         </CartProvider>
