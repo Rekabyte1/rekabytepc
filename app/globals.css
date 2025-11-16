@@ -231,3 +231,58 @@ img, video, canvas, svg {
 
 /* Evita “scroll” lateral por contenedores tozudos */
 html, body { overflow-x: hidden; }
+
+/* ====== POLISH MÓVIL (overrides mínimos) ====== */
+
+/* Layout general móvil */
+@media (max-width: 640px) {
+  .rb-topbar { font-size: 12px; }
+  .rb-topbar-row { flex-wrap: wrap; row-gap: 6px; }
+  .rb-topbar-row .pill + .pill { margin-left: 0; }
+
+  .rb-main { padding: 8px 0; }
+  .rb-brand img { height: 44px; }          /* antes 115px */
+  .rb-brand-name { font-size: 18px; }
+
+  .rb-search { max-width: none; }
+  .rb-search input { height: 38px; }
+
+  .rb-actions { gap: 6px; }
+  .rb-action { padding: 6px 10px; font-size: 13px; }
+
+  .rb-nav-row {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+  .rb-nav-row::-webkit-scrollbar { display: none; }
+  .rb-pill { padding: .45rem .65rem; }
+
+  .hero-title { font-size: 28px; }
+  .hero-banner { height: 220px; }
+}
+
+/* Mega-menú: columnas y panel en móvil */
+@media (max-width: 768px) {
+  .rb-mega-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+}
+@media (max-width: 480px) {
+  .rb-mega-grid { grid-template-columns: 1fr; }
+  .rb-mega-panel {
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 1.5rem);
+  }
+}
+
+/* Grilla de productos: hijos pueden encogerse y la miniatura es fluida */
+.products-grid > * { min-width: 0; }
+.product-card .thumb,
+.product-card .thumb img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Evita que textos largos “rompan” el layout en móvil */
+:is(h1,h2,h3,h4,.rb-action,.rb-pill,.product-card) { word-break: break-word; }
+
