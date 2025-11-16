@@ -11,11 +11,6 @@ html,body{
 a{color:#b6ff2e;text-decoration:none}
 a:hover{color:#d7ff54}
 
-/* Medios siempre fluidos y sin desbordes */
-img, video, canvas, svg { display:block; max-width:100%; height:auto; }
-* { min-width: 0; }
-html, body { overflow-x: hidden; }
-
 /* ===== Contenedor ===== */
 .rb-container{max-width:1200px;margin:0 auto;padding:0 16px}
 
@@ -156,24 +151,56 @@ main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;d
 }
 
 /* === Ajustes finos checkout (no cambian tus medidas actuales) === */
-.checkout-page section { padding-bottom: 12px !important; }
+
+/* 1) Fondo del bloque de datos un poco más largo */
+.checkout-page section {
+  padding-bottom: 12px !important;   /* más “largo” visual del fondo */
+  /* si quieres aún un pelín más: 32px o 36px */
+}
+
+/* 2) Separar y empujar el resumen un poquito a la derecha */
+@media (min-width: 768px) {
+  .checkout-page .grid-two {
+    gap: 500px !important;            /* antes 1.5rem — solo separación entre columnas */
+  }
+  .checkout-page aside {
+    margin-left: -350px !important;     /* empuje sutil hacia la derecha */
+    /* si lo quieres un pelín más: 12px o 16px */
+  }
+}
+
+/* Tarjeta de resumen a la derecha */
 .checkout-page aside{
   position:sticky !important;top:1.5rem !important;
   border:1px solid #262626 !important;background:rgba(10,10,10,.6) !important;
   border-radius:16px !important;padding:16px !important
 }
+/* Miniaturas compactas en el resumen */
 .checkout-page aside img{
   width:50px !important;height:50px !important;object-fit:cover !important;display:block !important;border-radius:8px
 }
+
+/* Tarjeta del formulario (izquierda) */
 .checkout-page section{
   background:rgba(15,15,15,.5) !important;border:1px solid #262626 !important;border-radius:16px !important;padding:16px
 }
-.checkout-page section form{ max-width:700px; }
+
+/* 👇 Ajuste pedido: el formulario NO tan largo */
+.checkout-page section form{
+  max-width:700px;        /* ancho máximo del formulario */
+}
 .checkout-page section input,
 .checkout-page section select,
-.checkout-page section textarea{ width:100%; max-width:700px; }
-.checkout-page .actions{ display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap }
-.checkout-page .actions .rb-btn{ min-width:160px }
+.checkout-page section textarea{
+  width:100%;
+  max-width:700px;        /* los campos ya no se van de largo */
+}
+
+/* Botonera inferior del paso 1 (por si usas una wrapper .actions) */
+.checkout-page .actions{
+  display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap
+}
+.checkout-page .actions .rb-btn{min-width:160px}
 
 /* ===== Helper de checkout alternativo (si usaste .rb-checkout) ===== */
 .rb-checkout .grid-checkout{display:grid;grid-template-columns:1fr;gap:1.5rem}
@@ -184,9 +211,28 @@ main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;d
 .rb-checkout [data-thumb] img,.rb-checkout .thumb img{width:64px !important;height:64px !important;object-fit:cover !important;display:block !important}
 .rb-checkout aside .card,.rb-checkout aside>div{border-radius:16px}
 
-/* ===================================================================
-   SOLO MÓVIL (overrides). No tocan desktop.
-   =================================================================== */
+/* --- Fixes móviles & helpers globales --- */
+
+* { min-width: 0; }                 /* evita que hijos fuercen desbordes */
+img, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;                     /* imágenes siempre fluidas */
+}
+
+.rb-container {                     /* tu contenedor centrado reutilizable */
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1100px;                /* ajústalo si quieres */
+  padding-inline: 1rem;
+}
+@media (min-width: 640px){ .rb-container{ padding-inline: 1.25rem } }
+@media (min-width: 1024px){ .rb-container{ padding-inline: 1.5rem } }
+
+/* Evita “scroll” lateral por contenedores tozudos */
+html, body { overflow-x: hidden; }
+
+/* ====== RESCATE MÓVIL GLOBAL (aplica dentro de <main data-mobile-fix="1">) ====== */
 
 /* Compacta topbar / header / nav en pantallas chicas */
 @media (max-width: 640px) {
@@ -195,70 +241,78 @@ main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;d
   .rb-topbar-row .pill + .pill { margin-left: 0; }
 
   .rb-main { padding: 8px 0; }
-  .rb-brand img { height: 48px; }          /* antes 115px */
+  .rb-brand img { height: 44px; }
   .rb-brand-name { font-size: 18px; }
 
-  /* Reestructura header: logo + acciones arriba, buscador abajo */
-  .rb-main-row { grid-template-columns: auto 1fr; gap: 10px; }
-  .rb-actions { justify-self: end; gap: 6px; }
-  .rb-search { order: 3; grid-column: 1 / -1; max-width: none; }
   .rb-search input { height: 38px; }
-
+  .rb-actions { gap: 6px; }
   .rb-action { padding: 6px 10px; font-size: 13px; }
 
-  /* Píldoras navegables con scroll suave si no caben */
   .rb-nav-row {
-    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
     padding-bottom: 6px;
   }
   .rb-nav-row::-webkit-scrollbar { display: none; }
   .rb-pill { padding: .45rem .65rem; }
 }
 
-/* Mega: columnas y panel sin desbordes en móvil */
-@media (max-width: 768px) {
-  .rb-mega-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-}
-@media (max-width: 640px) {
+/* Mega: de 2 cols a 1 col en pantallas pequeñas */
+@media (max-width: 768px) { .rb-mega-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; } }
+@media (max-width: 480px) {
   .rb-mega-grid { grid-template-columns: 1fr; }
   .rb-mega-panel {
-    position: fixed !important;
-    left: 0 !important; right: 0 !important;
-    top: calc(56px + 48px); /* header+nav aprox */
-    width: 100vw !important; max-height: 70vh; overflow: auto;
-    border-radius: 0; margin: 0 !important; z-index: 70;
+    left: 50%; transform: translateX(-50%);
+    width: calc(100vw - 1.5rem);
   }
 }
 
-/* Núcleo: fuerza 1 columna y evita anchos fijos SOLO dentro de main[data-mobile-fix] */
+/* ---------- Núcleo: sanea grids y anchos fijos en móvil ---------- */
 @media (max-width: 640px) {
-  main[data-mobile-fix="1"] * { min-width: 0; }
+  main[data-mobile-fix="1"] * { min-width: 0; }           /* deja encoger a los hijos */
 
-  /* Cualquier grid dentro de main => 1 col */
-  main[data-mobile-fix="1"] :is(section,div,ul,ol).grid { grid-template-columns: 1fr !important; }
-  /* Clases tailwind grid-cols-* => 1 col */
-  main[data-mobile-fix="1"] [class*="grid-cols-"] { grid-template-columns: 1fr !important; }
-  /* Evita col-span inadecuados */
+  /* Cualquier grid dentro de main => 1 columna */
+  main[data-mobile-fix="1"] :is(section,div,ul,ol).grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Cualquier clase generada tipo grid-cols-* => 1 columna */
+  main[data-mobile-fix="1"] [class*="grid-cols-"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Evita spans raros de tailwind en móvil */
   main[data-mobile-fix="1"] [class*="col-span-"] { grid-column: auto !important; }
 
-  /* Flex: envolver si no cabe */
+  /* Flex que no envuelven => obliga a wrap */
   main[data-mobile-fix="1"] :is(.flex,.inline-flex) { flex-wrap: wrap !important; }
 
   /* Rompe anchos fijos comunes */
-  main[data-mobile-fix="1"] [style*="width"] { width: 100% !important; max-width: 100% !important; }
-  main[data-mobile-fix="1"] [class*="w-["]   { width: 100% !important; max-width: 100% !important; }
+  main[data-mobile-fix="1"] [style*="width"] {
+    width: 100% !important; max-width: 100% !important;
+  }
+  main[data-mobile-fix="1"] [class*="w-["] {
+    width: 100% !important; max-width: 100% !important;
+  }
 
-  /* Ítems de listas/tarjetas ocupan todo el ancho disponible */
+  /* Tarjetas/list-items siempre a 100% */
   main[data-mobile-fix="1"] :is(li, .product-card, [data-build-card], .rb-card) {
     width: 100% !important; max-width: 100% !important;
   }
 
-  /* Imágenes seguras */
+  /* Imágenes fluidas seguras */
   main[data-mobile-fix="1"] img {
-    display: block !important; width: 100% !important; height: auto !important; object-fit: cover !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: cover !important;
   }
 
-  /* Headings más contenidos */
+  /* Tipografías enormes: evita que rompan el flujo */
+  main[data-mobile-fix="1"] :is(h1,h2,h3,h4,.rb-action,.rb-pill,.product-card){
+    word-break: break-word;
+  }
+}
+
+/* Un poquito de coherencia visual en headings */
+@media (max-width: 640px) {
   .hero-title { font-size: 28px; }
   .section-title { font-size: 20px; }
   .hero-banner { height: 220px; }
