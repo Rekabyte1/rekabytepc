@@ -19,13 +19,22 @@ export const metadata: Metadata = {
   // metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://rekabytepc.vercel.app"),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="es" className="h-full bg-neutral-950">
-      <body className="h-full bg-neutral-950 text-white antialiased overflow-x-hidden">
+      <body className="min-h-screen bg-neutral-950 text-white antialiased overflow-x-hidden">
         <CartProvider>
           <Header />
-          <main className="min-h-[60vh]">{children}</main>
+
+          {/* Marca para que los fixes móviles del CSS se apliquen dentro de main */}
+          <main data-mobile-fix="1" className="min-h-[60vh]">
+            {children}
+          </main>
+
           <Footer />
           <WhatsAppButton />
         </CartProvider>
