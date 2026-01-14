@@ -1,0 +1,145 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String?
+  phone        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  addresses    Address[]
+  orders       Order[]
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  fullName  String
+  phone     String
+  street    String
+  number    String?
+  apartment String?
+  city      String
+  region    String
+  country   String   @default("Chile")
+  isDefault Boolean  @default(false)
+
+  shipments Shipment[]
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  price       Int
+  imageUrl    String?
+  stock       Int?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  user           User?         @relation(fields: [userId], references: [id])
+  userId         String?
+  contactEmail   String
+  contactName    String
+  contactPhone   String?
+  status         OrderStatus   @default(PENDING_PAYMENT)
+  shippingMethod ShippingMethod
+  paymentMethod  PaymentMethod
+  shippingCost   Int           @default(0)
+  subtotal       Int
+  total          Int
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  items          OrderItem[]
+  payment        Payment?
+  shipment       Shipment?
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  order       Order   @relation(fields: [orderId], references: [id])
+  orderId     String
+  product     Product @relation(fields: [productId], references: [id])
+  productId   String
+  productName String
+  unitPrice   Int
+  quantity    Int
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  order         Order         @relation(fields: [orderId], references: [id])
+  orderId       String  @unique
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  amount        Int
+  transactionId String?
+  proofUrl      String?
+  createdAt     DateTime      @default(now())
+}
+
+model Shipment {
+  id             String          @id @default(cuid())
+  order          Order           @relation(fields: [orderId], references: [id])
+  orderId        String  @unique
+  type           ShippingMethod
+  address        Address?        @relation(fields: [addressId], references: [id])
+  addressId      String?
+  pickupLocation String?
+  status         ShipmentStatus  @default(PENDING)
+  trackingCode   String?
+  estimatedDate  DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum ShippingMethod {
+  DELIVERY
+  PICKUP
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum ShipmentStatus {
+  PENDING
+  READY
+  ON_ROUTE
+  DELIVERED
+}
