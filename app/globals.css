@@ -30,10 +30,10 @@ html, body { overflow-x: hidden; }
 
 /* Main header (logo | buscador | acciones) */
 .rb-main{padding:12px 0}
-.rb-main-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px}
-.rb-brand{display:flex;align-items:center;gap:12px}
-.rb-brand img{height:115px;width:auto}
-.rb-brand-name{color:#b6ff2e;font-weight:700;font-size:22px}
+.rb-main-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
+.rb-brand{display:flex;align-items:center;gap:1px}
+.rb-brand img{height:145px;width:auto}   /* o la altura que quieras de mi logo */
+.rb-brand-name{color:#b6ff2e;font-weight:650;font-size:22px}
 
 /* Buscador */
 .rb-search{position:relative;width:100%;max-width:680px;justify-self:center}
@@ -195,7 +195,7 @@ main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;d
   .rb-topbar-row .pill + .pill { margin-left: 0; }
 
   .rb-main { padding: 8px 0; }
-  .rb-brand img { height: 48px; }          /* antes 115px */
+  .rb-brand img { height: 48px; }          /* antes 115px y creo que es para mobil esta parte */
   .rb-brand-name { font-size: 18px; }
 
   /* Reestructura header: logo + acciones arriba, buscador abajo */

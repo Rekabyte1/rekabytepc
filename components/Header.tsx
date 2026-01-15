@@ -61,14 +61,12 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Main row */}
-      <div className="rb-main">
+        {/* Main row */} 
+        <div className="rb-main">
         <div className="rb-container rb-main-row">
-          {/* Logo */}
-          <Link href="/" className="rb-brand">
-            <img src="/logo.png" alt="RekaByte" className="h-14 w-auto object-contain" />
-            <span className="rb-brand-name">RekaByte</span>
-          </Link>
+          {/* Logo */} <Link href="/" className="rb-brand">
+            <img src="/Logo.png" alt="RekaByte" className="h-40 w-auto object-contain" 
+              /> <span className="rb-brand-name">RekaByte</span> </Link>
 
           {/* Buscador */}
           <div className="rb-search">
