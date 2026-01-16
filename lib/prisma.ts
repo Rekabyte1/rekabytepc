@@ -2,11 +2,12 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-// Creamos el adapter usando tu DATABASE_URL del .env
+// Adapter usando tu DATABASE_URL del .env (pool de Supabase)
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });
 
+// Reutilizar la instancia en desarrollo para evitar múltiples conexiones
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
@@ -14,7 +15,7 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter, // <- esto es lo que pedía el error
+    adapter,
     log: ["error", "warn"],
   });
 
