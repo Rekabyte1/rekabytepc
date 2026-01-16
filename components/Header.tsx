@@ -65,7 +65,7 @@ export default function Header() {
         <div className="rb-main">
         <div className="rb-container rb-main-row">
           {/* Logo */} <Link href="/" className="rb-brand">
-            <img src="/Logo.png" alt="RekaByte" className="h-40 w-auto object-contain" 
+            <img src="/Logo2.png" alt="RekaByte" className="h-40 w-auto object-contain" 
               /> <span className="rb-brand-name">RekaByte</span> </Link>
 
           {/* Buscador */}
