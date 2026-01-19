@@ -41,7 +41,7 @@ const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
   priceTransfer: 399000,
   priceCard: 429000,
   productSlug: "oficina-8600g",
-  stock: 2,
+  stock: 4,
   specs: [
     { label: "Tarjeta de video", value: "Integrada (RDNA3)" },
     { label: "CPU", value: "Ryzen 5 8600G" },
@@ -85,7 +85,7 @@ const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
   priceTransfer: 1490000,
   priceCard: 1550000,
   productSlug: "media-ryzen9-rx9060xt",
-  stock: 2,
+  stock: 4,
   specs: [
     { label: "Tarjeta de video", value: "Radeon RX 9060 XT" },
     { label: "CPU", value: "Ryzen 9 (AM5)" },

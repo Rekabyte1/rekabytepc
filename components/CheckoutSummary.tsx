@@ -44,7 +44,7 @@ export default function CheckoutSummary() {
   async function handleConfirm() {
     if (!canConfirm) return;
 
-    // Import dinámico para evitar “Export ... doesn't exist in target module”
+    // 1) Orden local (para número y pickupCode)
     const { createOrder } = await import("@/data/orders");
 
     const order = createOrder({
@@ -52,7 +52,7 @@ export default function CheckoutSummary() {
       shipping: envio ?? { tipo: "retiro", costoEnvio: 0 },
       customer: contacto ?? {},
       items: items.map((it) => ({
-        slug: it.id,
+        slug: it.id, // usamos el id del carrito como slug
         name: it.name,
         qty: it.quantity,
         image: it.image,
@@ -67,14 +67,71 @@ export default function CheckoutSummary() {
       },
     });
 
-    clear();
+    // 2) Llamar a la API /api/checkout para validar stock y crear el pedido real en Supabase
+    try {
+      const deliveryType =
+        envio?.tipo === "envio" ? ("shipping" as const) : ("pickup" as const);
 
-    if (order.shipping?.tipo === "retiro" && order.pickupCode) {
-      alert(
-        `¡Gracias! Tu pedido N°${order.number} fue creado.\nCódigo de retiro: ${order.pickupCode}`
-      );
-    } else {
-      alert(`¡Gracias! Tu pedido N°${order.number} fue creado.`);
+      const payload = {
+        items: items.map((it) => ({
+          // 👇 el backend va a buscar por slug
+          productSlug: it.id,
+          quantity: it.quantity,
+        })),
+        customer: {
+          name: contacto?.name ?? "",
+          email: contacto?.email ?? "",
+          phone: contacto?.phone ?? "",
+        },
+        deliveryType,
+        address:
+          deliveryType === "shipping"
+            ? {
+                fullName: contacto?.name ?? "",
+                phone: contacto?.phone ?? "",
+                // estos campos los rellenamos con lo que tengas en `envio`
+                street: envio?.calle ?? envio?.street ?? "S/D",
+                number: envio?.numero ?? envio?.number ?? "",
+                apartment: envio?.depto ?? envio?.apartment ?? "",
+                commune: envio?.comuna ?? "",
+                city: envio?.ciudad ?? envio?.comuna ?? "S/D",
+                region: envio?.region ?? "S/D",
+                country: "Chile",
+              }
+            : undefined,
+        // por si usas comentarios/notas en el paso de pago
+        notes: pago?.comentarios ?? "",
+      };
+
+      const resp = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok || !data?.ok) {
+        alert(
+          data?.error ??
+            "No se pudo crear el pedido (por ejemplo, stock agotado o error del servidor)."
+        );
+        return; // no limpiamos carrito, no mostramos “gracias”
+      }
+
+      // 3) Solo si la API dijo OK: limpiamos carrito y mostramos mensaje de éxito
+      clear();
+
+      if (order.shipping?.tipo === "retiro" && order.pickupCode) {
+        alert(
+          `¡Gracias! Tu pedido N°${order.number} fue creado.\nCódigo de retiro: ${order.pickupCode}`
+        );
+      } else {
+        alert(`¡Gracias! Tu pedido N°${order.number} fue creado.`);
+      }
+    } catch (err) {
+      console.error("Error en handleConfirm:", err);
+      alert("Ocurrió un error al crear el pedido. Intenta nuevamente.");
     }
   }
 
@@ -98,12 +155,18 @@ export default function CheckoutSummary() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-white">{it.name}</div>
-                  <div className="text-xs text-neutral-400">Cantidad: {it.quantity}</div>
+                  <div className="truncate text-sm font-semibold text-white">
+                    {it.name}
+                  </div>
+                  <div className="text-xs text-neutral-400">
+                    Cantidad: {it.quantity}
+                  </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-lime-400">{CLP(it.priceTransfer)}</div>
+                  <div className="text-sm font-semibold text-lime-400">
+                    {CLP(it.priceTransfer)}
+                  </div>
                   <div className="text-xs text-neutral-500">{CLP(it.priceCard)}</div>
                 </div>
               </div>
@@ -115,13 +178,17 @@ export default function CheckoutSummary() {
             {lines.map((l) => (
               <div key={l.label} className="mb-1 flex items-center justify-between">
                 <span className="text-neutral-300">{l.label}</span>
-                <span className="font-semibold text-neutral-200">{CLP(l.value)}</span>
+                <span className="font-semibold text-neutral-200">
+                  {CLP(l.value)}
+                </span>
               </div>
             ))}
 
             <div className="mb-1 flex items-center justify-between">
               <span className="text-neutral-500">Envío</span>
-              <span className="text-neutral-500">{shipping > 0 ? CLP(shipping) : "-"}</span>
+              <span className="text-neutral-500">
+                {shipping > 0 ? CLP(shipping) : "-"}
+              </span>
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-neutral-800 pt-3">

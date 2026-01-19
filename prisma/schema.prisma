@@ -1,10 +1,10 @@
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider   = "prisma-client-js"
   engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
 }
 
 model User {
@@ -13,16 +13,14 @@ model User {
   email        String    @unique
   passwordHash String?
   phone        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
   addresses    Address[]
   orders       Order[]
 }
 
 model Address {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
+  id        String     @id @default(cuid())
   userId    String
   fullName  String
   phone     String
@@ -31,9 +29,10 @@ model Address {
   apartment String?
   city      String
   region    String
-  country   String   @default("Chile")
-  isDefault Boolean  @default(false)
-
+  country   String     @default("Chile")
+  isDefault Boolean    @default(false)
+  commune   String?    // NUEVO CAMPO
+  user      User       @relation(fields: [userId], references: [id])
   shipments Shipment[]
 }
 
@@ -46,29 +45,27 @@ model Product {
   imageUrl    String?
   stock       Int?
   isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
   orderItems  OrderItem[]
 }
 
 model Order {
-  id             String        @id @default(cuid())
-  user           User?         @relation(fields: [userId], references: [id])
+  id             String         @id @default(cuid())
   userId         String?
   contactEmail   String
   contactName    String
   contactPhone   String?
-  status         OrderStatus   @default(PENDING_PAYMENT)
+  status         OrderStatus    @default(PENDING_PAYMENT)
   shippingMethod ShippingMethod
   paymentMethod  PaymentMethod
-  shippingCost   Int           @default(0)
+  shippingCost   Int            @default(0)
   subtotal       Int
   total          Int
   notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+  user           User?          @relation(fields: [userId], references: [id])
   items          OrderItem[]
   payment        Payment?
   shipment       Shipment?
@@ -76,40 +73,40 @@ model Order {
 
 model OrderItem {
   id          String  @id @default(cuid())
-  order       Order   @relation(fields: [orderId], references: [id])
   orderId     String
-  product     Product @relation(fields: [productId], references: [id])
   productId   String
   productName String
   unitPrice   Int
   quantity    Int
+  order       Order   @relation(fields: [orderId], references: [id])
+  product     Product @relation(fields: [productId], references: [id])
 }
 
 model Payment {
   id            String        @id @default(cuid())
-  order         Order         @relation(fields: [orderId], references: [id])
-  orderId       String  @unique
+  orderId       String        @unique
   method        PaymentMethod
   status        PaymentStatus @default(PENDING)
   amount        Int
   transactionId String?
   proofUrl      String?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  order         Order         @relation(fields: [orderId], references: [id])
 }
 
 model Shipment {
-  id             String          @id @default(cuid())
-  order          Order           @relation(fields: [orderId], references: [id])
-  orderId        String  @unique
+  id             String         @id @default(cuid())
+  orderId        String         @unique
   type           ShippingMethod
-  address        Address?        @relation(fields: [addressId], references: [id])
   addressId      String?
   pickupLocation String?
-  status         ShipmentStatus  @default(PENDING)
+  status         ShipmentStatus @default(PENDING)
   trackingCode   String?
-  estimatedDate  DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  estimatedDate  DateTime?      @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+  address        Address?       @relation(fields: [addressId], references: [id])
+  order          Order          @relation(fields: [orderId], references: [id])
 }
 
 enum OrderStatus {

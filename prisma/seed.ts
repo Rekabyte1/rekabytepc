@@ -3,7 +3,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { products } from "../data/products"; // productos del archivo data/products.ts
+import { products } from "../data/products";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -17,18 +17,19 @@ const prisma = new PrismaClient({
 async function main() {
   console.log("Seeding de productos…");
 
-  // Borra todos los productos actuales
+  // Limpia la tabla
   await prisma.product.deleteMany();
   console.log("Tabla Product limpiada.");
 
   for (const p of products) {
     await prisma.product.upsert({
-      where: { slug: p.slug }, // usamos el slug como identificador único
+      where: { slug: p.slug },
       update: {
         name: p.title,
         description: p.desc,
         price: p.price,
         imageUrl: p.image,
+        stock: p.stock,           // ← sincroniza stock
         isActive: true,
       },
       create: {
@@ -37,6 +38,7 @@ async function main() {
         description: p.desc,
         price: p.price,
         imageUrl: p.image,
+        stock: p.stock,           // ← sincroniza stock
         isActive: true,
       },
     });
@@ -54,4 +56,4 @@ main()
     await prisma.$disconnect();
   });
 
-export {}; // opcional, solo para que TS vea este archivo como módulo
+export {};

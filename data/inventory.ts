@@ -1,6 +1,8 @@
 // /data/inventory.ts
 "use client";
 
+import { products } from "./products";
+
 /**
  * Inventario con RESERVAS (localStorage, prototipo):
  * - No se descuenta al “Agregar al carrito”.
@@ -27,35 +29,21 @@ export type InventoryState = {
   nextResId: number;
 };
 
-const KEY = "rekabyte_inventory_v3";
+// 👇 subimos versión para forzar a ignorar el localStorage viejo
+const KEY = "rekabyte_inventory_v5";
 const EVT = "inventory:update";
 
 // Duraciones de reservas
 export const HOLD_TRANSFER_MS = 24 * 60 * 60 * 1000; // 24h
 export const HOLD_GATEWAY_MS = 2 * 60 * 60 * 1000;   // 2h
 
-// Stock inicial editable
-const DEFAULT_TOTAL: Dict<number> = {
-  "oficina-8600g": 2,
-  "entrada-ryzen7-rtx5060": 2,
-  "media-ryzen9-rx9060xt": 2,
-};
+// Stock inicial: se construye a partir de data/products.ts
+const DEFAULT_TOTAL: Dict<number> = products.reduce((acc, p) => {
+  acc[p.slug] = p.stock;
+  return acc;
+}, {} as Dict<number>);
 
 const now = () => Date.now();
-
-function load(): InventoryState {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as InventoryState;
-  } catch {}
-  const st: InventoryState = {
-    total: { ...DEFAULT_TOTAL },
-    reservations: {},
-    nextResId: 1,
-  };
-  save(st);
-  return st;
-}
 
 function save(st: InventoryState) {
   try {
@@ -75,6 +63,24 @@ function cleanupExpired(st: InventoryState) {
     }
   }
   if (changed) save(st);
+}
+
+function load(): InventoryState {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const st = JSON.parse(raw) as InventoryState;
+      cleanupExpired(st);
+      return st;
+    }
+  } catch {}
+  const st: InventoryState = {
+    total: { ...DEFAULT_TOTAL },
+    reservations: {},
+    nextResId: 1,
+  };
+  save(st);
+  return st;
 }
 
 function activeReservationsFor(st: InventoryState, slug: string) {
@@ -117,14 +123,20 @@ export function setTotal(slug: string, qty: number) {
 /** Suma al total físico (admin) */
 export function addStock(slug: string, qty: number) {
   const st = load();
-  st.total[slug] = Math.max(0, (st.total[slug] ?? 0) + Math.floor(qty));
+  st.total[slug] = Math.max(
+    0,
+    (st.total[slug] ?? 0) + Math.floor(qty)
+  );
   save(st);
 }
 
 /** Resta del total físico (admin) */
 export function reduceStock(slug: string, qty: number) {
   const st = load();
-  st.total[slug] = Math.max(0, (st.total[slug] ?? 0) - Math.floor(qty));
+  st.total[slug] = Math.max(
+    0,
+    (st.total[slug] ?? 0) - Math.floor(qty)
+  );
   save(st);
 }
 
@@ -183,7 +195,9 @@ export function commitReservation(reservationId: string) {
 export function releaseReservationsByOrder(orderId: string) {
   const st = load();
   for (const r of Object.values(st.reservations)) {
-    if (r.orderId === orderId) delete st.reservations[r.id];
+    if (r.orderId === orderId) {
+      delete st.reservations[r.id];
+    }
   }
   save(st);
 }

@@ -7,6 +7,7 @@ export type PaymentUI =
   | 'webpay'
   | 'card'
   | 'transfer';
+
 export type NormalizedPayment = 'card' | 'transfer';
 
 // Ítem flexible (acepta claves usadas en CheckoutSummary)
@@ -76,7 +77,9 @@ export function createOrder(input: CreateOrderInput) {
     const normQty = Number(i.qty ?? i.quantity ?? 0);
 
     const priceForMethod =
-      method === 'transfer' ? i.priceTransfer ?? i.price : i.priceCard ?? i.price;
+      method === 'transfer'
+        ? i.priceTransfer ?? i.price
+        : i.priceCard ?? i.price;
 
     const normPrice = Number(priceForMethod ?? 0);
 
@@ -124,22 +127,61 @@ export function createOrder(input: CreateOrderInput) {
     input.shipping ??
     (amounts.shipping as { tipo?: string; costoEnvio?: number });
 
+  const customer = input.customer ?? {};
+
   // 👇 GENERAMOS pickupCode si es retiro
   const pickupCode =
     shipping?.tipo === 'retiro' ? genPickupCode() : undefined;
 
-  return {
+  const order = {
     id,
     number,
     status: 'pending' as const,
     paymentMethod: method, // 'card' | 'transfer'
     items,
-    customer: input.customer ?? {},
+    customer,
     shipping,
     amounts,
     pickupCode, // ← ahora existe
     createdAt: new Date().toISOString(),
   };
+
+  // 🔗 Además de devolver el pedido "local", lo mandamos al backend /api/checkout
+  if (typeof window !== 'undefined') {
+    (async () => {
+      try {
+        await fetch('/api/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            items: order.items.map((item) => ({
+              // item.id aquí es el "slug o id" lógico del producto
+              slug: item.id,
+              quantity: item.qty,
+            })),
+            customer: {
+              name: (order.customer as any)?.name ?? '',
+              email: (order.customer as any)?.email ?? '',
+              phone: (order.customer as any)?.phone,
+            },
+            deliveryType:
+              (order.shipping as any)?.tipo === 'retiro'
+                ? 'pickup'
+                : 'shipping',
+            // De momento, información adicional solo como nota
+            notes: `UI order ${order.id} / method: ${order.paymentMethod}`,
+          }),
+        });
+      } catch (err) {
+        console.error('Error enviando pedido a /api/checkout:', err);
+      }
+    })();
+  }
+
+  // La UI sigue funcionando igual que antes
+  return order;
 }
 
 export default { createOrder };
