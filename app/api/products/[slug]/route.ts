@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function GET(_req: NextRequest, context: any) {
   try {
-    const { slug } = params;
+    // En algunas versiones Next tipa params como Promise<{ slug }>,
+    // en otras como { slug }. Esto soporta ambas.
+    const rawParams = await (context?.params ?? {});
+    const slug =
+      (rawParams?.slug ??
+        context?.params?.slug) as string | undefined;
 
     if (!slug) {
       return NextResponse.json(
