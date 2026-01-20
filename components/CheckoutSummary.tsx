@@ -7,7 +7,7 @@ import { useCheckout } from "./CheckoutStore";
 /**
  * Resumen + Confirmación de pedido.
  * - Si elige transferencia => reserva 24h y muestra número de pedido y PIN de retiro.
- * - Si elige Webpay/MercadoPago => reserva temporal (2h). Cuando marques pagado, descontará del stock.
+ * - Si elige Webpay/MercadoPago => (por ahora) no deja confirmar pedido.
  */
 export default function CheckoutSummary() {
   const { items, subtotalTransfer, subtotalCard, clear } = useCart();
@@ -21,13 +21,17 @@ export default function CheckoutSummary() {
 
   const shipping = envio?.costoEnvio ?? 0;
 
-  const transferLine = { label: "Pago con transferencias", value: subtotalTransfer };
+  const transferLine = {
+    label: "Pago con transferencias",
+    value: subtotalTransfer,
+  };
   const cardLine = { label: "Otros medios de pago", value: subtotalCard };
 
   // Líneas a mostrar según elección
   let lines: { label: string; value: number }[] = [];
   if (chosen === "transferencia") lines = [transferLine];
-  else if (chosen === "webpay" || chosen === "mercadopago") lines = [cardLine];
+  else if (chosen === "webpay" || chosen === "mercadopago")
+    lines = [cardLine];
   else lines = [transferLine, cardLine];
 
   // Base del total según método (antes de elegir, usamos transferencia como referencia)
@@ -39,20 +43,29 @@ export default function CheckoutSummary() {
       : subtotalTransfer;
 
   const total = base + shipping;
-  const canConfirm = items.length > 0 && !!chosen;
+
+  const isTransfer = chosen === "transferencia";
+  // 👇 Solo permitimos confirmar si hay items Y el medio es transferencia
+  const canConfirm = items.length > 0 && isTransfer;
 
   async function handleConfirm() {
-    if (!canConfirm) return;
+    if (!canConfirm) {
+      // Seguridad extra: si por algún bug llega aquí sin ser transferencia, salimos.
+      alert(
+        "Por ahora solo puedes confirmar pedidos pagando por transferencia. El resto de medios se activará más adelante."
+      );
+      return;
+    }
 
     // 1) Orden local (para número y pickupCode)
     const { createOrder } = await import("@/data/orders");
 
     const order = createOrder({
-      paymentMethod: chosen!,
+      paymentMethod: chosen!, // 'transferencia' en este flujo
       shipping: envio ?? { tipo: "retiro", costoEnvio: 0 },
       customer: contacto ?? {},
       items: items.map((it) => ({
-        slug: it.id, // usamos el id del carrito como slug
+        slug: it.id, // usamos el id del carrito como slug / identificador visual
         name: it.name,
         qty: it.quantity,
         image: it.image,
@@ -74,8 +87,10 @@ export default function CheckoutSummary() {
 
       const payload = {
         items: items.map((it) => ({
-          // 👇 el backend va a buscar por slug
-          productSlug: it.id,
+          // Mantengo exactamente la misma estructura que ya usabas
+          // (productSlug o productId según tu endpoint actual).
+          // NO tocamos esto para no romper nada que ya funciona.
+          productId: it.id, // si tu endpoint usa slug, cámbialo a productSlug: it.id
           quantity: it.quantity,
         })),
         customer: {
@@ -84,6 +99,7 @@ export default function CheckoutSummary() {
           phone: contacto?.phone ?? "",
         },
         deliveryType,
+        paymentMethod: chosen ?? "transferencia", // 👈 AHORA se envía explícito
         address:
           deliveryType === "shipping"
             ? {
@@ -151,7 +167,11 @@ export default function CheckoutSummary() {
               <div key={it.id} className="flex items-center gap-3 py-3">
                 <div className="thumb shrink-0 overflow-hidden rounded-md bg-neutral-950">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={it.image || "/pc1.jpg"} alt={it.name} draggable={false} />
+                  <img
+                    src={it.image || "/pc1.jpg"}
+                    alt={it.name}
+                    draggable={false}
+                  />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -167,7 +187,9 @@ export default function CheckoutSummary() {
                   <div className="text-sm font-semibold text-lime-400">
                     {CLP(it.priceTransfer)}
                   </div>
-                  <div className="text-xs text-neutral-500">{CLP(it.priceCard)}</div>
+                  <div className="text-xs text-neutral-500">
+                    {CLP(it.priceCard)}
+                  </div>
                 </div>
               </div>
             ))}
@@ -176,7 +198,10 @@ export default function CheckoutSummary() {
           {/* Totales */}
           <div className="mt-4 border-t border-neutral-800 pt-4 text-sm">
             {lines.map((l) => (
-              <div key={l.label} className="mb-1 flex items-center justify-between">
+              <div
+                key={l.label}
+                className="mb-1 flex items-center justify-between"
+              >
                 <span className="text-neutral-300">{l.label}</span>
                 <span className="font-semibold text-neutral-200">
                   {CLP(l.value)}
@@ -193,8 +218,18 @@ export default function CheckoutSummary() {
 
             <div className="mt-2 flex items-center justify-between border-t border-neutral-800 pt-3">
               <span className="font-bold text-neutral-200">TOTAL</span>
-              <span className="font-extrabold text-white">{CLP(total)}</span>
+              <span className="font-extrabold text-white">
+                {CLP(total)}
+              </span>
             </div>
+
+            {/* Mensaje sobre métodos de pago */}
+            {!isTransfer && (
+              <p className="mt-3 text-xs text-amber-300">
+                Por ahora solo está disponible la confirmación por
+                transferencia. Las otras opciones se activarán más adelante.
+              </p>
+            )}
 
             <button
               onClick={handleConfirm}

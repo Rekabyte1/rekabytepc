@@ -1,4 +1,4 @@
-// /app/api/checkout/route.ts
+// app/api/checkout/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -32,7 +32,6 @@ type CheckoutPayload = {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CheckoutPayload;
-
     const { items, customer, address, deliveryType, notes } = body;
 
     if (!items || items.length === 0) {
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1) Obtener productos desde la BD por slug
+    // 1) Obtener productos desde la BD usando el SLUG
     const slugs = items.map((i) => i.productSlug);
     const products = await prisma.product.findMany({
       where: { slug: { in: slugs } },
@@ -70,6 +69,12 @@ export async function POST(req: NextRequest) {
       }
 
       const quantity = Number(item.quantity ?? 1);
+      if (quantity <= 0 || Number.isNaN(quantity)) {
+        return NextResponse.json(
+          { ok: false, error: "Cantidad inválida." },
+          { status: 400 }
+        );
+      }
 
       if (product.stock != null && product.stock < quantity) {
         return NextResponse.json(
@@ -84,7 +89,7 @@ export async function POST(req: NextRequest) {
       subtotal += product.price * quantity;
     }
 
-    // Aquí puedes calcular costo de envío real por comuna, etc.
+    // Aquí puedes calcular costo de envío real
     const shippingCost =
       deliveryType === "shipping"
         ? 0 // TODO: lógica real de costo de envío
