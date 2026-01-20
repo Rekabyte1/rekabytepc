@@ -2,12 +2,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-type Params = { params: { slug: string } };
+export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { slug: string } }
+) {
   try {
+    const { slug } = params;
+
+    if (!slug) {
+      return NextResponse.json(
+        { ok: false, error: "Slug requerido", product: null },
+        { status: 400 }
+      );
+    }
+
     const product = await prisma.product.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
     if (!product) {
@@ -17,11 +29,24 @@ export async function GET(_req: NextRequest, { params }: Params) {
       );
     }
 
-    return NextResponse.json({ ok: true, product }, { status: 200 });
-  } catch (err: any) {
+    return NextResponse.json(
+      {
+        ok: true,
+        product: {
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price: product.price,
+          stock: product.stock,
+          imageUrl: product.imageUrl,
+        },
+      },
+      { status: 200 }
+    );
+  } catch (err) {
     console.error("Error en /api/products/[slug]:", err);
     return NextResponse.json(
-      { ok: false, error: "Error al obtener producto", product: null },
+      { ok: false, error: "Error al obtener producto.", product: null },
       { status: 500 }
     );
   }
