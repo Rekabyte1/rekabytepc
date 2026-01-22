@@ -2,19 +2,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-type CheckoutItem = {
-  productSlug: string;
-  quantity: number;
-};
+type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 
 type CheckoutPayload = {
-  items: CheckoutItem[];
+  // 👇 el frontend enviará el slug del producto
+  items: { productSlug: string; quantity: number }[];
   customer: {
     name: string;
     email: string;
     phone?: string;
   };
   deliveryType: "pickup" | "shipping";
+  paymentMethod: CheckoutPaymentUI;
   address?: {
     fullName?: string;
     phone?: string;
@@ -32,7 +31,7 @@ type CheckoutPayload = {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CheckoutPayload;
-    const { items, customer, address, deliveryType, notes } = body;
+    const { items, customer, address, deliveryType, notes, paymentMethod } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json(
@@ -41,8 +40,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1) Obtener productos desde la BD usando el SLUG
-    const slugs = items.map((i) => i.productSlug);
+    // 1) Tomar slugs y validar que ninguno sea undefined / vacío
+    const slugs = items
+      .map((i) => i.productSlug)
+      .filter((s): s is string => typeof s === "string" && s.trim().length > 0);
+
+    if (slugs.length === 0 || slugs.length !== items.length) {
+      return NextResponse.json(
+        { ok: false, error: "Algún producto no tiene identificador válido (slug)." },
+        { status: 400 }
+      );
+    }
+
+    // 2) Obtener productos desde la BD por slug
     const products = await prisma.product.findMany({
       where: { slug: { in: slugs } },
     });
@@ -56,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
 
-    // 2) Calcular subtotal y validar stock
+    // 3) Calcular subtotal y validar stock
     let subtotal = 0;
 
     for (const item of items) {
@@ -69,12 +79,6 @@ export async function POST(req: NextRequest) {
       }
 
       const quantity = Number(item.quantity ?? 1);
-      if (quantity <= 0 || Number.isNaN(quantity)) {
-        return NextResponse.json(
-          { ok: false, error: "Cantidad inválida." },
-          { status: 400 }
-        );
-      }
 
       if (product.stock != null && product.stock < quantity) {
         return NextResponse.json(
@@ -89,7 +93,7 @@ export async function POST(req: NextRequest) {
       subtotal += product.price * quantity;
     }
 
-    // Aquí puedes calcular costo de envío real
+    // Costo de envío (luego lo podrás mejorar)
     const shippingCost =
       deliveryType === "shipping"
         ? 0 // TODO: lógica real de costo de envío
@@ -97,15 +101,19 @@ export async function POST(req: NextRequest) {
 
     const total = subtotal + shippingCost;
 
-    // 3) Transaction: Address (si corresponde) + Order + OrderItems + stock + Shipment
+    // 4) Normalizar método de pago al enum de tu BD
+    const normalizedPaymentMethod =
+      paymentMethod === "transferencia" ? "TRANSFER" : "CARD";
+
+    // 5) Transacción: Address + Order + Items + stock + Shipment
     const result = await prisma.$transaction(async (tx) => {
-      // 3.1) Crear Address si es envío a domicilio
+      // 5.1) Address si es envío
       let addressRecord: { id: string } | null = null;
 
       if (deliveryType === "shipping" && address) {
         addressRecord = await tx.address.create({
           data: {
-            userId: "guest", // TODO: cambiar cuando implementes usuarios
+            userId: "guest", // cambiar cuando tengas usuarios
             fullName: address.fullName ?? customer.name,
             phone: address.phone ?? customer.phone ?? "",
             street: address.street,
@@ -121,16 +129,16 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 3.2) Crear Order
+      // 5.2) Order
       const order = await tx.order.create({
         data: {
-          userId: null, // en el futuro, usuario logueado
-          contactEmail: customer.email,
-          contactName: customer.name,
-          contactPhone: customer.phone ?? "",
-          status: "PENDING_PAYMENT", // enum OrderStatus
+          userId: null,
+          contactEmail: customer.email || "EMPTY",
+          contactName: customer.name || "EMPTY",
+          contactPhone: customer.phone ?? "EMPTY",
+          status: "PENDING_PAYMENT",
           shippingMethod: deliveryType === "pickup" ? "PICKUP" : "DELIVERY",
-          paymentMethod: "TRANSFER", // por ahora, transferencia
+          paymentMethod: normalizedPaymentMethod,
           shippingCost,
           subtotal,
           total,
@@ -138,7 +146,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 3.3) Crear OrderItems y descontar stock
+      // 5.3) OrderItem + descontar stock
       for (const item of items) {
         const product = productMap.get(item.productSlug)!;
         const quantity = Number(item.quantity ?? 1);
@@ -164,16 +172,15 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 3.4) Crear Shipment si es envío
+      // 5.4) Shipment si corresponde
       let shipment = null;
       if (deliveryType === "shipping" && addressRecord) {
         shipment = await tx.shipment.create({
           data: {
             orderId: order.id,
             addressId: addressRecord.id,
-            type: "DELIVERY", // enum ShippingMethod
+            type: "DELIVERY",
             pickupLocation: null,
-            // status queda en PENDING por default
           },
         });
       }

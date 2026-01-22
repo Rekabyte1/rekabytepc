@@ -30,8 +30,7 @@ export default function CheckoutSummary() {
   // Líneas a mostrar según elección
   let lines: { label: string; value: number }[] = [];
   if (chosen === "transferencia") lines = [transferLine];
-  else if (chosen === "webpay" || chosen === "mercadopago")
-    lines = [cardLine];
+  else if (chosen === "webpay" || chosen === "mercadopago") lines = [cardLine];
   else lines = [transferLine, cardLine];
 
   // Base del total según método (antes de elegir, usamos transferencia como referencia)
@@ -45,12 +44,11 @@ export default function CheckoutSummary() {
   const total = base + shipping;
 
   const isTransfer = chosen === "transferencia";
-  // 👇 Solo permitimos confirmar si hay items Y el medio es transferencia
+  // Solo permitimos confirmar si hay items Y el medio es transferencia
   const canConfirm = items.length > 0 && isTransfer;
 
   async function handleConfirm() {
     if (!canConfirm) {
-      // Seguridad extra: si por algún bug llega aquí sin ser transferencia, salimos.
       alert(
         "Por ahora solo puedes confirmar pedidos pagando por transferencia. El resto de medios se activará más adelante."
       );
@@ -87,10 +85,8 @@ export default function CheckoutSummary() {
 
       const payload = {
         items: items.map((it) => ({
-          // Mantengo exactamente la misma estructura que ya usabas
-          // (productSlug o productId según tu endpoint actual).
-          // NO tocamos esto para no romper nada que ya funciona.
-          productId: it.id, // si tu endpoint usa slug, cámbialo a productSlug: it.id
+          // 👈 AHORA el backend espera productSlug (por slug de producto)
+          productSlug: it.id,
           quantity: it.quantity,
         })),
         customer: {
@@ -99,13 +95,12 @@ export default function CheckoutSummary() {
           phone: contacto?.phone ?? "",
         },
         deliveryType,
-        paymentMethod: chosen ?? "transferencia", // 👈 AHORA se envía explícito
+        paymentMethod: chosen ?? "transferencia",
         address:
           deliveryType === "shipping"
             ? {
                 fullName: contacto?.name ?? "",
                 phone: contacto?.phone ?? "",
-                // estos campos los rellenamos con lo que tengas en `envio`
                 street: envio?.calle ?? envio?.street ?? "S/D",
                 number: envio?.numero ?? envio?.number ?? "",
                 apartment: envio?.depto ?? envio?.apartment ?? "",
@@ -115,7 +110,6 @@ export default function CheckoutSummary() {
                 country: "Chile",
               }
             : undefined,
-        // por si usas comentarios/notas en el paso de pago
         notes: pago?.comentarios ?? "",
       };
 

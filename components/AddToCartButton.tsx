@@ -10,7 +10,7 @@ type AddToCartButtonProps = {
    * Aquí va el slug del producto en la BD (Product.slug),
    * por ejemplo "oficina-8600g", "entrada-ryzen7-rtx5060", etc.
    */
-  id: string;
+  id: string;      // ← slug, NO el id interno de Prisma
   name: string;
   // Precio que ya estás mostrando en la tarjeta (normalmente transferencia)
   price: number;
@@ -90,7 +90,7 @@ export default function AddToCartButton({
     if (disabled) return;
 
     addItem({
-      id, // usamos el slug como id en el carrito
+      id,          // usamos el SLUG como id en el carrito
       name,
       price: currentPrice,
     });
