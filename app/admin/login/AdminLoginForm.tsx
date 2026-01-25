@@ -10,21 +10,23 @@ export default function AdminLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setError(null);
 
     try {
       const resp = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // importante para que el navegador respete Set-Cookie
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => null);
 
       if (!resp.ok || !data?.ok) {
         setError(data?.error ?? "Error al iniciar sesión.");
@@ -44,58 +46,58 @@ export default function AdminLoginForm() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-neutral-950">
-      <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900/80 p-6">
-        <h1 className="mb-4 text-xl font-bold text-white">
-          Acceso administrador
-        </h1>
+    <form onSubmit={handleSubmit} className="mt-6 max-w-xl px-4 pb-10">
+      <h1 className="mb-4 text-2xl font-extrabold text-white">
+        Acceso administrador
+      </h1>
+      <p className="mb-4 text-sm text-neutral-300">
+        Ingresa con las credenciales de administrador para revisar y gestionar
+        los pedidos de la tienda.
+      </p>
 
-        {error && (
-          <p className="mb-3 text-sm text-red-400">
-            {error}
-          </p>
-        )}
+      {error && (
+        <p className="mb-3 text-sm text-red-400">
+          {error}
+        </p>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm text-neutral-300">
-              Correo
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-lime-400"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm text-neutral-300">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-lime-400"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full rounded-xl py-2 font-semibold ${
-              loading
-                ? "cursor-wait border border-neutral-700 bg-neutral-800 text-neutral-300"
-                : "bg-lime-400 text-black hover:bg-lime-300"
-            }`}
-          >
-            {loading ? "Entrando..." : "Entrar"}
-          </button>
-        </form>
+      <div className="mb-3">
+        <label className="mb-1 block text-sm text-neutral-300">
+          Correo
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-lime-400"
+        />
       </div>
-    </main>
+
+      <div className="mb-4">
+        <label className="mb-1 block text-sm text-neutral-300">
+          Contraseña
+        </label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-lime-400"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className={`rounded-xl px-5 py-2 text-sm font-semibold ${
+          loading
+            ? "cursor-wait border border-neutral-700 bg-neutral-800 text-neutral-300"
+            : "bg-lime-400 text-black hover:bg-lime-300"
+        }`}
+      >
+        {loading ? "Entrando..." : "Entrar"}
+      </button>
+    </form>
   );
 }

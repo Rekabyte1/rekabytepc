@@ -1,38 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
-
-export async function POST(req: NextRequest) {
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !ADMIN_TOKEN) {
-    console.error("ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_TOKEN no configurados");
-    return NextResponse.json(
-      { ok: false, error: "Configuración de admin incompleta." },
-      { status: 500 }
+function ensureAdminEnv() {
+  if (
+    !process.env.ADMIN_EMAIL ||
+    !process.env.ADMIN_PASSWORD ||
+    !process.env.ADMIN_TOKEN
+  ) {
+    throw new Error(
+      "ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_TOKEN no configurados"
     );
   }
+}
 
-  const { email, password } = await req.json();
+export async function POST(req: NextRequest) {
+  try {
+    ensureAdminEnv();
 
-  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    const body = await req.json().catch(() => null);
+    const email = body?.email as string | undefined;
+    const password = body?.password as string | undefined;
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { ok: false, error: "Faltan datos." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      email !== process.env.ADMIN_EMAIL ||
+      password !== process.env.ADMIN_PASSWORD
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "Correo o contraseña incorrectos." },
+        { status: 401 }
+      );
+    }
+
+    // Login OK: seteamos cookie de sesión
     const res = NextResponse.json({ ok: true });
 
-    res.cookies.set({
-      name: "admin_session",
-      value: ADMIN_TOKEN,
+    res.cookies.set("admin_token", process.env.ADMIN_TOKEN!, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 8, // 8 horas
+      secure: process.env.NODE_ENV === "production",
+      path: "/", // válida para todo el sitio
     });
 
     return res;
+  } catch (err: any) {
+    console.error("Error en POST /api/admin/login:", err);
+    return NextResponse.json(
+      { ok: false, error: "Error al iniciar sesión." },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(
-    { ok: false, error: "Credenciales inválidas." },
-    { status: 401 }
-  );
 }
