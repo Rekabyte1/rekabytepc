@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { OrderStatus } from "@prisma/client";
 
-// Lista de estados permitidos (solo strings)
+// Lista de estados permitidos (solo strings, como antes)
 const ALLOWED_STATUSES = [
   "PENDING_PAYMENT",
   "PAID",
@@ -36,9 +36,10 @@ function isAdmin(req: NextRequest): boolean {
   );
 }
 
+// 👇 Firma compatible con Next 15 / Vercel: params viene como Promise
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     ensureAdminEnv();
@@ -49,6 +50,9 @@ export async function PATCH(
         { status: 401 }
       );
     }
+
+    // Desempaquetamos el id desde el Promise
+    const { id } = await context.params;
 
     // Body opcional: si algo sale mal, body será null
     const body = await req.json().catch(() => null);
@@ -65,11 +69,11 @@ export async function PATCH(
       );
     }
 
-    // Actualizar pedido
+    // Actualizar pedido en Prisma
     const order = await prisma.order.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        status: status as OrderStatus, // casteamos aquí al tipo de Prisma
+        status: status as OrderStatus, // casteo al enum de Prisma
         notes: noteInternal,
       },
       select: {
