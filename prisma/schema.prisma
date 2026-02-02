@@ -41,7 +41,12 @@ model Product {
   name        String
   slug        String      @unique
   description String?
-  price       Int
+  price       Int         // precio "base" si quieres, o lo puedes dejar como respaldo
+
+  // 🔹 PRECIOS FINALES QUE VAS A CARGAR DESDE EXCEL / SUPABASE
+  priceCard     Int   @default(0)  // precio final pagando con tarjeta
+  priceTransfer Int   @default(0)  // precio final pagando por transferencia
+
   imageUrl    String?
   stock       Int?
   isActive    Boolean     @default(true)

@@ -10,8 +10,7 @@ export async function GET(_req: NextRequest, context: any) {
     // en otras como { slug }. Esto soporta ambas.
     const rawParams = await (context?.params ?? {});
     const slug =
-      (rawParams?.slug ??
-        context?.params?.slug) as string | undefined;
+      (rawParams?.slug ?? context?.params?.slug) as string | undefined;
 
     if (!slug) {
       return NextResponse.json(
@@ -22,6 +21,16 @@ export async function GET(_req: NextRequest, context: any) {
 
     const product = await prisma.product.findUnique({
       where: { slug },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        price: true,
+        priceCard: true,
+        priceTransfer: true,
+        stock: true,
+        imageUrl: true,
+      },
     });
 
     if (!product) {
@@ -34,14 +43,7 @@ export async function GET(_req: NextRequest, context: any) {
     return NextResponse.json(
       {
         ok: true,
-        product: {
-          id: product.id,
-          slug: product.slug,
-          name: product.name,
-          price: product.price,
-          stock: product.stock,
-          imageUrl: product.imageUrl,
-        },
+        product,
       },
       { status: 200 }
     );

@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Normalizamos método de pago al enum de la BD
+    const normalizedPaymentMethod =
+      paymentMethod === "transferencia" ? "TRANSFER" : "CARD";
+
+    const payWithCard = normalizedPaymentMethod === "CARD";
+
     // 1) Tomar slugs y validar que ninguno sea undefined / vacío
     const slugs = items
       .map((i) => i.productSlug)
@@ -90,7 +96,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      subtotal += product.price * quantity;
+      // 🔴 AQUÍ ELEGIMOS EL PRECIO SEGÚN MEDIO DE PAGO
+      const unitPrice = payWithCard
+        ? product.priceCard ?? product.price
+        : product.priceTransfer ?? product.price;
+
+      subtotal += unitPrice * quantity;
     }
 
     // Costo de envío (luego lo podrás mejorar)
@@ -100,10 +111,6 @@ export async function POST(req: NextRequest) {
         : 0;
 
     const total = subtotal + shippingCost;
-
-    // 4) Normalizar método de pago al enum de tu BD
-    const normalizedPaymentMethod =
-      paymentMethod === "transferencia" ? "TRANSFER" : "CARD";
 
     // 5) Transacción: Address + Order + Items + stock + Shipment
     const result = await prisma.$transaction(async (tx) => {
@@ -150,7 +157,11 @@ export async function POST(req: NextRequest) {
       for (const item of items) {
         const product = productMap.get(item.productSlug)!;
         const quantity = Number(item.quantity ?? 1);
-        const unitPrice = product.price;
+
+        // MISMA LÓGICA DE PRECIO QUE ARRIBA
+        const unitPrice = payWithCard
+          ? product.priceCard ?? product.price
+          : product.priceTransfer ?? product.price;
 
         await tx.orderItem.create({
           data: {

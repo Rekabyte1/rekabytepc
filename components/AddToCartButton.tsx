@@ -10,7 +10,7 @@ type AddToCartButtonProps = {
    * Aquí va el slug del producto en la BD (Product.slug),
    * por ejemplo "oficina-8600g", "entrada-ryzen7-rtx5060", etc.
    */
-  id: string;      // ← slug, NO el id interno de Prisma
+  id: string; // ← slug, NO el id interno de Prisma
   name: string;
   // Precio que ya estás mostrando en la tarjeta (normalmente transferencia)
   price: number;
@@ -19,14 +19,18 @@ type AddToCartButtonProps = {
 
 type ProductApiResponse = {
   ok: boolean;
-  product?: {
-    id: string;
-    slug: string;
-    name: string;
-    price: number;
-    stock: number | null;
-    imageUrl?: string | null;
-  } | null;
+  product?:
+    | {
+        id: string;
+        slug: string;
+        name: string;
+        price: number;
+        priceCard: number;
+        priceTransfer: number;
+        stock: number | null;
+        imageUrl?: string | null;
+      }
+    | null;
   error?: string;
 };
 
@@ -40,6 +44,8 @@ export default function AddToCartButton({
 
   const [stock, setStock] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // precio que realmente se usará en el carrito
   const [currentPrice, setCurrentPrice] = useState(price);
 
   useEffect(() => {
@@ -49,14 +55,11 @@ export default function AddToCartButton({
       try {
         setLoading(true);
 
-        // Llama a /api/products/[slug] para leer stock y precio reales
+        // Llama a /api/products/[slug] para leer stock y precios reales
         const res = await fetch(`/api/products/${id}`, { cache: "no-store" });
 
         if (!res.ok) {
-          console.error(
-            "Error leyendo /api/products/[slug]:",
-            await res.text()
-          );
+          console.error("Error leyendo /api/products/[slug]:", await res.text());
           return;
         }
 
@@ -66,8 +69,15 @@ export default function AddToCartButton({
 
         if (!cancelled) {
           setStock(p.stock ?? 0);
-          // Si quieres que el precio del carrito sea el que está en la BD:
-          setCurrentPrice(p.price ?? price);
+
+          // LÓGICA DE PRECIOS:
+          // 1) Por ahora asumimos que el precio que se cobra es el de transferencia.
+          // 2) Si no hay priceTransfer, usamos priceCard.
+          // 3) Si tampoco hay, usamos price base.
+          const backendPrice =
+            p.priceTransfer ?? p.priceCard ?? p.price ?? price;
+
+          setCurrentPrice(backendPrice);
         }
       } catch (e) {
         console.error("Error al cargar producto", e);
@@ -90,7 +100,7 @@ export default function AddToCartButton({
     if (disabled) return;
 
     addItem({
-      id,          // usamos el SLUG como id en el carrito
+      id, // usamos el SLUG como id en el carrito
       name,
       price: currentPrice,
     });
