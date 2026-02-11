@@ -6,8 +6,11 @@ import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
 import { PAYMENT_HELP, useCheckout } from "@/components/CheckoutStore";
 import { useCart, CLP } from "@/components/CartContext";
+import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 
 export default function Paso3Pago() {
+  useCheckoutGuard(3); // 👈 Protege este paso
+
   const router = useRouter();
   const { subtotalTransfer, subtotalCard } = useCart();
   const { pago, setPago } = useCheckout();

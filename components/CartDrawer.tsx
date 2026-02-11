@@ -1,4 +1,3 @@
-// components/CartDrawer.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -18,12 +17,11 @@ export default function CartDrawer() {
     removeItem,
   } = useCart();
 
-  // Handler robusto: navega a /checkout y luego cierra el drawer
+  // Ir a la pantalla de opciones de compra
   const handleGoCheckout = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push("/checkout");
-    // cerramos en el siguiente frame para no interferir con la navegación
+    router.push("/checkout/opciones");
     requestAnimationFrame(() => toggleCart());
   };
 
@@ -35,12 +33,12 @@ export default function CartDrawer() {
         onClick={toggleCart}
       />
 
-      {/* Drawer por encima del overlay */}
+      {/* Drawer */}
       <aside
         className={`rb-drawer ${isOpen ? "open" : ""}`}
         role="dialog"
         aria-label="Carrito"
-        onClick={(e) => e.stopPropagation()} // evita que el overlay capture
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="rb-drawer__header">
@@ -61,19 +59,26 @@ export default function CartDrawer() {
           ) : (
             <ul className="space-y-3">
               {items.map((it) => (
-                <li key={it.id} className="rounded-xl border border-neutral-800 p-3">
+                <li
+                  key={it.id}
+                  className="rounded-xl border border-neutral-800 p-3"
+                >
                   <div className="flex items-center gap-3">
-                    {/* Miniatura fija 64x64 */}
+                    {/* Miniatura */}
                     <div className="rb-thumb shrink-0 overflow-hidden rounded-md bg-neutral-900">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {it.image ? (
-                        <img src={it.image} alt={it.name} draggable={false} />
+                        <img
+                          src={it.image}
+                          alt={it.name}
+                          draggable={false}
+                        />
                       ) : (
                         <div style={{ width: 64, height: 64 }} />
                       )}
                     </div>
 
-                    {/* Centro: nombre + unitarios + qty */}
+                    {/* Centro */}
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold">{it.name}</div>
 
@@ -153,12 +158,27 @@ export default function CartDrawer() {
 
         {/* Footer acciones */}
         <div className="rb-drawer__footer">
-          <button className="rb-btn--ghost rb-btn" onClick={clear}>
+          {/* Seguir comprando = solo cerrar */}
+          <button
+            className="rb-btn--ghost rb-btn"
+            onClick={toggleCart}
+          >
+            Seguir comprando
+          </button>
+
+          {/* Vaciar */}
+          <button
+            className="rb-btn--ghost rb-btn"
+            onClick={clear}
+          >
             Vaciar
           </button>
 
-          {/* Botón que SIEMPRE navega */}
-          <button className="rb-btn" onClick={handleGoCheckout}>
+          {/* Ir al pago (nuevo flujo con pantalla de opciones) */}
+          <button
+            className="rb-btn"
+            onClick={handleGoCheckout}
+          >
             Ir al pago
           </button>
         </div>

@@ -7,16 +7,29 @@ import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
 import { useCheckout } from "@/components/CheckoutStore";
 import { useCart, CLP } from "@/components/CartContext";
+import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 
 type Stage = "review" | "upload";
 
 export default function Paso4Confirmacion() {
-  const { pago, envio } = useCheckout();
-  const { subtotalTransfer, subtotalCard } = useCart();
+  useCheckoutGuard(4); // 👈 Protege el último paso
+
+  const { datos, pago, envio } = useCheckout() as any;
+  const {
+    items,
+    subtotalTransfer,
+    subtotalCard,
+    clear: clearCart,
+  } = useCart();
 
   // Estado local: mismo paso 4 con dos "apartados"
   const [stage, setStage] = useState<Stage>("review");
   const [orderId, setOrderId] = useState<string>("");
+
+  // Estado para crear la orden
+  const [creating, setCreating] = useState(false);
+  const [created, setCreated] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Genera y fija un ID “visual” al pasar a "upload"
   useEffect(() => {
@@ -35,6 +48,123 @@ export default function Paso4Confirmacion() {
   );
 
   const total = selectedSubtotal + (envio?.costoEnvio ?? 0);
+
+  // --- Handler único para confirmar el pedido (MISMA LÓGICA QUE ANTES) ---
+  async function handleConfirmPedido() {
+    if (!items.length) {
+      alert("Tu carrito está vacío.");
+      return;
+    }
+
+    setErrorMsg(null);
+    setCreating(true);
+
+    try {
+      const paymentMethod =
+        (pago?.metodo ?? "transferencia") as
+          | "transferencia"
+          | "webpay"
+          | "mercadopago";
+
+      const shippingAmount = envio?.costoEnvio ?? 0;
+
+      // 1) Crear orden local (para número y código de retiro),
+      const { createOrder } = await import("@/data/orders");
+
+      const localOrder = createOrder({
+        paymentMethod,
+        shipping: envio ?? { tipo: "retiro", costoEnvio: shippingAmount },
+        customer: datos ?? {},
+        items: items.map((it) => ({
+          slug: it.id,
+          name: it.name,
+          qty: it.quantity,
+          image: it.image,
+          priceTransfer: it.priceTransfer,
+          priceCard: it.priceCard,
+        })),
+        amounts: {
+          subtotalTransfer,
+          subtotalCard,
+          shipping: shippingAmount,
+          total,
+        },
+      });
+
+      // 2) Llamar a la API /api/checkout
+      const deliveryType =
+        envio?.tipo === "envio" ? ("shipping" as const) : ("pickup" as const);
+
+      const payload = {
+        items: items.map((it) => ({
+          productSlug: it.id,
+          quantity: it.quantity,
+        })),
+        customer: {
+          name:
+            (datos?.nombre
+              ? `${datos.nombre} ${datos.apellido ?? ""}`.trim()
+              : datos?.nombre) ?? "EMPTY",
+          email: datos?.email ?? "EMPTY",
+          phone: datos?.telefono ?? "",
+        },
+        deliveryType,
+        paymentMethod,
+        address:
+          deliveryType === "shipping"
+            ? {
+                street: envio?.direccion ?? "",
+                number: (envio as any)?.numero ?? "",
+                apartment: (envio as any)?.departamento ?? "",
+                commune: (envio as any)?.comuna ?? "",
+                city: (envio as any)?.ciudad ?? "",
+                region: (envio as any)?.region ?? "",
+                country: "Chile",
+              }
+            : undefined,
+        notes: (pago as any)?.comentarios ?? "",
+      };
+
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data: any = await res.json().catch(() => ({}));
+
+      if (!res.ok || data?.ok === false) {
+        alert(
+          data?.error ??
+            "No se pudo crear el pedido (por ejemplo, stock agotado o error del servidor)."
+        );
+        return;
+      }
+
+      // 3) Solo si la API respondió OK
+      clearCart();
+      setCreated(true);
+
+      if (localOrder.shipping?.tipo === "retiro" && localOrder.pickupCode) {
+        alert(
+          `¡Gracias! Tu pedido N°${localOrder.number} fue creado.\nCódigo de retiro: ${localOrder.pickupCode}`
+        );
+      } else {
+        alert(`¡Gracias! Tu pedido N°${localOrder.number} fue creado.`);
+      }
+    } catch (err: any) {
+      console.error("Error confirmando pedido:", err);
+      setErrorMsg(
+        err?.message ?? "Ocurrió un error al crear el pedido. Intenta nuevamente."
+      );
+      alert(
+        err?.message ??
+          "Ocurrió un error al crear el pedido. Intenta nuevamente."
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
     <main className="checkout-page">
@@ -55,10 +185,7 @@ export default function Paso4Confirmacion() {
                     <h3 className="text-lg font-semibold text-neutral-100">
                       Forma de entrega
                     </h3>
-                    <Link
-                      href="/checkout/envio"
-                      className="text-lime-400"
-                    >
+                    <Link href="/checkout/envio" className="text-lime-400">
                       Modificar
                     </Link>
                   </div>
@@ -91,10 +218,7 @@ export default function Paso4Confirmacion() {
                     <h3 className="text-lg font-semibold text-neutral-100">
                       Medio de pago
                     </h3>
-                    <Link
-                      href="/checkout/pago"
-                      className="text-lime-400"
-                    >
+                    <Link href="/checkout/pago" className="text-lime-400">
                       Modificar
                     </Link>
                   </div>
@@ -114,7 +238,7 @@ export default function Paso4Confirmacion() {
                   </div>
                 </div>
 
-                {/* Acciones: aquí solo mostramos info y navegamos al “upload” */}
+                {/* Acciones: aquí solo mostramos info y pasamos a "upload" */}
                 <div className="mt-6 rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
                   {payingWithTransfer ? (
                     <>
@@ -140,8 +264,7 @@ export default function Paso4Confirmacion() {
                   ) : (
                     <>
                       <p className="text-sm text-neutral-300">
-                        Revisa que tus datos sean correctos antes de
-                        continuar.
+                        Revisa que tus datos sean correctos antes de continuar.
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-3">
                         <button className="rb-btn">Pagar</button>
@@ -176,9 +299,9 @@ export default function Paso4Confirmacion() {
                     </span>
                   </h2>
                   <p className="mt-1 text-sm text-neutral-300">
-                    Realiza la(s) transferencia(s) y adjunta los comprobantes
-                    lo antes posible. Reservaremos los productos por un
-                    máximo de <strong>24 horas</strong>.
+                    Realiza la(s) transferencia(s) y adjunta los comprobantes lo
+                    antes posible. Reservaremos los productos por un máximo de{" "}
+                    <strong>24 horas</strong>.
                   </p>
                 </div>
 
@@ -215,8 +338,8 @@ export default function Paso4Confirmacion() {
                     </h4>
                     <ul className="mt-1 space-y-1 list-disc pl-5 text-sm text-neutral-100">
                       <li>
-                        <span className="text-neutral-400">Nombre:</span>{" "}
-                        Reka SPA
+                        <span className="text-neutral-400">Nombre:</span> Reka
+                        SPA
                       </li>
                       <li>
                         <span className="text-neutral-400">RUT:</span>{" "}
@@ -237,8 +360,8 @@ export default function Paso4Confirmacion() {
                         6xxxx (Reka SPA)
                       </li>
                       <li>
-                        <strong>Banco Estado</strong> – Cuenta Corriente
-                        1xxxxx (Reka SPA)
+                        <strong>Banco Estado</strong> – Cuenta Corriente 1xxxxx
+                        (Reka SPA)
                       </li>
                     </ul>
 
@@ -252,23 +375,37 @@ export default function Paso4Confirmacion() {
                   </div>
                 </div>
 
+                {errorMsg && (
+                  <p className="mt-4 text-sm text-red-400">{errorMsg}</p>
+                )}
+
                 <div className="mt-5 flex flex-wrap gap-3">
                   <button
                     type="button"
                     className="rb-btn--ghost rb-btn"
                     onClick={() => setStage("review")}
+                    disabled={creating}
                   >
                     Volver a confirmación
                   </button>
-                  <Link href="/" className="rb-btn">
-                    Finalizar
-                  </Link>
+                  <button
+                    type="button"
+                    className="rb-btn"
+                    onClick={handleConfirmPedido}
+                    disabled={creating || created}
+                  >
+                    {created
+                      ? "Pedido confirmado"
+                      : creating
+                      ? "Confirmando..."
+                      : "Confirmar pedido"}
+                  </button>
                 </div>
               </>
             )}
           </section>
 
-          {/* DERECHA — Resumen y botón "Confirmar pedido" (ya llama a /api/checkout) */}
+          {/* DERECHA — Resumen SOLO visual (sin botón de confirmar) */}
           <CheckoutSummary />
         </div>
       </div>

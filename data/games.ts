@@ -38,8 +38,8 @@ const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
     "/builds/oficina2.jpg",
     "/builds/oficina3.jpg",
   ],
-  priceTransfer: 399000,
-  priceCard: 429000,
+  priceTransfer: 450000,
+  priceCard: 500000,
   productSlug: "oficina-8600g",
   stock: 4,
   specs: [
@@ -60,8 +60,8 @@ const BASE_ENTRADA_R7_5060: Omit<Build, "fpsInfo"> = {
     "/builds/entrada.jpg",
     "/builds/entrada.jpg",
   ],
-  priceTransfer: 890000,
-  priceCard: 930000,
+  priceTransfer: 1000000,
+  priceCard: 1200000,
   productSlug: "entrada-ryzen7-rtx5060",
   stock: 2,
   specs: [
@@ -82,8 +82,8 @@ const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
     "/builds/media.jpg",
     "/builds/media.jpg",
   ],
-  priceTransfer: 1490000,
-  priceCard: 1550000,
+  priceTransfer: 950000,
+  priceCard: 1000000,
   productSlug: "media-ryzen9-rx9060xt",
   stock: 4,
   specs: [

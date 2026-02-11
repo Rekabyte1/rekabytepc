@@ -5,13 +5,13 @@ import { CLP, useCart } from "./CartContext";
 import { useCheckout } from "./CheckoutStore";
 
 /**
- * Resumen + Confirmación de pedido.
- * - Si elige transferencia => reserva 24h y muestra número de pedido y PIN de retiro.
- * - Si elige Webpay/MercadoPago => (por ahora) no deja confirmar pedido.
+ * Resumen SOLO visual.
+ * La confirmación de pedido ahora se hace en app/checkout/confirmacion/page.tsx
+ * (botón junto a "Volver a confirmación").
  */
 export default function CheckoutSummary() {
-  const { items, subtotalTransfer, subtotalCard, clear } = useCart();
-  const { pago, envio, contacto } = useCheckout() as any;
+  const { items, subtotalTransfer, subtotalCard } = useCart();
+  const { pago, envio } = useCheckout() as any;
 
   const chosen = pago?.metodo as
     | "transferencia"
@@ -44,106 +44,6 @@ export default function CheckoutSummary() {
   const total = base + shipping;
 
   const isTransfer = chosen === "transferencia";
-  // Solo permitimos confirmar si hay items Y el medio es transferencia
-  const canConfirm = items.length > 0 && isTransfer;
-
-  async function handleConfirm() {
-    if (!canConfirm) {
-      alert(
-        "Por ahora solo puedes confirmar pedidos pagando por transferencia. El resto de medios se activará más adelante."
-      );
-      return;
-    }
-
-    // 1) Orden local (para número y pickupCode)
-    const { createOrder } = await import("@/data/orders");
-
-    const order = createOrder({
-      paymentMethod: chosen!, // 'transferencia' en este flujo
-      shipping: envio ?? { tipo: "retiro", costoEnvio: 0 },
-      customer: contacto ?? {},
-      items: items.map((it) => ({
-        slug: it.id, // usamos el id del carrito como slug / identificador visual
-        name: it.name,
-        qty: it.quantity,
-        image: it.image,
-        priceTransfer: it.priceTransfer,
-        priceCard: it.priceCard,
-      })),
-      amounts: {
-        subtotalTransfer,
-        subtotalCard,
-        shipping,
-        total,
-      },
-    });
-
-    // 2) Llamar a la API /api/checkout para validar stock y crear el pedido real en Supabase
-    try {
-      const deliveryType =
-        envio?.tipo === "envio" ? ("shipping" as const) : ("pickup" as const);
-
-      const payload = {
-        items: items.map((it) => ({
-          // 👈 AHORA el backend espera productSlug (por slug de producto)
-          productSlug: it.id,
-          quantity: it.quantity,
-        })),
-        customer: {
-          name: contacto?.name ?? "",
-          email: contacto?.email ?? "",
-          phone: contacto?.phone ?? "",
-        },
-        deliveryType,
-        paymentMethod: chosen ?? "transferencia",
-        address:
-          deliveryType === "shipping"
-            ? {
-                fullName: contacto?.name ?? "",
-                phone: contacto?.phone ?? "",
-                street: envio?.calle ?? envio?.street ?? "S/D",
-                number: envio?.numero ?? envio?.number ?? "",
-                apartment: envio?.depto ?? envio?.apartment ?? "",
-                commune: envio?.comuna ?? "",
-                city: envio?.ciudad ?? envio?.comuna ?? "S/D",
-                region: envio?.region ?? "S/D",
-                country: "Chile",
-              }
-            : undefined,
-        notes: pago?.comentarios ?? "",
-      };
-
-      const resp = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await resp.json();
-
-      if (!resp.ok || !data?.ok) {
-        alert(
-          data?.error ??
-            "No se pudo crear el pedido (por ejemplo, stock agotado o error del servidor)."
-        );
-        return; // no limpiamos carrito, no mostramos “gracias”
-      }
-
-      // 3) Solo si la API dijo OK: limpiamos carrito y mostramos mensaje de éxito
-      clear();
-
-      if (order.shipping?.tipo === "retiro" && order.pickupCode) {
-        alert(
-          `¡Gracias! Tu pedido N°${order.number} fue creado.\nCódigo de retiro: ${order.pickupCode}`
-        );
-      } else {
-        alert(`¡Gracias! Tu pedido N°${order.number} fue creado.`);
-      }
-    } catch (err) {
-      console.error("Error en handleConfirm:", err);
-      alert("Ocurrió un error al crear el pedido. Intenta nuevamente.");
-    }
-  }
 
   return (
     <aside>
@@ -212,9 +112,7 @@ export default function CheckoutSummary() {
 
             <div className="mt-2 flex items-center justify-between border-t border-neutral-800 pt-3">
               <span className="font-bold text-neutral-200">TOTAL</span>
-              <span className="font-extrabold text-white">
-                {CLP(total)}
-              </span>
+              <span className="font-extrabold text-white">{CLP(total)}</span>
             </div>
 
             {/* Mensaje sobre métodos de pago */}
@@ -224,18 +122,8 @@ export default function CheckoutSummary() {
                 transferencia. Las otras opciones se activarán más adelante.
               </p>
             )}
-
-            <button
-              onClick={handleConfirm}
-              disabled={!canConfirm}
-              className={`mt-4 w-full rounded-xl py-3 font-semibold ${
-                canConfirm
-                  ? "bg-lime-400 text-black hover:bg-lime-300"
-                  : "cursor-not-allowed border border-neutral-700 bg-neutral-800 text-neutral-300"
-              }`}
-            >
-              Confirmar pedido
-            </button>
+            {/* Aquí ya NO hay botón de "Confirmar pedido".
+                El único botón de confirmación vive en la página de confirmación. */}
           </div>
         </>
       )}

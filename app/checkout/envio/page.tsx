@@ -4,8 +4,11 @@ import { useRouter } from "next/navigation";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
 import { calcularEnvio, useCheckout } from "@/components/CheckoutStore";
+import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 
 export default function Paso2Envio() {
+  useCheckoutGuard(2); // 👈 Protege este paso
+
   const router = useRouter();
   const { envio, setEnvio } = useCheckout();
 
