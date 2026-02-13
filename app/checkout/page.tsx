@@ -1,7 +1,7 @@
 // app/checkout/page.tsx
 "use client";
 
-import { FormEvent } from "react";
+import React, { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
@@ -9,7 +9,6 @@ import { useCheckout } from "@/components/CheckoutStore";
 import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 
 export default function Paso1Datos() {
-  // Protegemos el paso 1 (solo revisa carrito)
   useCheckoutGuard(1);
 
   const router = useRouter();
@@ -20,22 +19,16 @@ export default function Paso1Datos() {
   if (typeof window !== "undefined") {
     try {
       const raw = window.sessionStorage.getItem("checkout_datos");
-      if (raw) {
-        persistedDatos = JSON.parse(raw);
-      }
+      if (raw) persistedDatos = JSON.parse(raw);
     } catch {
-      // ignoramos errores de parseo
+      // ignore
     }
   }
 
-  const datos =
-    checkout.datos ?? checkout.contacto ?? persistedDatos ?? null;
+  const datos = checkout.datos ?? checkout.contacto ?? persistedDatos ?? null;
 
-  // Detectamos si el store tiene setters, pero NO son obligatorios
-  const hasSetDatos =
-    checkout && typeof checkout.setDatos === "function";
-  const hasSetContacto =
-    checkout && typeof checkout.setContacto === "function";
+  const hasSetDatos = checkout && typeof checkout.setDatos === "function";
+  const hasSetContacto = checkout && typeof checkout.setContacto === "function";
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,120 +43,257 @@ export default function Paso1Datos() {
       email: String(fd.get("email") || "").trim(),
     };
 
-    // 1) Guardar en el store SOLO si existe algún setter
-    if (hasSetDatos) {
-      checkout.setDatos(nextDatos);
-    } else if (hasSetContacto) {
-      checkout.setContacto(nextDatos);
-    }
+    if (hasSetDatos) checkout.setDatos(nextDatos);
+    else if (hasSetContacto) checkout.setContacto(nextDatos);
 
-    // 2) Guardar SIEMPRE en sessionStorage
     try {
       if (typeof window !== "undefined") {
-        window.sessionStorage.setItem(
-          "checkout_datos",
-          JSON.stringify(nextDatos)
-        );
+        window.sessionStorage.setItem("checkout_datos", JSON.stringify(nextDatos));
       }
     } catch {
-      // ignoramos errores de almacenamiento
+      // ignore
     }
 
-    // 3) Pasar al Paso 2 (envío)
     router.push("/checkout/envio");
   };
 
   return (
-    <main className="checkout-page">
-      <div className="mx-auto max-w-6xl px-4">
-        <h1 className="mb-2 text-2xl font-extrabold text-white">
-          Tus datos
-        </h1>
+    <main className="rb-container checkout-step">
+      <h1 className="cs-title">Tus datos</h1>
 
-        {/* Paso 1 activo */}
+      <div className="cs-steps">
         <CheckoutSteps active={0} />
+      </div>
 
-        <div className="grid-two">
-          {/* IZQUIERDA: formulario */}
-          <section className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-5">
-            <form onSubmit={handleSubmit} className="grid gap-4">
-              {/* Nombre */}
-              <div className="space-y-1 text-sm">
-                <label className="text-neutral-300">Nombre</label>
+      <div className="cs-grid">
+        {/* IZQUIERDA */}
+        <section className="cs-card">
+          <div className="cs-head">
+            <div className="cs-accent" />
+            <div>
+              <h2 className="cs-card-title">Paso 1: Datos de contacto</h2>
+              <p className="cs-card-sub">
+                Usaremos estos datos para enviarte la confirmación y coordinar la entrega o retiro.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="cs-form">
+            <div className="cs-two">
+              <div className="cs-field">
+                <label className="cs-label">Nombre</label>
                 <input
                   name="nombre"
                   required
                   defaultValue={datos?.nombre ?? ""}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-white"
+                  className="cs-input"
+                  autoComplete="given-name"
                 />
               </div>
 
-              {/* Apellido */}
-              <div className="space-y-1 text-sm">
-                <label className="text-neutral-300">Apellido</label>
+              <div className="cs-field">
+                <label className="cs-label">Apellido</label>
                 <input
                   name="apellido"
                   required
                   defaultValue={datos?.apellido ?? ""}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-white"
+                  className="cs-input"
+                  autoComplete="family-name"
                 />
               </div>
+            </div>
 
-              {/* RUT */}
-              <div className="space-y-1 text-sm">
-                <label className="text-neutral-300">RUT</label>
+            <div className="cs-two">
+              <div className="cs-field">
+                <label className="cs-label">RUT</label>
                 <input
                   name="rut"
                   required
                   defaultValue={datos?.rut ?? ""}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-white"
+                  className="cs-input"
+                  placeholder="12.345.678-9"
+                  autoComplete="off"
                 />
               </div>
 
-              {/* Teléfono */}
-              <div className="space-y-1 text-sm">
-                <label className="text-neutral-300">Teléfono</label>
+              <div className="cs-field">
+                <label className="cs-label">Teléfono</label>
                 <input
                   name="telefono"
                   required
                   defaultValue={datos?.telefono ?? ""}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-white"
+                  className="cs-input"
+                  placeholder="+56 9 1234 5678"
+                  autoComplete="tel"
                 />
               </div>
+            </div>
 
-              {/* Email */}
-              <div className="space-y-1 text-sm">
-                <label className="text-neutral-300">
-                  Correo electrónico
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  defaultValue={datos?.email ?? ""}
-                  className="w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-white"
-                />
-              </div>
+            <div className="cs-field">
+              <label className="cs-label">Correo electrónico</label>
+              <input
+                name="email"
+                type="email"
+                required
+                defaultValue={datos?.email ?? ""}
+                className="cs-input"
+                placeholder="tucorreo@ejemplo.cl"
+                autoComplete="email"
+              />
+            </div>
 
-              <div className="mt-4 flex justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="rb-btn--ghost rb-btn"
-                >
-                  Volver
-                </button>
-                <button type="submit" className="rb-btn">
-                  Continuar
-                </button>
-              </div>
-            </form>
-          </section>
+            <div className="cs-actions">
+              <button type="button" onClick={() => router.back()} className="rb-btn rb-btn--ghost">
+                Volver
+              </button>
+              <button type="submit" className="rb-btn">
+                Continuar
+              </button>
+            </div>
+          </form>
+        </section>
 
-          {/* DERECHA: Resumen del carrito */}
+        {/* DERECHA */}
+        <aside className="cs-summary">
           <CheckoutSummary />
-        </div>
+        </aside>
       </div>
+
+      <style jsx>{`
+        .checkout-step {
+          padding-top: 24px;
+          padding-bottom: 24px;
+        }
+
+        .cs-title {
+          margin: 0 0 10px;
+          font-size: 30px;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: -0.02em;
+        }
+
+        .cs-steps {
+          margin-bottom: 14px;
+        }
+
+        .cs-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 18px;
+          align-items: start;
+        }
+
+        @media (min-width: 1024px) {
+          .cs-grid {
+            grid-template-columns: 1fr 420px;
+            gap: 22px;
+          }
+        }
+
+        .cs-card {
+          background: #0d0d0d;
+          border: 1px solid #262626;
+          border-radius: 16px;
+          padding: 18px;
+          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .cs-head {
+          display: grid;
+          grid-template-columns: 10px 1fr;
+          gap: 12px;
+          align-items: start;
+          margin-bottom: 14px;
+        }
+
+        .cs-accent {
+          width: 4px;
+          height: 24px;
+          border-radius: 999px;
+          background: #b6ff2e;
+          margin-top: 2px;
+        }
+
+        .cs-card-title {
+          margin: 0;
+          color: #fff;
+          font-size: 18px;
+          font-weight: 800;
+        }
+
+        .cs-card-sub {
+          margin: 6px 0 0;
+          color: #a3a3a3;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .cs-form {
+          display: grid;
+          gap: 14px;
+        }
+
+        .cs-two {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        @media (min-width: 768px) {
+          .cs-two {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        .cs-field {
+          display: grid;
+          gap: 6px;
+        }
+
+        .cs-label {
+          color: #d4d4d4;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .cs-input {
+          width: 100%;
+          background: #141414;
+          border: 1px solid #242424;
+          color: #e5e7eb;
+          border-radius: 12px;
+          height: 44px;
+          padding: 0 12px;
+        }
+
+        .cs-input::placeholder {
+          color: #6b7280;
+        }
+
+        .cs-actions {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 6px;
+          flex-wrap: wrap;
+        }
+
+        .cs-actions .rb-btn {
+          min-width: 160px;
+        }
+
+        .cs-summary {
+          position: sticky;
+          top: 1.5rem;
+        }
+
+        /* Evita que algún CSS global deje inputs blancos en esta vista */
+        :global(.checkout-step input) {
+          appearance: none;
+          -webkit-appearance: none;
+        }
+      `}</style>
     </main>
   );
 }
