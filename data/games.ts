@@ -9,11 +9,11 @@ export type Spec = {
 
 export type Build = {
   title: string;
-  images: string[];       // ← ahora 3 imágenes por config
-  priceTransfer: number;
-  priceCard: number;
-  productSlug: string;    // clave para inventario compartido
-  stock: number;          // (lo sobreescribe inventory.ts si lo usas)
+  images: string[]; // 3 imágenes por config
+  priceTransfer: number; // placeholder (BD lo reemplaza en UI)
+  priceCard: number; // placeholder (BD lo reemplaza en UI)
+  productSlug: string; // clave BD
+  stock: number; // placeholder (BD lo reemplaza en UI)
   specs: Spec[];
   fpsInfo?: string;
 };
@@ -27,21 +27,16 @@ export type GameDef = {
 };
 
 /* ============================================================
-   BASE BUILDS (reales) – mismas specs para todos los juegos.
-   Cambia imágenes y precios cuando tengas lo definitivo.
+   BASE BUILDS (UI) – specs/imagenes reales, precio/stock placeholder
    ============================================================ */
 
 const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
   title: "OFICINA – 8600G",
-  images: [
-    "/builds/oficina.jpg",
-    "/builds/oficina2.jpg",
-    "/builds/oficina3.jpg",
-  ],
-  priceTransfer: 450000,
-  priceCard: 500000,
+  images: ["/builds/oficina.jpg", "/builds/oficina2.jpg", "/builds/oficina3.jpg"],
+  priceTransfer: 0,
+  priceCard: 0,
   productSlug: "oficina-8600g",
-  stock: 4,
+  stock: 0,
   specs: [
     { label: "Tarjeta de video", value: "Integrada (RDNA3)" },
     { label: "CPU", value: "Ryzen 5 8600G" },
@@ -55,15 +50,11 @@ const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
 
 const BASE_ENTRADA_R7_5060: Omit<Build, "fpsInfo"> = {
   title: "ENTRADA – Ryzen 7 + RTX 5060",
-  images: [
-    "/builds/entrada.jpg",
-    "/builds/entrada.jpg",
-    "/builds/entrada.jpg",
-  ],
-  priceTransfer: 1000000,
-  priceCard: 1200000,
+  images: ["/builds/entrada.jpg", "/builds/entrada.jpg", "/builds/entrada.jpg"],
+  priceTransfer: 0,
+  priceCard: 0,
   productSlug: "entrada-ryzen7-rtx5060",
-  stock: 2,
+  stock: 0,
   specs: [
     { label: "Tarjeta de video", value: "GeForce RTX 5060" },
     { label: "CPU", value: "Ryzen 7 (AM5)" },
@@ -77,15 +68,11 @@ const BASE_ENTRADA_R7_5060: Omit<Build, "fpsInfo"> = {
 
 const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
   title: "MEDIA – Ryzen 9 + RX 9060 XT",
-  images: [
-    "/builds/media.jpg",
-    "/builds/media.jpg",
-    "/builds/media.jpg",
-  ],
-  priceTransfer: 950000,
-  priceCard: 1000000,
+  images: ["/builds/media.jpg", "/builds/media.jpg", "/builds/media.jpg"],
+  priceTransfer: 0,
+  priceCard: 0,
   productSlug: "media-ryzen9-rx9060xt",
-  stock: 4,
+  stock: 0,
   specs: [
     { label: "Tarjeta de video", value: "Radeon RX 9060 XT" },
     { label: "CPU", value: "Ryzen 9 (AM5)" },
@@ -98,9 +85,7 @@ const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
 };
 
 /* ============================================================
-   JUEGOS BASE (Counter-Strike 2, Warzone, Minecraft)
-   Compatibilidad = qué builds aparecen en cada juego.
-   1440p vacío => "Próximamente".
+   JUEGOS BASE
    ============================================================ */
 
 export const GAMES: GameDef[] = [
@@ -116,7 +101,7 @@ export const GAMES: GameDef[] = [
         { ...BASE_MEDIA_R9_9060XT, fpsInfo: "400 FPS • Config. Competitiva, FullHD" },
       ],
       "1440p": [
-        /// Próximamente
+        // Próximamente
       ],
     },
   },
@@ -133,7 +118,7 @@ export const GAMES: GameDef[] = [
         { ...BASE_MEDIA_R9_9060XT, fpsInfo: "200 FPS • Calidad Muy Alta, FullHD" },
       ],
       "1440p": [
-        /// Próximamente
+        // Próximamente
       ],
     },
   },
@@ -141,8 +126,7 @@ export const GAMES: GameDef[] = [
   {
     slug: "minecraft",
     title: "Minecraft",
-    blurb:
-      "Desde vanilla hasta modpacks pesados, shaders y Ray Tracing.",
+    blurb: "Desde vanilla hasta modpacks pesados, shaders y Ray Tracing.",
     banner: "/banners/maincra.jpg",
     builds: {
       "1080p": [
@@ -151,7 +135,7 @@ export const GAMES: GameDef[] = [
         { ...BASE_MEDIA_R9_9060XT, fpsInfo: "160 FPS • Shaders/RT, FullHD" },
       ],
       "1440p": [
-        /// Próximamente
+        // Próximamente
       ],
     },
   },

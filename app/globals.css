@@ -111,7 +111,23 @@ main[data-new-grid="1"] section[data-testid="new-grid"]{display:grid !important;
 @media (min-width:1024px){main[data-new-grid="1"] section[data-testid="new-grid"]{grid-template-columns:repeat(3,minmax(0,1fr)) !important}}
 main[data-new-grid="1"] ul,main[data-new-grid="1"] li{border:0 !important;list-style:none !important;margin:0 !important;padding:0 !important}
 main[data-new-grid="1"] [data-build-card] li{border:1px solid rgba(255,255,255,.08) !important;border-radius:12px !important;padding:8px 12px !important;margin:0 !important}
-main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;display:inline-flex !important}
+
+/* ⚠️ IMPORTANTE:
+   Antes estabas forzando TODOS los <a> y <button> dentro de main[data-new-grid="1"].
+   Eso rompe botones full-width y layouts.
+   Lo limitamos SOLO a los botones del carrusel (o controles pequeños) dentro de cards. */
+main[data-new-grid="1"] [data-build-card] a,
+main[data-new-grid="1"] [data-build-card] button {
+  width: unset !important;
+  display: unset !important;
+}
+
+/* Si quieres mantener “inline-flex” SOLO para los botones del carrusel: */
+main[data-new-grid="1"] [data-build-card] .rb-carousel-btn {
+  display: inline-flex !important;
+  width: auto !important;
+}
+
 
 /* ===== Drawer + Overlay ===== */
 .rb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:9998}
@@ -264,3 +280,539 @@ main[data-new-grid="1"] a,main[data-new-grid="1"] button{width:auto !important;d
   .hero-banner { height: 220px; }
 }
 
+/* =========================================================
+   /modelos/[slug] — ESTILO PRO (SOLO ESTA PÁGINA)
+   No afecta nada fuera de main[data-model-page="1"]
+   ========================================================= */
+main[data-model-page="1"]{
+  --rb-accent:#b6ff2e;
+  --rb-bg:#0a0a0a;
+  --rb-card:rgba(10,10,10,.6);
+  --rb-border:rgba(255,255,255,.10);
+  --rb-border2:rgba(255,255,255,.14);
+  --rb-text:#e5e7eb;
+  --rb-muted:#a3a3a3;
+  --rb-shadow:0 18px 55px rgba(0,0,0,.55);
+}
+
+main[data-model-page="1"] .rb-card{
+  border:1px solid var(--rb-border);
+  background:var(--rb-card);
+  border-radius:18px;
+  box-shadow:var(--rb-shadow);
+}
+
+main[data-model-page="1"] .rb-model-hero{
+  position:relative;
+  margin-top:18px;
+  border-radius:22px;
+  overflow:hidden;
+  border:1px solid var(--rb-border);
+  background:linear-gradient(180deg, rgba(182,255,46,.08), rgba(0,0,0,0));
+}
+main[data-model-page="1"] .rb-model-hero__bg{
+  position:absolute; inset:0;
+  background:
+    radial-gradient(900px 280px at 20% 0%, rgba(182,255,46,.12), transparent 60%),
+    radial-gradient(900px 280px at 80% 0%, rgba(182,255,46,.06), transparent 60%);
+  pointer-events:none;
+}
+main[data-model-page="1"] .rb-model-hero__inner{
+  position:relative;
+  padding:22px 18px;
+  text-align:center;
+}
+main[data-model-page="1"] .rb-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.35);
+  color:var(--rb-accent);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+main[data-model-page="1"] .rb-model-breadcrumb{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+main[data-model-page="1"] .rb-model-title{
+  margin:10px 0 0;
+  color:#fff;
+  font-weight:900;
+  font-size:30px;
+  line-height:1.1;
+}
+@media (min-width:640px){
+  main[data-model-page="1"] .rb-model-title{ font-size:40px; }
+}
+main[data-model-page="1"] .rb-model-sub{
+  margin-top:10px;
+  color:#d4d4d4;
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  font-size:13px;
+}
+main[data-model-page="1"] .rb-dot{ opacity:.5; }
+main[data-model-page="1"] .rb-muted{ color:var(--rb-muted); }
+main[data-model-page="1"] .rb-accent{ color:var(--rb-accent); }
+main[data-model-page="1"] .rb-model-badges{
+  margin-top:12px;
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+main[data-model-page="1"] .rb-badge{
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.28);
+  color:#eaeaea;
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:650;
+}
+
+main[data-model-page="1"] .rb-model-grid{
+  margin-top:18px;
+  display:grid;
+  gap:16px;
+}
+@media (min-width:1024px){
+  main[data-model-page="1"] .rb-model-grid{
+    grid-template-columns: 1.35fr .65fr;
+    align-items:start;
+  }
+}
+
+main[data-model-page="1"] .rb-gallery{ overflow:hidden; }
+main[data-model-page="1"] .rb-gallery__main{
+  position:relative;
+  aspect-ratio:16/10;
+  background:#050505;
+}
+main[data-model-page="1"] .rb-gallery__img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  transform:scale(1.01);
+}
+main[data-model-page="1"] .rb-gallery__nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:40px;height:40px;
+  border-radius:999px;
+  border:1px solid var(--rb-border2);
+  background:rgba(0,0,0,.45);
+  color:#fff;
+  font-size:22px;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+main[data-model-page="1"] .rb-gallery__nav:hover{ background:rgba(0,0,0,.65); }
+main[data-model-page="1"] .rb-gallery__nav--l{ left:12px; }
+main[data-model-page="1"] .rb-gallery__nav--r{ right:12px; }
+
+main[data-model-page="1"] .rb-stockpill{
+  position:absolute;
+  left:12px; top:12px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid var(--rb-border2);
+  background:rgba(0,0,0,.45);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+}
+main[data-model-page="1"] .rb-stockpill__low{
+  background:rgba(255,80,80,.14);
+  border:1px solid rgba(255,80,80,.25);
+  color:#ffd6d6;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:800;
+}
+main[data-model-page="1"] .rb-stockpill--out{
+  color:#ffd0d0;
+}
+
+main[data-model-page="1"] .rb-gallery__thumbs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  background:rgba(0,0,0,.25);
+  border-top:1px solid var(--rb-border);
+}
+main[data-model-page="1"] .rb-thumbbtn{
+  border:1px solid var(--rb-border);
+  border-radius:14px;
+  overflow:hidden;
+  background:#050505;
+}
+main[data-model-page="1"] .rb-thumbbtn:hover{ border-color:var(--rb-border2); }
+main[data-model-page="1"] .rb-thumbbtn--active{
+  border-color:rgba(182,255,46,.55);
+  box-shadow:0 0 0 2px rgba(182,255,46,.12) inset;
+}
+main[data-model-page="1"] .rb-thumbimg{
+  width:100%;
+  height:84px;
+  object-fit:cover;
+  display:block;
+}
+
+main[data-model-page="1"] .rb-buy{
+  padding:16px;
+}
+@media (min-width:1024px){
+  main[data-model-page="1"] .rb-buy{
+    position:sticky;
+    top:90px;
+  }
+}
+main[data-model-page="1"] .rb-buy__top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+main[data-model-page="1"] .rb-buy__kicker{
+  color:#d4d4d4;
+  font-size:12px;
+  font-weight:700;
+}
+main[data-model-page="1"] .rb-buy__brand{
+  color:var(--rb-accent);
+  font-weight:900;
+  letter-spacing:.02em;
+  margin-top:2px;
+}
+main[data-model-page="1"] .rb-buy__trust{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.28);
+  color:#eaeaea;
+  font-size:12px;
+}
+main[data-model-page="1"] .rb-trustdot{
+  width:8px;height:8px;border-radius:999px;
+  background:var(--rb-accent);
+  box-shadow:0 0 0 3px rgba(182,255,46,.12);
+}
+
+main[data-model-page="1"] .rb-pricebox{
+  margin-top:14px;
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.22);
+  border-radius:16px;
+  padding:14px;
+}
+main[data-model-page="1"] .rb-pricerow{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+}
+main[data-model-page="1"] .rb-label{ color:#eaeaea; font-weight:800; font-size:12px; }
+main[data-model-page="1"] .rb-muted-xs{ color:#9ca3af; font-size:11px; }
+main[data-model-page="1"] .rb-priceright{
+  color:#fff;
+  font-weight:900;
+  font-size:16px;
+  white-space:nowrap;
+}
+main[data-model-page="1"] .rb-divider{
+  height:1px;
+  background:rgba(255,255,255,.10);
+  margin:12px 0;
+}
+main[data-model-page="1"] .mt8{ margin-top:8px; }
+
+main[data-model-page="1"] .rb-cta{
+  margin-top:12px;
+  width:100%;
+  border-radius:14px;
+  padding:12px 14px;
+  border:1px solid rgba(182,255,46,.65);
+  background:linear-gradient(180deg, rgba(182,255,46,1), rgba(160,255,20,1));
+  color:#0a0a0a;
+  font-weight:950;
+  letter-spacing:.01em;
+}
+main[data-model-page="1"] .rb-cta:hover{ filter:brightness(1.03); }
+main[data-model-page="1"] .rb-cta--disabled{
+  border-color:rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#9ca3af;
+}
+
+main[data-model-page="1"] .rb-benefits{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+@media (min-width:640px){
+  main[data-model-page="1"] .rb-benefits{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+main[data-model-page="1"] .rb-benefit{
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.18);
+  border-radius:14px;
+  padding:10px 12px;
+}
+main[data-model-page="1"] .rb-benefit__t{
+  color:#fff;
+  font-weight:900;
+  font-size:12px;
+}
+main[data-model-page="1"] .rb-benefit__d{
+  margin-top:2px;
+  color:#bdbdbd;
+  font-size:11px;
+}
+
+main[data-model-page="1"] .rb-back{
+  margin-top:14px;
+  display:inline-flex;
+  width:100%;
+  align-items:center;
+  justify-content:center;
+  border-radius:14px;
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.18);
+  color:#eaeaea;
+  padding:10px 12px;
+  font-weight:800;
+}
+main[data-model-page="1"] .rb-back:hover{ border-color:var(--rb-border2); }
+
+main[data-model-page="1"] .rb-section{
+  margin-top:16px;
+  padding:16px;
+}
+main[data-model-page="1"] .rb-h2{
+  margin:0;
+  color:#fff;
+  font-weight:950;
+  font-size:18px;
+}
+main[data-model-page="1"] .rb-p{
+  margin-top:10px;
+  color:#d4d4d4;
+  font-size:13px;
+  line-height:1.6;
+}
+
+main[data-model-page="1"] .rb-specgrid{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+@media (min-width:768px){
+  main[data-model-page="1"] .rb-specgrid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+main[data-model-page="1"] .rb-spec{
+  border:1px solid var(--rb-border);
+  background:rgba(0,0,0,.18);
+  border-radius:14px;
+  padding:12px 12px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+main[data-model-page="1"] .rb-spec__k{
+  color:#a3a3a3;
+  font-size:12px;
+  font-weight:750;
+}
+main[data-model-page="1"] .rb-spec__v{
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  text-align:right;
+}
+
+main[data-model-page="1"] .rb-video{
+  margin-top:12px;
+  border:1px solid var(--rb-border);
+  border-radius:18px;
+  overflow:hidden;
+  background:#000;
+}
+main[data-model-page="1"] .rb-video__el{ width:100%; display:block; }
+
+main[data-model-page="1"] .rb-empty{
+  margin-top:12px;
+  border:1px dashed rgba(255,255,255,.18);
+  border-radius:16px;
+  padding:14px;
+  color:#a3a3a3;
+  background:rgba(0,0,0,.18);
+}
+
+main[data-model-page="1"] .rb-mb{ margin-bottom:22px; }
+
+/* ===================================================================
+   MODELOS (solo /modelos) — skin moderno tipo checkout / ficha de modelo
+   =================================================================== */
+
+main[data-models-page="1"] .models-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+@media (min-width: 768px) {
+  main[data-models-page="1"] .models-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  main[data-models-page="1"] .models-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+}
+
+/* Card base */
+main[data-models-page="1"] [data-build-card] {
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 18px !important;
+  background: rgba(10,10,10,.55) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35) !important;
+  overflow: hidden !important;
+}
+
+/* Quita “estilo tabla” que venía de ul/li viejos SOLO en modelos */
+main[data-models-page="1"] [data-build-card] ul,
+main[data-models-page="1"] [data-build-card] li {
+  list-style: none !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Secciones internas con padding consistente */
+main[data-models-page="1"] [data-build-card] .card-pad {
+  padding: 14px 14px 16px !important;
+}
+
+/* Imagen: respeta y se ve premium */
+main[data-models-page="1"] [data-build-card] .card-media {
+  position: relative !important;
+  background: #050505 !important;
+}
+
+main[data-models-page="1"] [data-build-card] .card-media img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* Header */
+main[data-models-page="1"] [data-build-card] .card-title {
+  font-weight: 900 !important;
+  letter-spacing: .2px !important;
+  line-height: 1.15 !important;
+}
+
+main[data-models-page="1"] [data-build-card] .card-subtle {
+  color: rgba(255,255,255,.65) !important;
+}
+
+/* Bloque precios tipo checkout */
+main[data-models-page="1"] [data-build-card] .price-box {
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(20,20,20,.55) !important;
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+}
+
+main[data-models-page="1"] [data-build-card] .price-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+main[data-models-page="1"] [data-build-card] .price-big {
+  color: #b6ff2e !important;
+  font-weight: 900 !important;
+}
+
+/* Specs compactas (sin líneas duras) */
+main[data-models-page="1"] [data-build-card] .specs-grid {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+main[data-models-page="1"] [data-build-card] .spec-pill {
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(18,18,18,.55) !important;
+  border-radius: 12px !important;
+  padding: 8px 10px !important;
+}
+
+/* Botones */
+main[data-models-page="1"] [data-build-card] .btn-primary {
+  border-radius: 14px !important;
+  font-weight: 800 !important;
+}
+
+main[data-models-page="1"] [data-build-card] .btn-ghost {
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(10,10,10,.35) !important;
+}
+
+/* “Badge” stock */
+main[data-models-page="1"] [data-build-card] .stock-badge {
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  border-radius: 999px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(0,0,0,.45) !important;
+  color: rgba(255,255,255,.95) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+main[data-models-page="1"] [data-build-card] .stock-badge.out {
+  border-color: rgba(239,68,68,.35) !important;
+  background: rgba(239,68,68,.10) !important;
+  color: rgba(254,226,226,.95) !important;
+}
+
+/* Clickable card link sin romper botones */
+main[data-models-page="1"] [data-build-card] .card-link {
+  display: block !important;
+  text-decoration: none !important;
+}

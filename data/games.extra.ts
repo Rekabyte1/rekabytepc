@@ -1,14 +1,11 @@
-// /data/games.extra.ts
 import type { GameDef } from "./games";
 import { GAMES as BASE_GAMES } from "./games";
 
 /**
- * Reutilizamos los mismos productSlug/stock:
- * - oficina-8600g
- * - entrada-ryzen7-rtx5060
- * - media-ryzen9-rx9060xt
- *
- * Ahora todas las configs traen 3 imágenes (por ahora repetidas).
+ * Importante:
+ * - priceTransfer/priceCard/stock aquí quedan como placeholder (0).
+ * - La UI (GameBuildCard) los reemplaza por los valores reales desde la BD
+ *   usando el productSlug.
  */
 
 const OFICINA = {
@@ -19,8 +16,8 @@ const OFICINA = {
     "/builds/shared/oficina.jpg",
     "/builds/shared/oficina.jpg",
   ],
-  priceTransfer: 399000,
-  priceCard: 429000,
+  priceTransfer: 0,
+  priceCard: 0,
   stock: 0,
   specs: [
     { label: "Tarjeta de video", value: "Integrada (RDNA3)" },
@@ -41,8 +38,8 @@ const ENTRADA = {
     "/builds/shared/entrada.jpg",
     "/builds/shared/entrada.jpg",
   ],
-  priceTransfer: 890000,
-  priceCard: 930000,
+  priceTransfer: 0,
+  priceCard: 0,
   stock: 0,
   specs: [
     { label: "Tarjeta de video", value: "GeForce RTX 5060" },
@@ -63,8 +60,8 @@ const MEDIA = {
     "/builds/shared/media.jpg",
     "/builds/shared/media.jpg",
   ],
-  priceTransfer: 1490000,
-  priceCard: 1550000,
+  priceTransfer: 0,
+  priceCard: 0,
   stock: 0,
   specs: [
     { label: "Tarjeta de video", value: "Radeon RX 9060 XT" },
@@ -88,12 +85,9 @@ export const EXTRA_GAMES: GameDef[] = [
         { ...ENTRADA, fpsInfo: "350 FPS • Config. Competitiva, FullHD" },
         { ...MEDIA, fpsInfo: "500 FPS • Config. Baja, FullHD" },
       ],
-      "1440p": [
-        /// Próximamente
-      ],
+      "1440p": [],
     },
   },
-
   {
     slug: "roblox",
     title: "Roblox",
@@ -104,12 +98,9 @@ export const EXTRA_GAMES: GameDef[] = [
         { ...OFICINA, fpsInfo: "160 FPS • FullHD" },
         { ...ENTRADA, fpsInfo: "240 FPS • FullHD" },
       ],
-      "1440p": [
-        /// Próximamente
-      ],
+      "1440p": [],
     },
   },
-
   {
     slug: "rocket-league",
     title: "Rocket League",
@@ -120,12 +111,9 @@ export const EXTRA_GAMES: GameDef[] = [
         { ...ENTRADA, fpsInfo: "230 FPS • 144 Hz, FullHD" },
         { ...MEDIA, fpsInfo: "300 FPS • 240 Hz, FullHD" },
       ],
-      "1440p": [
-        /// Próximamente
-      ],
+      "1440p": [],
     },
   },
-
   {
     slug: "fortnite",
     title: "Fortnite",
@@ -137,12 +125,9 @@ export const EXTRA_GAMES: GameDef[] = [
         { ...ENTRADA, fpsInfo: "180 FPS • Alto, FullHD" },
         { ...MEDIA, fpsInfo: "240 FPS • Muy Alto, FullHD" },
       ],
-      "1440p": [
-        /// Próximamente
-      ],
+      "1440p": [],
     },
   },
-
   {
     slug: "triple-a",
     title: "Juegos triple A",
@@ -154,14 +139,11 @@ export const EXTRA_GAMES: GameDef[] = [
         { ...ENTRADA, fpsInfo: "80 FPS • Alto, FullHD" },
         { ...MEDIA, fpsInfo: "120 FPS • Ultra, FullHD" },
       ],
-      "1440p": [
-        /// Próximamente
-      ],
+      "1440p": [],
     },
   },
 ];
 
-/** Mezcla juegos base con los extra (sin duplicar slugs). */
 export const GAMES_ALL: GameDef[] = (() => {
   const map = new Map(BASE_GAMES.map((g) => [g.slug, g]));
   for (const g of EXTRA_GAMES) if (!map.has(g.slug)) map.set(g.slug, g);
