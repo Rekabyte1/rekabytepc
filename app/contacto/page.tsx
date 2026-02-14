@@ -20,10 +20,10 @@ export default function ContactoPage() {
               <div>
                 <p className="text-sm text-neutral-400">Correo</p>
                 <a
-                  href="mailto:rekabytepc@gmail.com"
+                  href="mailto:contacto@rekabyte.cl"
                   className="font-medium text-white hover:text-lime-300"
                 >
-                  rekabytepc@gmail.com
+                  contacto@rekabyte.cl
                 </a>
               </div>
             </li>

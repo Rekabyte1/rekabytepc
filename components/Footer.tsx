@@ -198,7 +198,7 @@ export default function Footer() {
       {/* Barra inferior */}
       <div className="border-t border-neutral-800">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-center text-xs text-neutral-400 md:flex-row">
-          <p>© 2025 RekaByte. Todos los derechos reservados.</p>
+          <p>© 2026 RekaByte. Todos los derechos reservados.</p>
           <p>Webpay · Mercado Pago · Transbank</p>
         </div>
       </div>
