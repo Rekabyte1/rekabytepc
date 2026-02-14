@@ -81,7 +81,7 @@ export default function Paso2Envio() {
                 />
                 <div className="cs-choice-body">
                   <div className="cs-choice-title">Punto de retiro (gratis)</div>
-                  <div className="cs-choice-sub">Real Audiencia 1170, San Miguel</div>
+                  <div className="cs-choice-sub">A pasos de metro Lo vial, San Miguel</div>
                 </div>
                 <div className="cs-pill">Gratis</div>
               </label>
@@ -113,7 +113,7 @@ export default function Paso2Envio() {
                     name="direccion"
                     className="cs-input"
                     defaultValue={(envio as any)?.direccion ?? ""}
-                    placeholder="Ej: Real Audiencia 1170"
+                    placeholder="Ej: A pasos de metro Lo vial, San Miguel"
                     disabled={tipo !== "delivery"}
                   />
                 </div>

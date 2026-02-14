@@ -112,20 +112,24 @@ main[data-new-grid="1"] section[data-testid="new-grid"]{display:grid !important;
 main[data-new-grid="1"] ul,main[data-new-grid="1"] li{border:0 !important;list-style:none !important;margin:0 !important;padding:0 !important}
 main[data-new-grid="1"] [data-build-card] li{border:1px solid rgba(255,255,255,.08) !important;border-radius:12px !important;padding:8px 12px !important;margin:0 !important}
 
-/* ⚠️ IMPORTANTE:
-   Antes estabas forzando TODOS los <a> y <button> dentro de main[data-new-grid="1"].
-   Eso rompe botones full-width y layouts.
-   Lo limitamos SOLO a los botones del carrusel (o controles pequeños) dentro de cards. */
-main[data-new-grid="1"] [data-build-card] a,
-main[data-new-grid="1"] [data-build-card] button {
-  width: unset !important;
-  display: unset !important;
+/* ✅ FIX ESENCIAL: NO rompas el <Link> (a) que envuelve la imagen del card.
+   Si le pones display: unset, el aspect ratio colapsa y se “borra” la foto. */
+main[data-new-grid="1"] [data-build-card] a{
+  display:block !important;
+  width:100% !important;
 }
 
-/* Si quieres mantener “inline-flex” SOLO para los botones del carrusel: */
-main[data-new-grid="1"] [data-build-card] .rb-carousel-btn {
-  display: inline-flex !important;
-  width: auto !important;
+/* Botones del carrusel (flechas) siguen siendo “chicos” */
+main[data-new-grid="1"] [data-build-card] .card-media button{
+  display:inline-flex !important;
+  width:auto !important;
+}
+
+/* CTA y “Mostrar especificaciones…” siguen full width */
+main[data-new-grid="1"] [data-build-card] .btn-primary,
+main[data-new-grid="1"] [data-build-card] .btn-ghost{
+  display:block !important;
+  width:100% !important;
 }
 
 

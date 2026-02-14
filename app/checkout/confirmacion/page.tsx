@@ -224,7 +224,7 @@ export default function Paso4Confirmacion() {
                         {envio?.tipo === "pickup" ? (
                           <>
                             Retiro en tienda (gratis)
-                            <span className="cs-muted"> · Real Audiencia 1170, San Miguel</span>
+                            <span className="cs-muted"> · A pasos de metro Lo vial, San Miguel</span>
                           </>
                         ) : (
                           <>

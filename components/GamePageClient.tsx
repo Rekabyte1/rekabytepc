@@ -1,22 +1,102 @@
 "use client";
 
-import { useState } from "react";
-import type { GameDef, Resolution } from "@/data/games";
+import { useEffect, useMemo, useState } from "react";
+import type { GameDef, Resolution, Build } from "@/data/games";
 import GameBuildCard from "@/components/GameBuildCard";
 
 const RESOS: Resolution[] = ["1080p", "1440p"];
 
 type Props = { game: GameDef };
 
+type BySlugsItem = {
+  slug: string;
+  title?: string;
+  priceTransfer?: number;
+  priceCard?: number;
+  stock?: number;
+  imageUrl?: string | null;
+  isActive?: boolean;
+};
+
 export default function GamePageClient({ game }: Props) {
   const [reso, setReso] = useState<Resolution>("1080p");
-  const builds = game.builds[reso] ?? [];
+
+  // Builds base desde tu data (games.extra / games)
+  const buildsBase = useMemo(() => {
+    return (game.builds?.[reso] ?? []) as Build[];
+  }, [game, reso]);
+
+  // Builds “enriquecidas” con imagen real desde BD (imageUrl)
+  const [builds, setBuilds] = useState<Build[]>(buildsBase);
+
+  useEffect(() => {
+    setBuilds(buildsBase);
+  }, [buildsBase]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function hydrateFromDB() {
+      const slugs = buildsBase
+        .map((b) => b?.productSlug)
+        .filter(Boolean) as string[];
+
+      if (!slugs.length) return;
+
+      try {
+        const res = await fetch("/api/by-slugs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slugs }),
+          cache: "no-store",
+        });
+
+        const data = await res.json().catch(() => null);
+        const items: BySlugsItem[] = data?.items ?? [];
+
+        if (!alive) return;
+
+        const map = new Map<string, BySlugsItem>();
+        for (const it of items) {
+          if (it?.slug) map.set(it.slug, it);
+        }
+
+        // Creamos builds con images reemplazadas por imageUrl si existe
+        const next = buildsBase.map((b) => {
+          const slug = b.productSlug;
+          const db = slug ? map.get(slug) : undefined;
+
+          const img = db?.imageUrl ?? null;
+
+          // Si BD trae imageUrl => la usamos (triplicada para tu carrusel)
+          if (img) {
+            return {
+              ...b,
+              images: [img, img, img],
+            } as Build;
+          }
+
+          // Si no hay imageUrl, dejamos lo que venga del build
+          return b;
+        });
+
+        setBuilds(next);
+      } catch {
+        // si falla, no pasa nada: se quedan las imágenes locales
+      }
+    }
+
+    hydrateFromDB();
+    return () => {
+      alive = false;
+    };
+  }, [buildsBase]);
 
   const showComingSoon = reso === "1440p" && builds.length === 0;
 
   return (
     <main className="rb-container relative" data-new-grid="1">
-      {/* ✅ Anti-overlay: si tu CSS mete ::before/::after arriba, esto lo neutraliza */}
+      {/* ✅ Anti-overlay: neutraliza overlays globales sin romper layout */}
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
 
       {/* Título + blurb */}
@@ -38,7 +118,6 @@ export default function GamePageClient({ game }: Props) {
               className="absolute inset-0 h-full w-full object-cover"
               draggable={false}
             />
-            {/* Degradé (solo visual, no bloquea clicks) */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
           </div>
         </div>
@@ -68,7 +147,6 @@ export default function GamePageClient({ game }: Props) {
       <section
         data-testid="new-grid"
         className="rb-grid relative z-10"
-        // ✅ por si algún overlay está capturando eventos por arriba
         style={{ pointerEvents: "auto" }}
       >
         {showComingSoon ? (
@@ -79,15 +157,13 @@ export default function GamePageClient({ game }: Props) {
             </p>
           </div>
         ) : (
-          builds
-            .slice(0, 3)
-            .map((b, i) => (
-              <GameBuildCard
-                key={`${b.productSlug || b.title}-${i}`}
-                build={b}
-                gameTitle={game.title}
-              />
-            ))
+          builds.slice(0, 3).map((b, i) => (
+            <GameBuildCard
+              key={`${b.productSlug || b.title}-${i}`}
+              build={b}
+              gameTitle={game.title}
+            />
+          ))
         )}
       </section>
     </main>

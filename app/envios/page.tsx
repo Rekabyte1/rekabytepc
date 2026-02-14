@@ -19,7 +19,7 @@ export default function EnviosPage() {
           <ul className="list-disc space-y-1 pl-5 text-neutral-300">
             <li>Retiro con <span className="font-semibold">código PIN</span> y número de pedido.</li>
             <li>Horario de atención: Lunes a Viernes, 10:00–18:30 hrs.</li>
-            <li>Dirección: <span className="font-semibold">Real Audiencia 1170, San Miguel, RM</span> (modifícalo si corresponde).</li>
+            <li>Dirección: <span className="font-semibold">A pasos de metro Lo vial, San Miguel, RM</span> (modifícalo si corresponde).</li>
           </ul>
         </section>
 

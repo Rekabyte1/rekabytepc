@@ -56,10 +56,10 @@ export default function ContactoPage() {
               <div>
                 <p className="text-sm text-neutral-400">Punto de retiro</p>
                 <p className="font-medium text-white">
-                  Real Audiencia 1170, San Miguel
+                  A pasos de metro Lo vial, San Miguel
                 </p>
                 <a
-                  href="https://maps.google.com/?q=Real Audiencia 1170, San Miguel"
+                  href="https://www.google.com/maps/place/Lo+Vial/@-33.4972699,-70.6579809,17z/data=!3m1!4b1!4m6!3m5!1s0x9662dacee11c2a0f:0x8863690366f73279!8m2!3d-33.49727!4d-70.65311!16s%2Fm%2F0gkj4mn?entry=ttu&g_ep=EgoyMDI2MDIxMS4wIKXMDSoASAFQAw%3D%3D A pasos del metro Lo vial, San miguel"
                   target="_blank"
                   className="mt-1 inline-block text-lime-400 hover:text-lime-300 underline underline-offset-2"
                 >

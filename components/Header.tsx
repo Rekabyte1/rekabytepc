@@ -52,7 +52,7 @@ export default function Header() {
               <FaEnvelope /> contacto@rekabyte.cl
             </span>
             <span className="pill">
-              <FaMapMarkerAlt /> Punto de retiro, Real Audiencia 1170, San Miguel
+              <FaMapMarkerAlt /> Punto de retiro, A pasos de metro Lo vial, San Miguel
             </span>
           </div>
           <div className="pill">

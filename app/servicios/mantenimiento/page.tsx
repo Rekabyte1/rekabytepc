@@ -46,7 +46,7 @@ export default function MantenimientoPage() {
           <div className="sm:col-span-2 text-sm text-neutral-400">
             Tiempo de trabajo estimado: <b className="text-neutral-200">1–2 días hábiles</b>
             <br />
-            Entrega en punto de retiro: Real Audiencia 1170, San Miguel.
+            Entrega en punto de retiro: A pasos de metro Lo vial, San Miguel
           </div>
 
           <div className="flex items-center justify-end gap-2">

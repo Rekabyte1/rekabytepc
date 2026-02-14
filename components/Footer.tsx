@@ -49,7 +49,7 @@ export default function Footer() {
               </span>
               <div className="text-left">
                 <p className="font-semibold leading-tight text-white">Envíos a todo Chile</p>
-                <p className="text-[11px] text-neutral-400">Retiro en tienda o despacho.</p>
+                <p className="text-[11px] text-neutral-400">Retiro o despacho.</p>
               </div>
             </li>
           </ul>
@@ -124,7 +124,7 @@ export default function Footer() {
             <ul className="mt-2 space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <FiMapPin className="h-4 w-4 text-neutral-400" />
-                Real Audiencia 1170, San Miguel, RM
+                A pasos de metro Lo vial, San Miguel
               </li>
               <li className="flex items-center gap-2">
                 <FiPhone className="h-4 w-4 text-neutral-400" />

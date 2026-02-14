@@ -15,18 +15,6 @@ import {
 } from "react-icons/md";
 import { useCart } from "@/components/CartContext";
 
-// ✅ live desde BD (vía /api/by-slugs)
-type LiveProduct = {
-  slug: string;
-  stock?: number | null;
-  priceTransfer?: number | null;
-  priceCard?: number | null;
-  name?: string | null;
-  title?: string | null;
-  imageUrl?: string | null;
-  isActive?: boolean | null;
-};
-
 type Props = { build: Build; gameTitle?: string };
 
 const CLP = (n: number) =>
@@ -36,25 +24,69 @@ const CLP = (n: number) =>
     maximumFractionDigits: 0,
   });
 
+type LiveProduct = {
+  slug: string;
+  stock?: number | null;
+  priceTransfer?: number | null;
+  priceCard?: number | null;
+  imageUrl?: string | null;
+  name?: string | null;
+  title?: string | null;
+  isActive?: boolean | null;
+};
+
+// Cache simple en memoria para no pegarle a la API por cada re-render
+const liveCache = new Map<string, LiveProduct | null>();
+
+async function fetchLive(slug: string): Promise<LiveProduct | null> {
+  if (!slug) return null;
+  if (liveCache.has(slug)) return liveCache.get(slug) ?? null;
+
+  try {
+    const res = await fetch("/api/by-slugs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slugs: [slug] }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    const p = Array.isArray(data?.items) ? data.items[0] : null;
+    const out = (p ?? null) as LiveProduct | null;
+
+    liveCache.set(slug, out);
+    return out;
+  } catch {
+    liveCache.set(slug, null);
+    return null;
+  }
+}
+
 export default function GameBuildCard({ build, gameTitle }: Props) {
   // Carrusel: forzamos 3 imágenes
   const [idx, setIdx] = useState(0);
 
+  // Fallback cuando la URL existe en el array, pero el archivo NO existe (404)
+  const [broken, setBroken] = useState<Record<number, boolean>>({});
+
   const images = useMemo(() => {
     const srcs = Array.isArray(build.images) ? build.images.filter(Boolean) : [];
     let arr = srcs.slice(0, 3);
+
+    // si no hay imágenes definidas => fallback
     if (arr.length === 0) arr = ["/pc1.jpg", "/pc1.jpg", "/pc1.jpg"];
     if (arr.length === 1) arr = [arr[0], arr[0], arr[0]];
     if (arr.length === 2) arr = [arr[0], arr[1], arr[1]];
+
     return arr;
   }, [build.images]);
 
   const prev = () => setIdx((v) => (v - 1 + images.length) % images.length);
   const next = () => setIdx((v) => (v + 1) % images.length);
 
-  // ✅ Stock desde BD (guard contra hydration mismatch)
+  // ===== Stock desde BD (igual que ModelClient) =====
   const [mounted, setMounted] = useState(false);
   const [live, setLive] = useState<LiveProduct | null>(null);
+  const [loadingLive, setLoadingLive] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -63,52 +95,45 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
 
     let cancelled = false;
 
-    async function load() {
-      try {
-        const res = await fetch("/api/by-slugs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slugs: [build.productSlug] }),
-        });
-
-        const data = await res.json().catch(() => ({}));
-        const item = Array.isArray(data?.items) ? data.items[0] : null;
-
-        if (!cancelled) setLive(item ?? null);
-      } catch {
-        if (!cancelled) setLive(null);
-      }
-    }
-
-    load();
-
-    // (opcional) refresco suave cada 30s por si cambia stock sin recargar
-    const t = setInterval(load, 30_000);
+    (async () => {
+      setLoadingLive(true);
+      const p = await fetchLive(build.productSlug);
+      if (!cancelled) setLive(p);
+      if (!cancelled) setLoadingLive(false);
+    })();
 
     return () => {
       cancelled = true;
-      clearInterval(t);
     };
   }, [mounted, build.productSlug]);
 
-  // ✅ si hay BD -> usa BD; si no hay BD -> 0 (para no mentir con “2,2,5”)
-  const stock = typeof live?.stock === "number" ? live.stock : 0;
-  const isOut = stock <= 0;
-  const isLow = stock > 0 && stock <= 3;
+  // stock: BD primero, fallback a build.stock si existiera, si no 0
+  const stock =
+    typeof live?.stock === "number" ? live.stock : (build as any)?.stock ?? 0;
+
+  const isOut = (stock ?? 0) <= 0;
+  const isLow = (stock ?? 0) > 0 && (stock ?? 0) <= 3;
 
   // Toggle specs
   const [open, setOpen] = useState(false);
 
   // Carrito
   const { addItem, openCart } = useCart();
+
+  // cover: si BD trae imageUrl úsala; si no, usa imagen del carrusel con fallback por error
+  const cover =
+    live?.imageUrl ||
+    (broken[0] ? "/pc1.jpg" : images[0]) ||
+    "/pc1.jpg";
+
   const handleAdd = () => {
-    if (stock <= 0) return;
+    if ((stock ?? 0) <= 0) return;
 
     addItem(
       {
         id: build.productSlug,
         name: build.title,
-        image: images[0],
+        image: cover,
         priceTransfer: build.priceTransfer,
         priceCard: build.priceCard,
       },
@@ -137,6 +162,9 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
   // (Opcional futuro) video bajo la config
   const videoUrl = (build as any)?.videoUrl as string | undefined;
 
+  // Helpers imagen (si alguna falla, cae a /pc1.jpg pero NO cambia tu layout)
+  const srcAt = (i: number) => (broken[i] ? "/pc1.jpg" : images[i] || "/pc1.jpg");
+
   return (
     <article
       data-build-card
@@ -150,8 +178,9 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={images[idx]}
+          src={srcAt(idx)}
           alt={build.title}
+          onError={() => setBroken((m) => ({ ...m, [idx]: true }))}
           className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
           draggable={false}
         />
@@ -176,6 +205,9 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
               <span className="ml-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] text-red-200">
                 Últimas
               </span>
+            ) : null}
+            {mounted && loadingLive ? (
+              <span className="ml-1 text-[10px] text-neutral-400">• BD…</span>
             ) : null}
           </div>
         </div>
@@ -261,7 +293,7 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           <div className="mt-2 flex items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 text-neutral-300">
               <FaCreditCard className="h-4 w-4 text-neutral-300" />
-              <span className="text-sm">Otros medios (Webpay / Mercado Pago)</span>
+              <span className="text-sm">Otros medios (Webpay / MercadoPago)</span>
             </div>
             <div className="text-base font-semibold text-neutral-100">
               {CLP(build.priceCard)}
