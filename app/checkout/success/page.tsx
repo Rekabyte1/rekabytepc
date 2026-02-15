@@ -1,7 +1,8 @@
+// app/checkout/success/page.tsx
 "use client";
 
 import Link from "next/link";
-import React, { useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
 function orderNumberNice(id: string) {
@@ -47,7 +48,11 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-export default function CheckoutSuccessPage() {
+/**
+ * ✅ Next exige que useSearchParams() se use dentro de un hijo envuelto en <Suspense />
+ * para evitar: "useSearchParams() should be wrapped in a suspense boundary"
+ */
+function CheckoutSuccessInner() {
   const sp = useSearchParams();
   const orderId = sp.get("orderId") ?? "";
   const pm = sp.get("pm") ?? ""; // transferencia | card
@@ -264,5 +269,22 @@ export default function CheckoutSuccessPage() {
         }
       `}</style>
     </main>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="rb-container checkout-step">
+          <h1 className="cs-title">¡Listo!</h1>
+          <div className="cs-card" style={{ color: "#a3a3a3" }}>
+            Cargando resultado del pedido...
+          </div>
+        </main>
+      }
+    >
+      <CheckoutSuccessInner />
+    </Suspense>
   );
 }
