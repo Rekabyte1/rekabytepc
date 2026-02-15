@@ -14,33 +14,60 @@ const prisma = new PrismaClient({
   log: ["error", "warn"],
 });
 
+type ProductSeed = {
+  slug: string;
+  title: string;
+  desc?: string;
+  price: number;
+  image?: string;
+  stock?: number;
+
+  // opcionales (si los tienes en data/products)
+  priceCard?: number;
+  priceTransfer?: number;
+};
+
 async function main() {
   console.log("Seeding de productos…");
 
-  // Limpia la tabla
-  await prisma.product.deleteMany();
-  console.log("Tabla Product limpiada.");
+  // ⚠️ IMPORTANTE:
+  // NO BORRAMOS la tabla, porque eso te resetea priceCard/priceTransfer a 0 (defaults).
+  // Si algún día quieres limpiar TODO, hazlo manual o con un flag.
 
-  for (const p of products) {
+  for (const raw of products as unknown as ProductSeed[]) {
+    const p = raw;
+
+    // Armamos update SIN tocar priceCard/priceTransfer por defecto
+    const updateData: any = {
+      name: p.title,
+      description: p.desc ?? null,
+      price: p.price, // si quieres que price "base" se mantenga, déjalo; si no, quítalo
+      imageUrl: p.image ?? null,
+      stock: p.stock ?? 0,
+      isActive: true,
+    };
+
+    // Si el seed trae precios finales, los aplicamos; si NO, dejamos los de la BD intactos.
+    if (typeof p.priceCard === "number") updateData.priceCard = p.priceCard;
+    if (typeof p.priceTransfer === "number") updateData.priceTransfer = p.priceTransfer;
+
+    // En create sí seteamos precios finales (si no vienen, usamos price como fallback)
+    const createData: any = {
+      name: p.title,
+      slug: p.slug,
+      description: p.desc ?? null,
+      price: p.price,
+      priceCard: typeof p.priceCard === "number" ? p.priceCard : p.price,
+      priceTransfer: typeof p.priceTransfer === "number" ? p.priceTransfer : p.price,
+      imageUrl: p.image ?? null,
+      stock: p.stock ?? 0,
+      isActive: true,
+    };
+
     await prisma.product.upsert({
       where: { slug: p.slug },
-      update: {
-        name: p.title,
-        description: p.desc,
-        price: p.price,
-        imageUrl: p.image,
-        stock: p.stock,           // ← sincroniza stock
-        isActive: true,
-      },
-      create: {
-        name: p.title,
-        slug: p.slug,
-        description: p.desc,
-        price: p.price,
-        imageUrl: p.image,
-        stock: p.stock,           // ← sincroniza stock
-        isActive: true,
-      },
+      update: updateData,
+      create: createData,
     });
   }
 

@@ -21,7 +21,7 @@ model User {
 
 model Address {
   id        String     @id @default(cuid())
-  userId    String
+  userId    String?    // ✅ ahora permite invitado
   fullName  String
   phone     String
   street    String
@@ -32,7 +32,7 @@ model Address {
   country   String     @default("Chile")
   isDefault Boolean    @default(false)
   commune   String?    // NUEVO CAMPO
-  user      User       @relation(fields: [userId], references: [id])
+  user      User?      @relation(fields: [userId], references: [id]) // ✅ opcional
   shipments Shipment[]
 }
 
@@ -41,11 +41,10 @@ model Product {
   name        String
   slug        String      @unique
   description String?
-  price       Int         // precio "base" si quieres, o lo puedes dejar como respaldo
+  price       Int
 
-  // 🔹 PRECIOS FINALES QUE VAS A CARGAR DESDE EXCEL / SUPABASE
-  priceCard     Int   @default(0)  // precio final pagando con tarjeta
-  priceTransfer Int   @default(0)  // precio final pagando por transferencia
+  priceCard     Int   @default(0)
+  priceTransfer Int   @default(0)
 
   imageUrl    String?
   stock       Int?
@@ -70,6 +69,11 @@ model Order {
   notes          String?
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+
+  // ✅ idempotencia + anti-reenvío email
+  checkoutToken           String?   @unique
+  confirmationEmailSentAt DateTime? @db.Timestamptz(6)
+
   user           User?          @relation(fields: [userId], references: [id])
   items          OrderItem[]
   payment        Payment?

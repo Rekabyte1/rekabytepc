@@ -1,17 +1,16 @@
 // app/api/checkout/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendOrderCreatedEmail } from "@/lib/email";
+
+export const dynamic = "force-dynamic";
 
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 
 type CheckoutPayload = {
-  // 👇 el frontend enviará el slug del producto
+  checkoutToken: string; // ✅ idempotencia
   items: { productSlug: string; quantity: number }[];
-  customer: {
-    name: string;
-    email: string;
-    phone?: string;
-  };
+  customer: { name: string; email: string; phone?: string };
   deliveryType: "pickup" | "shipping";
   paymentMethod: CheckoutPaymentUI;
   address?: {
@@ -28,39 +27,114 @@ type CheckoutPayload = {
   notes?: string;
 };
 
+function safeStr(v: unknown) {
+  return String(v ?? "").trim();
+}
+
+function orderNumberNice(id: string) {
+  const clean = String(id || "").trim();
+  if (!clean) return "—";
+  return "#" + clean.slice(-8).toUpperCase();
+}
+
+function normalizePayment(method: CheckoutPaymentUI): "TRANSFER" | "CARD" {
+  return method === "transferencia" ? "TRANSFER" : "CARD";
+}
+
+function normalizeShipping(deliveryType: "pickup" | "shipping") {
+  return deliveryType === "pickup" ? ("PICKUP" as const) : ("DELIVERY" as const);
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as CheckoutPayload;
-    const { items, customer, address, deliveryType, notes, paymentMethod } = body;
+    const body = (await req.json()) as Partial<CheckoutPayload>;
 
-    if (!items || items.length === 0) {
+    const checkoutToken = safeStr(body.checkoutToken);
+    const items = Array.isArray(body.items) ? body.items : [];
+    const customer = body.customer ?? ({} as any);
+    const deliveryType = body.deliveryType ?? "pickup";
+    const paymentMethod = body.paymentMethod ?? "transferencia";
+    const address = body.address;
+    const notes = body.notes ?? "";
+
+    if (!checkoutToken) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Falta checkoutToken (idempotencia). Actualiza el front para enviar un token estable por intento de compra.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!items.length) {
       return NextResponse.json(
         { ok: false, error: "No hay productos en el carrito." },
         { status: 400 }
       );
     }
 
-    // Normalizamos método de pago al enum de la BD
-    const normalizedPaymentMethod =
-      paymentMethod === "transferencia" ? "TRANSFER" : "CARD";
+    const customerName = safeStr(customer?.name);
+    const customerEmail = safeStr(customer?.email);
+    const customerPhone = safeStr(customer?.phone);
 
-    const payWithCard = normalizedPaymentMethod === "CARD";
-
-    // 1) Tomar slugs y validar que ninguno sea undefined / vacío
-    const slugs = items
-      .map((i) => i.productSlug)
-      .filter((s): s is string => typeof s === "string" && s.trim().length > 0);
-
-    if (slugs.length === 0 || slugs.length !== items.length) {
+    if (!customerName || !customerEmail) {
       return NextResponse.json(
-        { ok: false, error: "Algún producto no tiene identificador válido (slug)." },
+        { ok: false, error: "Falta nombre o email del cliente." },
         { status: 400 }
       );
     }
 
-    // 2) Obtener productos desde la BD por slug
+    const normalizedPaymentMethod = normalizePayment(paymentMethod);
+    const payWithCard = normalizedPaymentMethod === "CARD";
+
+    // 1) ✅ Idempotencia: si ya existe el pedido para este token, lo devolvemos
+    const existing = await prisma.order.findUnique({
+      where: { checkoutToken },
+      include: {
+        items: { select: { productName: true, unitPrice: true, quantity: true } },
+        shipment: true,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        {
+          ok: true,
+          orderId: existing.id,
+          order: existing,
+          shipment: existing.shipment,
+          idempotent: true,
+        },
+        { status: 200 }
+      );
+    }
+
+    // 2) Validar slugs
+    const slugs = items
+      .map((i) => safeStr(i.productSlug))
+      .filter(Boolean);
+
+    if (slugs.length !== items.length) {
+      return NextResponse.json(
+        { ok: false, error: "Algún producto no tiene slug válido." },
+        { status: 400 }
+      );
+    }
+
+    // 3) Buscar productos
     const products = await prisma.product.findMany({
       where: { slug: { in: slugs } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        stock: true,
+        price: true,
+        priceCard: true,
+        priceTransfer: true,
+      },
     });
 
     if (products.length !== slugs.length) {
@@ -72,11 +146,13 @@ export async function POST(req: NextRequest) {
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
 
-    // 3) Calcular subtotal y validar stock
+    // 4) Calcular subtotal + validar stock
     let subtotal = 0;
 
     for (const item of items) {
-      const product = productMap.get(item.productSlug);
+      const slug = safeStr(item.productSlug);
+      const product = productMap.get(slug);
+
       if (!product) {
         return NextResponse.json(
           { ok: false, error: "Producto no encontrado." },
@@ -84,84 +160,83 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const quantity = Number(item.quantity ?? 1);
+      const quantity = Math.max(1, Number(item.quantity ?? 1));
 
       if (product.stock != null && product.stock < quantity) {
         return NextResponse.json(
-          {
-            ok: false,
-            error: `No hay stock suficiente de ${product.name}.`,
-          },
+          { ok: false, error: `No hay stock suficiente de ${product.name}.` },
           { status: 400 }
         );
       }
 
-      // 🔴 AQUÍ ELEGIMOS EL PRECIO SEGÚN MEDIO DE PAGO
       const unitPrice = payWithCard
-        ? product.priceCard ?? product.price
-        : product.priceTransfer ?? product.price;
+        ? (product.priceCard ?? 0) || product.price
+        : (product.priceTransfer ?? 0) || product.price;
 
       subtotal += unitPrice * quantity;
     }
 
-    // Costo de envío (luego lo podrás mejorar)
-    const shippingCost =
-      deliveryType === "shipping"
-        ? 0 // TODO: lógica real de costo de envío
-        : 0;
-
+    // 5) Shipping cost (si luego lo haces real, cámbialo acá)
+    const shippingCost = deliveryType === "shipping" ? 0 : 0;
     const total = subtotal + shippingCost;
 
-    // 5) Transacción: Address + Order + Items + stock + Shipment
-    const result = await prisma.$transaction(async (tx) => {
-      // 5.1) Address si es envío
+    // 6) Transacción: order + items + stock + shipment (+ address si corresponde)
+    const created = await prisma.$transaction(async (tx) => {
       let addressRecord: { id: string } | null = null;
 
-      if (deliveryType === "shipping" && address) {
+      const shippingMethod = normalizeShipping(deliveryType);
+
+      if (deliveryType === "shipping") {
+        if (!address?.street || !address?.city || !address?.region) {
+          throw new Error("Falta dirección para despacho.");
+        }
+
+        // ✅ Con el schema corregido, userId puede ser null si es invitado
         addressRecord = await tx.address.create({
           data: {
-            userId: "guest", // cambiar cuando tengas usuarios
-            fullName: address.fullName ?? customer.name,
-            phone: address.phone ?? customer.phone ?? "",
-            street: address.street,
-            number: address.number ?? "",
-            apartment: address.apartment ?? "",
-            commune: address.commune ?? "",
-            city: address.city,
-            region: address.region,
-            country: address.country ?? "Chile",
+            userId: null,
+            fullName: safeStr(address.fullName) || customerName,
+            phone: safeStr(address.phone) || customerPhone || "",
+            street: safeStr(address.street),
+            number: safeStr(address.number) || "",
+            apartment: safeStr(address.apartment) || "",
+            commune: safeStr(address.commune) || null,
+            city: safeStr(address.city),
+            region: safeStr(address.region),
+            country: safeStr(address.country) || "Chile",
             isDefault: false,
           },
           select: { id: true },
         });
       }
 
-      // 5.2) Order
       const order = await tx.order.create({
         data: {
           userId: null,
-          contactEmail: customer.email || "EMPTY",
-          contactName: customer.name || "EMPTY",
-          contactPhone: customer.phone ?? "EMPTY",
+          contactEmail: customerEmail,
+          contactName: customerName,
+          contactPhone: customerPhone || null,
           status: "PENDING_PAYMENT",
-          shippingMethod: deliveryType === "pickup" ? "PICKUP" : "DELIVERY",
+          shippingMethod,
           paymentMethod: normalizedPaymentMethod,
           shippingCost,
           subtotal,
           total,
-          notes: notes ?? "",
+          notes: safeStr(notes) || null,
+
+          // ✅ idempotencia
+          checkoutToken,
         },
       });
 
-      // 5.3) OrderItem + descontar stock
       for (const item of items) {
-        const product = productMap.get(item.productSlug)!;
-        const quantity = Number(item.quantity ?? 1);
+        const slug = safeStr(item.productSlug);
+        const product = productMap.get(slug)!;
+        const quantity = Math.max(1, Number(item.quantity ?? 1));
 
-        // MISMA LÓGICA DE PRECIO QUE ARRIBA
         const unitPrice = payWithCard
-          ? product.priceCard ?? product.price
-          : product.priceTransfer ?? product.price;
+          ? (product.priceCard ?? 0) || product.price
+          : (product.priceTransfer ?? 0) || product.price;
 
         await tx.orderItem.create({
           data: {
@@ -173,18 +248,17 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        await tx.product.update({
-          where: { id: product.id },
-          data: {
-            stock: {
-              decrement: quantity,
-            },
-          },
-        });
+        // descuenta stock si existe
+        if (product.stock != null) {
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stock: { decrement: quantity } },
+          });
+        }
       }
 
-      // 5.4) Shipment si corresponde
       let shipment = null;
+
       if (deliveryType === "shipping" && addressRecord) {
         shipment = await tx.shipment.create({
           data: {
@@ -194,28 +268,79 @@ export async function POST(req: NextRequest) {
             pickupLocation: null,
           },
         });
+      } else {
+        // pickup: puedes opcionalmente guardar shipment tipo PICKUP si quieres
+        // (por ahora tu modelo permite shipment null, así que está bien)
       }
 
-      return { order, shipment };
+      const orderItems = await tx.orderItem.findMany({
+        where: { orderId: order.id },
+        select: { productName: true, unitPrice: true, quantity: true },
+      });
+
+      return { order, shipment, orderItems };
     });
+
+    // 7) ✅ Email (NO rompe el checkout si falla) + evita reenvío en retries
+    if (customerEmail) {
+      try {
+        const fresh = await prisma.order.findUnique({
+          where: { id: created.order.id },
+          select: {
+            id: true,
+            confirmationEmailSentAt: true,
+            createdAt: true,
+            total: true,
+            subtotal: true,
+            shippingCost: true,
+            paymentMethod: true,
+            shippingMethod: true,
+            contactName: true,
+            contactEmail: true,
+          },
+        });
+
+        if (fresh && !fresh.confirmationEmailSentAt) {
+          await sendOrderCreatedEmail({
+            to: customerEmail,
+            customerName: customerName,
+            orderId: created.order.id,
+            paymentMethod: fresh.paymentMethod, // "TRANSFER" | "CARD"
+            shippingMethod: fresh.shippingMethod, // "PICKUP" | "DELIVERY"
+            total: fresh.total,
+            subtotal: fresh.subtotal,
+            shippingCost: fresh.shippingCost,
+            createdAtISO: new Date(fresh.createdAt).toISOString(),
+            items: created.orderItems.map((it) => ({
+              name: it.productName,
+              qty: it.quantity,
+              unitPrice: Number(it.unitPrice),
+            })),
+          });
+
+          await prisma.order.update({
+            where: { id: created.order.id },
+            data: { confirmationEmailSentAt: new Date() },
+          });
+        }
+      } catch (e) {
+        console.error("[email] Error inesperado:", e);
+      }
+    }
 
     return NextResponse.json(
       {
         ok: true,
-        orderId: result.order.id,
-        order: result.order,
-        shipment: result.shipment,
+        orderId: created.order.id,
+        order: created.order,
+        shipment: created.shipment,
+        niceOrderNumber: orderNumberNice(created.order.id),
       },
       { status: 201 }
     );
   } catch (err: any) {
+    const msg = String(err?.message ?? "Error al procesar el pedido.");
     console.error("Error en /api/checkout:", err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: err?.message ?? "Error al procesar el pedido.",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }

@@ -1,228 +1,216 @@
-// app/cuenta/page.tsx
-import { FaLock, FaRegUser, FaEnvelope } from "react-icons/fa";
-import { HiKey } from "react-icons/hi2";
+"use client";
 
-function Field({
-  id,
-  label,
-  type,
-  placeholder,
-  icon,
-}: {
-  id: string;
-  label: string;
-  type: string;
-  placeholder?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-neutral-200" htmlFor={id}>
-        {label}
-      </label>
-
-      <div className="group relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-lime-400">
-          {icon}
-        </span>
-
-        <input
-          id={id}
-          type={type}
-          placeholder={placeholder}
-          className={[
-            "w-full rounded-xl border border-neutral-800 bg-neutral-950/40",
-            "pl-10 pr-3 py-2.5 text-neutral-100 placeholder-neutral-600",
-            "outline-none transition",
-            "focus:border-lime-400/70 focus:ring-2 focus:ring-lime-400/15",
-          ].join(" ")}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Card({
-  title,
-  subtitle,
-  icon,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      className={[
-        "relative overflow-hidden rounded-2xl border border-neutral-800",
-        "bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)]",
-      ].join(" ")}
-    >
-      {/* glow suave */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[520px] -translate-x-1/2 rounded-full bg-lime-400/10 blur-3xl"
-      />
-
-      <header className="relative border-b border-neutral-800 px-6 py-5">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-800 bg-black/40 text-lime-400">
-            {icon}
-          </div>
-
-          <div>
-            <h2 className="text-base font-extrabold tracking-tight text-white">{title}</h2>
-            <p className="mt-0.5 text-xs text-neutral-400">{subtitle}</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="relative px-6 py-5">{children}</div>
-    </section>
-  );
-}
+import { useEffect, useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { FaLock, FaRegUser } from "react-icons/fa";
 
 export default function CuentaPage() {
+  const router = useRouter();
+  const { status } = useSession();
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [remember, setRemember] = useState(true);
+  const [loginErr, setLoginErr] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Si ya hay sesión → manda al panel (sin que el usuario vea el form)
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/cuenta/panel");
+    }
+  }, [status, router]);
+
+  const onLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginErr(null);
+    setLoginLoading(true);
+
+    const res = await signIn("credentials", {
+      redirect: false,
+      email: loginEmail,
+      password: loginPass,
+    });
+
+    setLoginLoading(false);
+
+    if (res?.error) {
+      setLoginErr("Correo o contraseña incorrectos.");
+      return;
+    }
+
+    router.replace("/cuenta/panel");
+    router.refresh();
+  };
+
+  // Mientras NextAuth resuelve la sesión
+  if (status === "loading") {
+    return (
+      <main className="rb-container py-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-6 text-neutral-300">
+            Cargando…
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="rb-container py-10">
-      {/* Hero */}
-      <div className="relative mx-auto max-w-5xl">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-8 h-24 bg-gradient-to-b from-lime-400/10 to-transparent blur-2xl"
-        />
-
+      <div className="mx-auto max-w-5xl">
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-black/40 px-3 py-1 text-xs font-extrabold tracking-widest text-lime-400">
-            CUENTA
-          </div>
-
-          <h1 className="mt-3 text-center text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Mi cuenta
           </h1>
-
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-neutral-300">
-            Inicia sesión para ver tus compras y administrar tus datos, o crea una cuenta en segundos.
+          <p className="mt-2 text-sm text-neutral-400">
+            Inicia sesión o crea una cuenta para ver tus compras y guardar tus datos.
           </p>
         </div>
 
-        {/* Grid */}
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {/* Acceder */}
-          <Card
-            title="Acceder"
-            subtitle="Vuelve a tu cuenta para ver compras y datos."
-            icon={<FaLock />}
-          >
-            <form className="space-y-4">
-              <Field
-                id="login-email"
-                label="Usuario o correo"
-                type="email"
-                placeholder="Ingresa tu correo"
-                icon={<FaEnvelope />}
-              />
+          {/* ACCEDER */}
+          <section className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_260px_at_20%_0%,rgba(182,255,46,.10),transparent_55%)]" />
 
-              <Field
-                id="login-pass"
-                label="Contraseña"
-                type="password"
-                placeholder="••••••••"
-                icon={<HiKey />}
-              />
+            <header className="relative flex items-center justify-between gap-4 border-b border-neutral-800 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-neutral-800 bg-black/30">
+                  <FaLock className="text-lime-400" />
+                </span>
+                <div>
+                  <h2 className="font-extrabold text-white leading-tight">Acceder</h2>
+                  <p className="text-xs text-neutral-400">Entra con tu correo y contraseña.</p>
+                </div>
+              </div>
 
-              <div className="flex items-center justify-between gap-3 pt-1">
+              <span className="hidden sm:inline-flex rounded-full border border-neutral-800 bg-black/25 px-3 py-1 text-xs text-neutral-300">
+                Acceso seguro
+              </span>
+            </header>
+
+            <form onSubmit={onLogin} className="relative p-5 space-y-4">
+              <div>
+                <label className="block text-sm text-neutral-300 mb-1" htmlFor="login-email">
+                  Correo
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="tu@correo.com"
+                  className="w-full rounded-2xl border border-neutral-800 bg-black/25 px-3 py-2.5 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400/70 focus:ring-2 focus:ring-lime-400/15"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-neutral-300 mb-1" htmlFor="login-pass">
+                  Contraseña
+                </label>
+                <input
+                  id="login-pass"
+                  type="password"
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-2xl border border-neutral-800 bg-black/25 px-3 py-2.5 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400/70 focus:ring-2 focus:ring-lime-400/15"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
                 <label className="inline-flex items-center gap-2 text-sm text-neutral-300">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-neutral-700 bg-neutral-950 text-lime-400 focus:ring-0"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-lime-400 focus:ring-0"
                   />
                   Recuérdame
                 </label>
 
-                <a
-                  href="#"
-                  className="text-sm font-medium text-lime-400 hover:text-lime-300 underline underline-offset-2"
+                <button
+                  type="button"
+                  className="text-sm text-lime-400 hover:text-lime-300 underline underline-offset-2"
+                  onClick={() => alert("Pendiente: flujo de recuperación de contraseña.")}
                 >
                   ¿Olvidaste tu contraseña?
-                </a>
+                </button>
               </div>
+
+              {loginErr && (
+                <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-200">
+                  {loginErr}
+                </div>
+              )}
 
               <button
                 type="submit"
-                className={[
-                  "mt-2 w-full rounded-xl px-4 py-2.5 font-extrabold",
-                  "bg-lime-400 text-neutral-950 hover:brightness-110",
-                  "transition shadow-[0_10px_25px_rgba(182,255,46,.12)]",
-                ].join(" ")}
+                disabled={loginLoading}
+                className="w-full rounded-2xl bg-lime-400 px-4 py-2.5 font-extrabold text-neutral-950 hover:brightness-110 disabled:opacity-60"
               >
-                Ingresar
+                {loginLoading ? "Ingresando..." : "Ingresar"}
               </button>
 
-              <p className="pt-2 text-xs text-neutral-500">
-                Consejo: usa el mismo correo con el que realizaste compras si ya compraste antes.
+              <p className="text-xs text-neutral-500">
+                {remember
+                  ? "Mantendremos la sesión activa en este dispositivo."
+                  : "La sesión se cerrará al terminar."}
               </p>
             </form>
-          </Card>
+          </section>
 
-          {/* Registrarse */}
-          <Card
-            title="Crear cuenta"
-            subtitle="Guarda tus datos y revisa tu historial de compras."
-            icon={<FaRegUser />}
-          >
-            <form className="space-y-4">
-              <Field
-                id="reg-email"
-                label="Correo electrónico"
-                type="email"
-                placeholder="ejemplo@email.com"
-                icon={<FaEnvelope />}
-              />
+          {/* CREAR CUENTA */}
+          <section className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_260px_at_80%_0%,rgba(182,255,46,.08),transparent_55%)]" />
 
-              <Field
-                id="reg-pass"
-                label="Crea una contraseña"
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                icon={<HiKey />}
-              />
+            <header className="relative flex items-center justify-between gap-4 border-b border-neutral-800 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-neutral-800 bg-black/30">
+                  <FaRegUser className="text-lime-400" />
+                </span>
+                <div>
+                  <h2 className="font-extrabold text-white leading-tight">Crear cuenta</h2>
+                  <p className="text-xs text-neutral-400">Guarda tus datos y revisa tus compras.</p>
+                </div>
+              </div>
 
-              <div className="rounded-xl border border-neutral-800 bg-black/30 p-3">
-                <p className="text-xs text-neutral-400">
-                  Al crear una cuenta aceptas nuestras condiciones y el uso de tus datos para mejorar
-                  tu experiencia.
-                </p>
+              <span className="hidden sm:inline-flex rounded-full border border-neutral-800 bg-black/25 px-3 py-1 text-xs text-neutral-300">
+                Gratis
+              </span>
+            </header>
+
+            <div className="relative p-5 space-y-4">
+              <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
+                <ul className="text-sm text-neutral-300 space-y-2">
+                  <li>• Historial de compras</li>
+                  <li>• Direcciones guardadas</li>
+                  <li>• Datos de facturación</li>
+                  <li>• Cambio de contraseña</li>
+                </ul>
               </div>
 
               <button
-                type="submit"
-                className={[
-                  "w-full rounded-xl px-4 py-2.5 font-extrabold",
-                  "bg-lime-400 text-neutral-950 hover:brightness-110",
-                  "transition shadow-[0_10px_25px_rgba(182,255,46,.12)]",
-                ].join(" ")}
+                onClick={() => router.push("/cuenta/registro")}
+                className="w-full rounded-2xl border border-lime-400/40 bg-black/25 px-4 py-2.5 font-extrabold text-lime-300 hover:bg-black/35"
               >
-                Crear cuenta
+                Ir a registro
               </button>
 
-              <div className="pt-2 text-xs text-neutral-500">
-                ¿Ya tienes cuenta?{" "}
-                <span className="text-neutral-400">Usa el formulario de Acceder.</span>
-              </div>
-            </form>
-          </Card>
+              <p className="text-xs text-neutral-500">
+                Al registrarte aceptas nuestras condiciones y el uso de tus datos para mejorar tu
+                experiencia.
+              </p>
+            </div>
+          </section>
         </div>
 
-        {/* Ayuda */}
-        <div className="mt-7 text-center text-sm text-neutral-400">
+        <div className="mt-6 text-center text-sm text-neutral-400">
           ¿Necesitas ayuda? Escríbenos a{" "}
-          <a
-            href="mailto:contacto@rekabyte.cl"
-            className="font-semibold text-lime-400 hover:text-lime-300 underline underline-offset-2"
-          >
+          <a href="mailto:contacto@rekabyte.cl" className="text-lime-400 hover:text-lime-300">
             contacto@rekabyte.cl
           </a>
           .

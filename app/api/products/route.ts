@@ -5,14 +5,24 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
-      orderBy: { createdAt: "desc" },
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        imageUrl: true,
+        stock: true,
+        priceTransfer: true,
+        priceCard: true,
+      },
     });
 
-    return NextResponse.json({ ok: true, products });
-  } catch (err) {
-    console.error("Error cargando productos:", err);
+    return NextResponse.json({ ok: true, products }, { status: 200 });
+  } catch (e: any) {
     return NextResponse.json(
-      { ok: false, error: "Error cargando productos" },
+      { ok: false, error: e?.message ?? "Error listando productos" },
       { status: 500 }
     );
   }

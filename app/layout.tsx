@@ -1,7 +1,7 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { CartProvider } from "@/components/CartContext";
+import Providers from "./providers";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="h-full bg-neutral-950">
       <body className="min-h-screen bg-neutral-950 text-white antialiased overflow-x-hidden">
-        <CartProvider>
+        <Providers>
           <Header />
 
           {/* Marca para que los fixes móviles del CSS se apliquen dentro de main */}
@@ -37,7 +37,7 @@ export default function RootLayout({
 
           <Footer />
           <WhatsAppButton />
-        </CartProvider>
+        </Providers>
       </body>
     </html>
   );

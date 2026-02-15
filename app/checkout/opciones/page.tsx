@@ -1,21 +1,55 @@
-// app/checkout/opciones/page.tsx
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart, CLP } from "@/components/CartContext";
+import { signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 export default function CheckoutOptionsPage() {
   const router = useRouter();
   const { subtotalTransfer, subtotalCard } = useCart();
 
+  const { data: session, status } = useSession();
+
+  const isAuthed = status === "authenticated";
+  const userEmail = useMemo(() => session?.user?.email ?? "", [session]);
+
+  // login state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [loginErr, setLoginErr] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+
   const handleGuest = () => {
     router.push("/checkout");
   };
 
-  const handleFakeLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("El inicio de sesión se activará cuando tengamos cuentas de usuario.");
+    setLoginErr(null);
+    setLoginLoading(true);
+
+    const res = await signIn("credentials", {
+      redirect: false,
+      email: loginEmail,
+      password: loginPass,
+    });
+
+    setLoginLoading(false);
+
+    if (res?.error) {
+      setLoginErr("Correo o contraseña incorrectos.");
+      return;
+    }
+
+    // ✅ ya logueado → checkout
+    router.push("/checkout");
+    router.refresh();
+  };
+
+  const handleContinueAuthed = () => {
+    router.push("/checkout");
   };
 
   return (
@@ -23,66 +57,116 @@ export default function CheckoutOptionsPage() {
       <h1 className="co-title">Elige cómo quieres comprar</h1>
 
       <div className="co-grid">
-        {/* Login */}
+        {/* Login / Authed */}
         <div className="co-card">
           <div className="co-card-head">
             <div className="co-accent" />
             <div>
-              <h2 className="co-card-title">Inicia sesión</h2>
+              <h2 className="co-card-title">
+                {isAuthed ? "Continuar con tu cuenta" : "Inicia sesión"}
+              </h2>
               <p className="co-card-sub">
-                En el futuro podrás entrar con tu cuenta y tener tus datos guardados. Por ahora
-                sólo está disponible la compra como invitado.
+                {isAuthed
+                  ? "Estás logueado. Puedes continuar tu compra con tus datos guardados."
+                  : "Entra con tu cuenta para asociar el pedido a tu usuario y ver tu historial de compras."}
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleFakeLogin} className="co-form">
-            <div className="co-field">
-              <label className="co-label">Email</label>
-              <input
-                type="email"
-                disabled
-                className="co-input"
-                placeholder="tucorreo@ejemplo.cl"
-              />
-            </div>
-
-            <div className="co-field">
-              <label className="co-label">Contraseña</label>
-              <div className="co-input-wrap">
-                <input
-                  type="password"
-                  disabled
-                  className="co-input co-input--pad"
-                  placeholder="Mínimo 8 caracteres"
-                />
-                <span className="co-eye">•••</span>
+          {status === "loading" ? (
+            <div className="co-loading">Cargando sesión…</div>
+          ) : isAuthed ? (
+            <div className="co-authed">
+              <div className="co-authed-row">
+                <span className="co-authed-label">Cuenta:</span>
+                <span className="co-authed-value">{userEmail || "Usuario"}</span>
               </div>
-              <div className="co-hint">Mínimo 8 caracteres</div>
+
+              <button
+                type="button"
+                onClick={handleContinueAuthed}
+                className="rb-btn co-cta"
+              >
+                Continuar al checkout
+              </button>
+
+              <div className="co-foot">
+                ¿Quieres crear otra cuenta?{" "}
+                <button
+                  type="button"
+                  className="co-link"
+                  onClick={() => router.push("/cuenta/registro")}
+                >
+                  Ir a registro
+                </button>
+              </div>
             </div>
+          ) : (
+            <form onSubmit={handleLogin} className="co-form">
+              <div className="co-field">
+                <label className="co-label">Email</label>
+                <input
+                  type="email"
+                  className="co-input"
+                  placeholder="tucorreo@ejemplo.cl"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-            <button type="submit" disabled className="co-btn co-btn--disabled">
-              Iniciar sesión
-            </button>
+              <div className="co-field">
+                <label className="co-label">Contraseña</label>
+                <div className="co-input-wrap">
+                  <input
+                    type="password"
+                    className="co-input co-input--pad"
+                    placeholder="Mínimo 8 caracteres"
+                    value={loginPass}
+                    onChange={(e) => setLoginPass(e.target.value)}
+                    required
+                  />
+                  <span className="co-eye">•••</span>
+                </div>
+                <div className="co-hint">Mínimo 8 caracteres</div>
+              </div>
 
-            <div className="co-divider">
-              <span className="co-line" />
-              <span className="co-divider-text">o continúa con</span>
-              <span className="co-line" />
-            </div>
+              {loginErr && (
+                <div className="co-error">
+                  {loginErr}
+                </div>
+              )}
 
-            <button type="button" disabled className="co-btn co-btn--ghost co-btn--disabled">
-              Continuar con Microsoft
-            </button>
+              <button
+                type="submit"
+                className={`co-btn ${loginLoading ? "co-btn--disabled" : ""}`}
+                disabled={loginLoading}
+              >
+                {loginLoading ? "Ingresando..." : "Iniciar sesión"}
+              </button>
 
-            <div className="co-foot">
-              ¿No estás registrado/a? <span className="co-link-disabled">Crear cuenta</span>
-            </div>
+              <div className="co-divider">
+                <span className="co-line" />
+                <span className="co-divider-text">o</span>
+                <span className="co-line" />
+              </div>
 
-            <p className="co-note">
-              * El inicio de sesión real se activará cuando tengamos el sistema de cuentas.
-            </p>
-          </form>
+              <div className="co-foot">
+                ¿No estás registrado/a?{" "}
+                <button
+                  type="button"
+                  className="co-link"
+                  onClick={() => router.push("/cuenta/registro")}
+                >
+                  Crear cuenta
+                </button>
+              </div>
+
+              <p className="co-note">
+                * Si recién creaste la cuenta, vuelve aquí e inicia sesión para comprar logueado.
+              </p>
+            </form>
+          )}
         </div>
 
         {/* Invitado */}
@@ -92,8 +176,8 @@ export default function CheckoutOptionsPage() {
             <div>
               <h2 className="co-card-title">Compra como invitado/a</h2>
               <p className="co-card-sub">
-                Puedes completar tu compra sin crear una cuenta. Más adelante, si quieres, podrás
-                registrar una cuenta con tus datos de compra.
+                Puedes completar tu compra sin crear una cuenta. Si inicias sesión, el pedido quedará
+                asociado a tu usuario y podrás verlo en “Mi cuenta”.
               </p>
             </div>
           </div>
@@ -101,11 +185,19 @@ export default function CheckoutOptionsPage() {
           <div className="co-center">
             <div className="co-center-title">Compra en 4 pasos</div>
             <div className="co-center-sub">
-              Más adelante puedes <span className="co-strong">crear una cuenta de cliente</span> y
-              comprar aún más rápido.
+              {isAuthed ? (
+                <>
+                  Estás logueado, pero si quieres puedes{" "}
+                  <span className="co-strong">comprar como invitado/a</span> igual.
+                </>
+              ) : (
+                <>
+                  Más adelante puedes <span className="co-strong">crear una cuenta de cliente</span> y
+                  comprar aún más rápido.
+                </>
+              )}
             </div>
 
-            {/* Usa tu estilo de botón rb-btn para que no se rompa */}
             <button type="button" onClick={handleGuest} className="rb-btn co-cta">
               Comprar como invitado/a
             </button>
@@ -235,11 +327,6 @@ export default function CheckoutOptionsPage() {
           color: #6b7280;
         }
 
-        .co-input:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
         .co-input--pad {
           padding-right: 44px;
         }
@@ -267,13 +354,11 @@ export default function CheckoutOptionsPage() {
           font-size: 14px;
           border: 1px solid #2a2a2a;
           background: #181818;
-          color: #d4d4d4;
+          color: #e5e7eb;
         }
 
-        .co-btn--ghost {
-          background: transparent;
-          border: 1px solid #2a2a2a;
-          color: #a3a3a3;
+        .co-btn:hover {
+          filter: brightness(1.05);
         }
 
         .co-btn--disabled {
@@ -306,18 +391,67 @@ export default function CheckoutOptionsPage() {
           font-size: 14px;
         }
 
-        .co-link-disabled {
+        .co-link {
           color: #b6ff2e;
-          opacity: 0.6;
           text-decoration: underline;
           text-underline-offset: 4px;
-          cursor: not-allowed;
+          background: transparent;
+          border: 0;
+          padding: 0;
+          cursor: pointer;
+          font-weight: 800;
         }
 
         .co-note {
           margin: 0;
           color: #737373;
           font-size: 12px;
+        }
+
+        .co-error {
+          border: 1px solid rgba(239, 68, 68, 0.35);
+          background: rgba(239, 68, 68, 0.12);
+          color: rgba(254, 226, 226, 0.95);
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .co-loading {
+          color: #a3a3a3;
+          font-size: 14px;
+          padding: 10px 2px;
+        }
+
+        .co-authed {
+          display: grid;
+          gap: 12px;
+        }
+
+        .co-authed-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          border: 1px solid #262626;
+          background: rgba(20, 20, 20, 0.55);
+          padding: 10px 12px;
+          border-radius: 12px;
+        }
+
+        .co-authed-label {
+          color: #a3a3a3;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .co-authed-value {
+          color: #fff;
+          font-size: 13px;
+          font-weight: 900;
+          word-break: break-word;
+          text-align: right;
         }
 
         .co-center {
