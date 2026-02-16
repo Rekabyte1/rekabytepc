@@ -1,177 +1,245 @@
 // lib/email.ts
 import { Resend } from "resend";
 
-type OrderEmailItem = {
-  name: string;
-  qty: number;
-  unitPrice: number;
-};
+type PaymentMethod = "TRANSFER" | "CARD";
+type ShippingMethod = "PICKUP" | "DELIVERY";
 
-type OrderEmailPayload = {
-  to: string;
-  customerName: string;
-  orderId: string;
-  paymentMethod: "TRANSFER" | "CARD";
-  shippingMethod: "PICKUP" | "DELIVERY";
-  total: number;
-  subtotal: number;
-  shippingCost: number;
-  createdAtISO: string;
-  items: OrderEmailItem[];
-};
-
-function moneyCLP(n: number) {
-  return new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(Number(n || 0));
+function requireEnv(name: string) {
+  const v = process.env[name];
+  if (!v || !String(v).trim()) {
+    throw new Error(`[email] Falta variable de entorno ${name}`);
+  }
+  return String(v).trim();
 }
 
-function shortOrder(orderId: string) {
-  return orderId.slice(-8).toUpperCase();
+function getResend() {
+  const apiKey = requireEnv("RESEND_API_KEY");
+  return new Resend(apiKey);
 }
 
-function escapeHtml(s: string) {
+function getFrom() {
+  // Ej: RekaByte <contacto@rekabyte.cl>
+  return requireEnv("RESEND_FROM");
+}
+
+function orderNumberNice(id: string) {
+  const clean = String(id || "").trim();
+  if (!clean) return "—";
+  return "#" + clean.slice(-8).toUpperCase();
+}
+
+function esc(s: unknown) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll("'", "&#39;");
 }
 
-export async function sendOrderCreatedEmail(payload: OrderEmailPayload) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
-  const replyTo = process.env.RESEND_REPLY_TO; // opcional pero recomendado
-
-  if (!apiKey || !from) {
-    console.warn("[email] Missing RESEND_API_KEY or RESEND_FROM");
-    return { ok: false as const, skipped: true as const };
+function statusLabel(status: string) {
+  switch (status) {
+    case "PENDING_PAYMENT":
+      return "Pendiente de pago";
+    case "PAID":
+      return "Pagado";
+    case "PREPARING":
+      return "Preparando pedido";
+    case "SHIPPED":
+      return "Despachado";
+    case "DELIVERED":
+      return "Entregado";
+    case "COMPLETED":
+      return "Completado";
+    case "CANCELLED":
+      return "Cancelado";
+    default:
+      return status;
   }
+}
 
-  const resend = new Resend(apiKey);
+function paymentLabel(pm: string) {
+  if (pm === "TRANSFER") return "Transferencia";
+  if (pm === "CARD") return "Tarjeta";
+  return pm;
+}
 
-  const orderNo = shortOrder(payload.orderId);
-  const isTransfer = payload.paymentMethod === "TRANSFER";
+function shippingLabel(sm: string) {
+  if (sm === "PICKUP") return "Retiro en tienda";
+  if (sm === "DELIVERY") return "Despacho a domicilio";
+  return sm;
+}
 
-  const subject = isTransfer
-    ? `Pedido #${orderNo} creado — falta tu transferencia`
-    : `Pedido #${orderNo} creado — confirmación`;
+/** ✅ Email 1: confirmación de pedido creado (tu flujo checkout) */
+export async function sendOrderCreatedEmail(args: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  paymentMethod: PaymentMethod;
+  shippingMethod: ShippingMethod;
+  total: number;
+  subtotal: number;
+  shippingCost: number;
+  createdAtISO: string;
+  items: { name: string; qty: number; unitPrice: number }[];
+}) {
+  const resend = getResend();
+  const from = getFrom();
 
-  const paymentCopy = isTransfer
-    ? `Tu pedido fue creado correctamente. Para continuar, realiza la transferencia y espera la verificación del pago.`
-    : `Tu pedido fue creado correctamente. El estado se actualizará cuando el proveedor confirme el pago.`;
+  const niceId = orderNumberNice(args.orderId);
 
-  const shipCopy =
-    payload.shippingMethod === "PICKUP"
-      ? "Retiro en tienda"
-      : "Despacho a domicilio";
-
-  const itemsHtml = payload.items
+  const itemsHtml = args.items
     .map(
       (it) => `
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #eee;">
-            <div style="font-weight:700;">${escapeHtml(it.name)}</div>
-            <div style="color:#666;font-size:12px;">${it.qty} × ${moneyCLP(
-        it.unitPrice
-      )}</div>
-          </td>
-          <td align="right" style="padding:8px 0;border-bottom:1px solid #eee;font-weight:700;">
-            ${moneyCLP(it.unitPrice * it.qty)}
-          </td>
-        </tr>
-      `
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;">${esc(
+          it.name
+        )}</td>
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#a3a3a3;text-align:right;">x${esc(
+          it.qty
+        )}</td>
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;text-align:right;">$${esc(
+          it.unitPrice
+        )}</td>
+      </tr>`
     )
     .join("");
 
   const html = `
-  <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:640px;margin:0 auto;line-height:1.4;">
-    <div style="padding:18px 18px 0;">
-      <h2 style="margin:0 0 6px;font-size:20px;">Gracias por tu compra, ${escapeHtml(
-        payload.customerName || "cliente"
-      )}.</h2>
-      <p style="margin:0 0 12px;color:#333;">
-        ${paymentCopy}
-      </p>
-
-      <div style="background:#f7f7f7;border:1px solid #eee;border-radius:12px;padding:14px;margin:12px 0;">
-        <div style="font-size:12px;color:#666;">Número de pedido</div>
-        <div style="font-size:18px;font-weight:800;">#${orderNo}</div>
-        <div style="margin-top:10px;font-size:12px;color:#666;">
-          Entrega: <b>${shipCopy}</b><br/>
-          Pago: <b>${isTransfer ? "Transferencia" : "Tarjeta"}</b>
-        </div>
+  <div style="background:#0b0b0b;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+    <div style="max-width:720px;margin:0 auto;border:1px solid #262626;border-radius:16px;overflow:hidden;background:#0d0d0d;">
+      <div style="padding:18px 18px 0 18px;">
+        <div style="height:4px;width:48px;background:#b6ff2e;border-radius:999px;margin-bottom:12px;"></div>
+        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:900;">Confirmación de pedido ${esc(
+          niceId
+        )}</h1>
+        <p style="margin:8px 0 0;color:#a3a3a3;font-size:14px;line-height:1.5;">
+          Hola ${esc(args.customerName)}, tu pedido fue creado correctamente.
+        </p>
       </div>
 
-      <h3 style="margin:18px 0 10px;font-size:16px;">Resumen</h3>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-        ${itemsHtml}
-        <tr>
-          <td style="padding-top:12px;color:#666;">Subtotal</td>
-          <td align="right" style="padding-top:12px;font-weight:700;">${moneyCLP(
-            payload.subtotal
-          )}</td>
-        </tr>
-        <tr>
-          <td style="padding-top:6px;color:#666;">Envío</td>
-          <td align="right" style="padding-top:6px;font-weight:700;">${
-            payload.shippingCost > 0 ? moneyCLP(payload.shippingCost) : "-"
-          }</td>
-        </tr>
-        <tr>
-          <td style="padding-top:10px;font-size:14px;font-weight:900;">TOTAL</td>
-          <td align="right" style="padding-top:10px;font-size:14px;font-weight:900;">${moneyCLP(
-            payload.total
-          )}</td>
-        </tr>
-      </table>
-
-      ${
-        isTransfer
-          ? `
-        <div style="margin:18px 0;padding:14px;border:1px solid #ffe58f;background:#fffbe6;border-radius:12px;">
-          <div style="font-weight:800;margin-bottom:6px;">Transferencia</div>
-          <div style="color:#333;font-size:13px;">
-            Envía el comprobante respondiendo este correo o por WhatsApp. Reservaremos tu compra por un periodo limitado mientras se verifica el pago.
+      <div style="padding:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Pago</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+              paymentLabel(args.paymentMethod)
+            )}</div>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Entrega</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+              shippingLabel(args.shippingMethod)
+            )}</div>
           </div>
         </div>
-      `
-          : ""
-      }
 
-      <p style="margin:18px 0 0;color:#666;font-size:12px;">
-        Si tienes dudas, responde este correo y te ayudamos.
-      </p>
-      <p style="margin:8px 0 18px;color:#999;font-size:11px;">
-        Pedido ID interno: ${escapeHtml(payload.orderId)}
-      </p>
+        <div style="margin-top:14px;border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+          <div style="color:#e5e7eb;font-weight:900;margin-bottom:8px;">Productos</div>
+          <table style="width:100%;border-collapse:collapse;">
+            ${itemsHtml}
+          </table>
+        </div>
+
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:flex;justify-content:space-between;">
+          <div style="color:#a3a3a3;font-size:13px;font-weight:800;">Total</div>
+          <div style="color:#b6ff2e;font-size:16px;font-weight:900;">$${esc(
+            args.total
+          )}</div>
+        </div>
+
+        <p style="margin:12px 0 0;color:#737373;font-size:12px;line-height:1.5;">
+          Si tienes dudas, responde este correo o escribe a contacto@rekabyte.cl
+        </p>
+      </div>
     </div>
-  </div>
-  `;
+  </div>`;
 
-  const text = [
-    `Gracias por tu compra, ${payload.customerName || "cliente"}.`,
-    `Pedido: #${orderNo}`,
-    `Entrega: ${shipCopy}`,
-    `Pago: ${isTransfer ? "Transferencia" : "Tarjeta"}`,
-    `Total: ${moneyCLP(payload.total)}`,
-    "",
-    isTransfer
-      ? "Realiza la transferencia y envía el comprobante respondiendo este correo."
-      : "Te avisaremos cuando el pago sea confirmado.",
-  ].join("\n");
-
-  const res = await resend.emails.send({
+  await resend.emails.send({
     from,
-    to: payload.to,
-    subject,
+    to: args.to,
+    subject: `RekaByte — Pedido ${niceId} creado`,
     html,
-    text,
-    ...(replyTo ? { replyTo } : {}),
   });
+}
 
-  return { ok: true as const, res };
+/** ✅ Email 2: actualización de estado (admin) */
+export async function sendOrderStatusUpdateEmail(args: {
+  to: string;
+  customerName?: string | null;
+  orderId: string;
+  oldStatus?: string | null;
+  newStatus: string;
+  message?: string | null; // lo que escribes en el panel admin
+}) {
+  const resend = getResend();
+  const from = getFrom();
+
+  const niceId = orderNumberNice(args.orderId);
+  const newLabel = statusLabel(args.newStatus);
+  const oldLabel = args.oldStatus ? statusLabel(args.oldStatus) : null;
+
+  const headline =
+    args.newStatus === "PAID"
+      ? "Pago confirmado"
+      : args.newStatus === "CANCELLED"
+      ? "Pedido cancelado"
+      : "Actualización de tu pedido";
+
+  const html = `
+  <div style="background:#0b0b0b;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+    <div style="max-width:720px;margin:0 auto;border:1px solid #262626;border-radius:16px;overflow:hidden;background:#0d0d0d;">
+      <div style="padding:18px 18px 0 18px;">
+        <div style="height:4px;width:48px;background:#b6ff2e;border-radius:999px;margin-bottom:12px;"></div>
+        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:900;">${esc(
+          headline
+        )} — ${esc(niceId)}</h1>
+        <p style="margin:8px 0 0;color:#a3a3a3;font-size:14px;line-height:1.5;">
+          ${args.customerName ? `Hola ${esc(args.customerName)}. ` : ""}Te informamos un cambio en tu pedido.
+        </p>
+      </div>
+
+      <div style="padding:18px;">
+        <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+            <div>
+              <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Nuevo estado</div>
+              <div style="color:#b6ff2e;font-size:16px;font-weight:900;margin-top:4px;">${esc(
+                newLabel
+              )}</div>
+              ${
+                oldLabel
+                  ? `<div style="margin-top:6px;color:#737373;font-size:12px;">Anterior: ${esc(
+                      oldLabel
+                    )}</div>`
+                  : ""
+              }
+            </div>
+          </div>
+        </div>
+
+        ${
+          args.message && String(args.message).trim()
+            ? `<div style="margin-top:12px;border:1px solid rgba(182,255,46,0.25);background:rgba(182,255,46,0.06);border-radius:14px;padding:12px;">
+                 <div style="color:#e5e7eb;font-weight:900;margin-bottom:6px;">Mensaje</div>
+                 <div style="color:#d4d4d4;font-size:13px;line-height:1.55;white-space:pre-wrap;">${esc(
+                   args.message
+                 )}</div>
+               </div>`
+            : ""
+        }
+
+        <p style="margin:12px 0 0;color:#737373;font-size:12px;line-height:1.5;">
+          Si necesitas ayuda, responde este correo o escribe a contacto@rekabyte.cl
+        </p>
+      </div>
+    </div>
+  </div>`;
+
+  await resend.emails.send({
+    from,
+    to: args.to,
+    subject: `RekaByte — Actualización ${niceId}: ${newLabel}`,
+    html,
+  });
 }

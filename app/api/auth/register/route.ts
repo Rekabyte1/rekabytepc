@@ -1,20 +1,31 @@
-import { NextResponse } from "next/server";
+// app/api/auth/register/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => ({}));
+function safeStr(v: unknown) {
+  return String(v ?? "").trim();
+}
 
-    const name = String(body?.name ?? "").trim();
-    const email = String(body?.email ?? "").toLowerCase().trim();
-    const password = String(body?.password ?? "");
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json()) as any;
+
+    // obligatorios
+    const name = safeStr(body?.name);
+    const email = safeStr(body?.email).toLowerCase();
+    const password = safeStr(body?.password);
+
+    // opcionales (perfil)
+    const lastName = safeStr(body?.lastName) || null;
+    const rut = safeStr(body?.rut) || null;
+    const phone = safeStr(body?.phone) || null;
 
     if (!name || !email || !password) {
       return NextResponse.json(
-        { ok: false, error: "Faltan campos." },
+        { ok: false, error: "Faltan campos obligatorios (nombre, email, contraseña)." },
         { status: 400 }
       );
     }
@@ -26,11 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const exists = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
-
+    const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
       return NextResponse.json(
         { ok: false, error: "Este correo ya está registrado." },
@@ -43,17 +50,27 @@ export async function POST(req: Request) {
     const user = await prisma.user.create({
       data: {
         name,
+        lastName,
+        rut,
+        phone,
         email,
         passwordHash,
       },
-      select: { id: true, name: true, email: true },
+      select: {
+        id: true,
+        name: true,
+        lastName: true,
+        rut: true,
+        phone: true,
+        email: true,
+      },
     });
 
     return NextResponse.json({ ok: true, user }, { status: 201 });
   } catch (err) {
-    console.error("REGISTER_ERROR:", err);
+    console.error("[register] error:", err);
     return NextResponse.json(
-      { ok: false, error: "Error creando usuario." },
+      { ok: false, error: "No se pudo crear la cuenta." },
       { status: 500 }
     );
   }

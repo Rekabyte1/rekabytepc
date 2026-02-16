@@ -10,6 +10,8 @@ datasource db {
 model User {
   id           String    @id @default(cuid())
   name         String
+  lastName     String?   // NUEVO: apellido
+  rut          String?   // NUEVO: RUT (puede ser null al inicio)
   email        String    @unique
   passwordHash String?
   phone        String?
@@ -21,7 +23,7 @@ model User {
 
 model Address {
   id        String     @id @default(cuid())
-  userId    String?    // ✅ ahora permite invitado
+  userId    String?    // invitado OK
   fullName  String
   phone     String
   street    String
@@ -31,8 +33,8 @@ model Address {
   region    String
   country   String     @default("Chile")
   isDefault Boolean    @default(false)
-  commune   String?    // NUEVO CAMPO
-  user      User?      @relation(fields: [userId], references: [id]) // ✅ opcional
+  commune   String?
+  user      User?      @relation(fields: [userId], references: [id])
   shipments Shipment[]
 }
 
@@ -70,7 +72,6 @@ model Order {
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
 
-  // ✅ idempotencia + anti-reenvío email
   checkoutToken           String?   @unique
   confirmationEmailSentAt DateTime? @db.Timestamptz(6)
 

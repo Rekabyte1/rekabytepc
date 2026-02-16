@@ -13,6 +13,33 @@ import { useSession } from "next-auth/react";
 type Stage = "review" | "upload";
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 
+const CHECKOUT_TOKEN_KEY = "rb_checkout_token_v1";
+
+function getOrCreateCheckoutToken(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const existing = window.sessionStorage.getItem(CHECKOUT_TOKEN_KEY);
+    if (existing && existing.trim()) return existing.trim();
+
+    const token =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `rb_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+    window.sessionStorage.setItem(CHECKOUT_TOKEN_KEY, token);
+    return token;
+  } catch {
+    return `rb_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+}
+
+function clearCheckoutToken() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(CHECKOUT_TOKEN_KEY);
+  } catch {}
+}
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -87,34 +114,6 @@ function setOrderSuccessInSessionStorage(payload: {
   } catch {}
 }
 
-// ✅ Idempotencia: token estable por intento de compra (vive en sessionStorage)
-function getOrCreateCheckoutToken(): string {
-  if (typeof window === "undefined") return "";
-  const KEY = "checkout_token";
-  try {
-    const existing = window.sessionStorage.getItem(KEY);
-    if (existing && String(existing).trim()) return String(existing).trim();
-
-    const token =
-      "rb_" +
-      (globalThis.crypto?.randomUUID
-        ? globalThis.crypto.randomUUID()
-        : `${Date.now()}_${Math.random().toString(16).slice(2)}`);
-
-    window.sessionStorage.setItem(KEY, token);
-    return token;
-  } catch {
-    return `rb_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  }
-}
-
-function clearCheckoutToken() {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem("checkout_token");
-  } catch {}
-}
-
 export default function Paso4Confirmacion() {
   useCheckoutGuard(4);
 
@@ -133,14 +132,6 @@ export default function Paso4Confirmacion() {
   const [orderId, setOrderId] = useState<string>("");
   const [uiError, setUiError] = useState<string | null>(null);
   const [uiSuccess, setUiSuccess] = useState<string | null>(null);
-
-  const [checkoutToken, setCheckoutToken] = useState<string>("");
-
-  useEffect(() => {
-    // ✅ asegurar token estable
-    const t = getOrCreateCheckoutToken();
-    setCheckoutToken(t);
-  }, []);
 
   const datosEfectivos = useMemo(() => {
     return datos ?? contacto ?? readCheckoutDatosFromSessionStorage() ?? null;
@@ -191,7 +182,6 @@ export default function Paso4Confirmacion() {
     const miss: string[] = [];
     if (!customerName) miss.push("nombre");
     if (!customerEmail) miss.push("email");
-    if (!checkoutToken) miss.push("checkoutToken");
     if (deliveryType === "shipping") {
       if (!envio?.direccion) miss.push("dirección");
       if (!envio?.ciudad) miss.push("ciudad");
@@ -202,7 +192,6 @@ export default function Paso4Confirmacion() {
   }, [
     customerName,
     customerEmail,
-    checkoutToken,
     deliveryType,
     envio?.direccion,
     envio?.ciudad,
@@ -243,8 +232,11 @@ export default function Paso4Confirmacion() {
       const paymentMethod = (pago?.metodo ??
         "transferencia") as CheckoutPaymentUI;
 
+      // ✅ IMPORTANTE: token estable por intento de compra
+      const checkoutToken = getOrCreateCheckoutToken();
+
       const payload = {
-        checkoutToken, // ✅ CLAVE: idempotencia estable
+        checkoutToken,
         items: items.map((it) => ({
           productSlug: it.id,
           quantity: it.quantity,
@@ -303,18 +295,18 @@ export default function Paso4Confirmacion() {
         deliveryType,
       });
 
+      // ✅ ya se creó el pedido: podemos limpiar token para que el siguiente intento sea otro
+      clearCheckoutToken();
+
       // limpiar carrito
       clearCart();
 
-      // ✅ si el pedido se creó, este token ya no debe reutilizarse para otra compra
-      clearCheckoutToken();
-
-      // ✅ Mensaje rápido (por si el redirect tarda 1 frame)
       setUiSuccess(
-        `Pedido creado correctamente (${orderNumberNice(finalId)}). Redirigiendo...`
+        `Pedido creado correctamente (${orderNumberNice(
+          finalId
+        )}). Redirigiendo...`
       );
 
-      // ✅ Pantalla final profesional
       const pm = payingWithTransfer ? "transferencia" : "card";
       const dt = deliveryType === "shipping" ? "shipping" : "pickup";
       router.replace(
@@ -400,9 +392,7 @@ export default function Paso4Confirmacion() {
 
                   <div className="cs-line-row">
                     <span className="cs-muted">Costo envío</span>
-                    <span className="cs-strong">
-                      {CLP(envio?.costoEnvio ?? 0)}
-                    </span>
+                    <span className="cs-strong">{CLP(envio?.costoEnvio ?? 0)}</span>
                   </div>
                 </div>
 
@@ -434,8 +424,8 @@ export default function Paso4Confirmacion() {
 
                   {!payingWithTransfer && (
                     <div className="cs-note">
-                      Este método está en preparación. Si lo usas, el pedido igual
-                      se creará.
+                      Este método está en preparación. Si lo usas, el pedido igual se
+                      creará.
                     </div>
                   )}
                 </div>
@@ -444,8 +434,8 @@ export default function Paso4Confirmacion() {
               <div className="cs-callout">
                 <div className="cs-callout-title">Antes de confirmar</div>
                 <p className="cs-callout-text">
-                  Confirma para crear el pedido. Verás el resultado en una pantalla
-                  final con instrucciones.
+                  Confirma para crear el pedido. Verás el resultado en una pantalla final
+                  con instrucciones.
                 </p>
 
                 {missing.length ? (
@@ -481,12 +471,10 @@ export default function Paso4Confirmacion() {
               </div>
             </>
           ) : (
-            <>
-              <div className="cs-panel">
-                <div className="cs-panel-title">Listo</div>
-                <div className="cs-note">Redirigiendo a la pantalla final...</div>
-              </div>
-            </>
+            <div className="cs-panel">
+              <div className="cs-panel-title">Listo</div>
+              <div className="cs-note">Redirigiendo a la pantalla final...</div>
+            </div>
           )}
         </section>
 

@@ -14,15 +14,12 @@ export default function Paso1Datos() {
   const router = useRouter();
   const checkout = useCheckout() as any;
 
-  // ---- Datos iniciales: store + sessionStorage ----
   let persistedDatos: any = null;
   if (typeof window !== "undefined") {
     try {
       const raw = window.sessionStorage.getItem("checkout_datos");
       if (raw) persistedDatos = JSON.parse(raw);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   const datos = checkout.datos ?? checkout.contacto ?? persistedDatos ?? null;
@@ -38,7 +35,7 @@ export default function Paso1Datos() {
     const nextDatos = {
       nombre: String(fd.get("nombre") || "").trim(),
       apellido: String(fd.get("apellido") || "").trim(),
-      rut: String(fd.get("rut") || "").trim(),
+      rut: String(fd.get("rut") || "").trim(), // ahora opcional
       telefono: String(fd.get("telefono") || "").trim(),
       email: String(fd.get("email") || "").trim(),
     };
@@ -50,9 +47,7 @@ export default function Paso1Datos() {
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem("checkout_datos", JSON.stringify(nextDatos));
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     router.push("/checkout/envio");
   };
@@ -66,7 +61,6 @@ export default function Paso1Datos() {
       </div>
 
       <div className="cs-grid">
-        {/* IZQUIERDA */}
         <section className="cs-card">
           <div className="cs-head">
             <div className="cs-accent" />
@@ -105,10 +99,9 @@ export default function Paso1Datos() {
 
             <div className="cs-two">
               <div className="cs-field">
-                <label className="cs-label">RUT</label>
+                <label className="cs-label">RUT (opcional)</label>
                 <input
                   name="rut"
-                  required
                   defaultValue={datos?.rut ?? ""}
                   className="cs-input"
                   placeholder="12.345.678-9"
@@ -153,7 +146,6 @@ export default function Paso1Datos() {
           </form>
         </section>
 
-        {/* DERECHA */}
         <aside className="cs-summary">
           <CheckoutSummary />
         </aside>
@@ -288,7 +280,6 @@ export default function Paso1Datos() {
           top: 1.5rem;
         }
 
-        /* Evita que algún CSS global deje inputs blancos en esta vista */
         :global(.checkout-step input) {
           appearance: none;
           -webkit-appearance: none;
