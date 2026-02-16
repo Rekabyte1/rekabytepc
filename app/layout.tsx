@@ -14,9 +14,16 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Mi Tienda",
+  title: "RekaByte",
   description: "PCs armados",
-  // metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://rekabytepc.vercel.app"),
+  metadataBase: new URL("https://www.rekabyte.cl"),
+  alternates: {
+    canonical: "https://www.rekabyte.cl",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +37,6 @@ export default function RootLayout({
         <Providers>
           <Header />
 
-          {/* Marca para que los fixes móviles del CSS se apliquen dentro de main */}
           <main data-mobile-fix="1" className="min-h-[60vh]">
             {children}
           </main>
