@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 
 type CheckoutPayload = {
-  checkoutToken: string; // ✅ idempotencia
+  checkoutToken: string;
   items: { productSlug: string; quantity: number }[];
   customer: { name: string; email: string; phone?: string };
   deliveryType: "pickup" | "shipping";
@@ -43,6 +43,83 @@ function normalizePayment(method: CheckoutPaymentUI): "TRANSFER" | "CARD" {
 
 function normalizeShipping(deliveryType: "pickup" | "shipping") {
   return deliveryType === "pickup" ? ("PICKUP" as const) : ("DELIVERY" as const);
+}
+
+async function trySendConfirmationEmailOnce(params: {
+  orderId: string;
+  customerEmail: string;
+  customerName: string;
+  items: { productName: string; unitPrice: number; quantity: number }[];
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+
+  if (!apiKey || !from) {
+    console.warn("[email] Missing RESEND_API_KEY or RESEND_FROM. Skipping email.");
+    return { ok: false as const, skipped: true as const, reason: "missing_env" };
+  }
+
+  const fresh = await prisma.order.findUnique({
+    where: { id: params.orderId },
+    select: {
+      id: true,
+      confirmationEmailSentAt: true,
+      createdAt: true,
+      total: true,
+      subtotal: true,
+      shippingCost: true,
+      paymentMethod: true,
+      shippingMethod: true,
+      contactName: true,
+      contactEmail: true,
+    },
+  });
+
+  if (!fresh) {
+    console.warn("[email] Order not found when trying to email:", params.orderId);
+    return { ok: false as const, skipped: true as const, reason: "order_not_found" };
+  }
+
+  if (fresh.confirmationEmailSentAt) {
+    return { ok: true as const, skipped: true as const, reason: "already_sent" };
+  }
+
+  const sendRes = await sendOrderCreatedEmail({
+    to: params.customerEmail,
+    customerName: params.customerName,
+    orderId: params.orderId,
+    paymentMethod: fresh.paymentMethod,
+    shippingMethod: fresh.shippingMethod,
+    total: fresh.total,
+    subtotal: fresh.subtotal,
+    shippingCost: fresh.shippingCost,
+    createdAtISO: new Date(fresh.createdAt).toISOString(),
+    items: params.items.map((it) => ({
+      name: it.productName,
+      qty: it.quantity,
+      unitPrice: Number(it.unitPrice),
+    })),
+  });
+
+  console.log("[email] sendOrderCreatedEmail result:", {
+    orderId: params.orderId,
+    ok: sendRes?.ok,
+    skipped: (sendRes as any)?.skipped,
+    resendId: (sendRes as any)?.res?.data?.id ?? (sendRes as any)?.res?.id ?? null,
+  });
+
+  // Si el lib/email.ts decide “skip”, no marcamos enviado
+  if ((sendRes as any)?.skipped) {
+    return sendRes;
+  }
+
+  // Marcamos enviado solo si intentamos mandar
+  await prisma.order.update({
+    where: { id: params.orderId },
+    data: { confirmationEmailSentAt: new Date() },
+  });
+
+  return sendRes;
 }
 
 export async function POST(req: NextRequest) {
@@ -90,6 +167,7 @@ export async function POST(req: NextRequest) {
     const payWithCard = normalizedPaymentMethod === "CARD";
 
     // 1) ✅ Idempotencia: si ya existe el pedido para este token, lo devolvemos
+    //    PERO: si el email no se envió, lo enviamos 1 vez.
     const existing = await prisma.order.findUnique({
       where: { checkoutToken },
       include: {
@@ -99,6 +177,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
+      try {
+        await trySendConfirmationEmailOnce({
+          orderId: existing.id,
+          customerEmail,
+          customerName,
+          items: existing.items.map((it) => ({
+            productName: it.productName,
+            unitPrice: Number(it.unitPrice),
+            quantity: Number(it.quantity),
+          })),
+        });
+      } catch (e) {
+        console.error("[email] idempotent resend attempt failed:", e);
+      }
+
       return NextResponse.json(
         {
           ok: true,
@@ -180,7 +273,7 @@ export async function POST(req: NextRequest) {
     const shippingCost = deliveryType === "shipping" ? 0 : 0;
     const total = subtotal + shippingCost;
 
-    // 6) Transacción: order + items + stock + shipment (+ address si corresponde)
+    // 6) Transacción
     const created = await prisma.$transaction(async (tx) => {
       let addressRecord: { id: string } | null = null;
 
@@ -191,7 +284,6 @@ export async function POST(req: NextRequest) {
           throw new Error("Falta dirección para despacho.");
         }
 
-        // ✅ Con el schema corregido, userId puede ser null si es invitado
         addressRecord = await tx.address.create({
           data: {
             userId: null,
@@ -223,8 +315,6 @@ export async function POST(req: NextRequest) {
           subtotal,
           total,
           notes: safeStr(notes) || null,
-
-          // ✅ idempotencia
           checkoutToken,
         },
       });
@@ -248,7 +338,6 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // descuenta stock si existe
         if (product.stock != null) {
           await tx.product.update({
             where: { id: product.id },
@@ -268,9 +357,6 @@ export async function POST(req: NextRequest) {
             pickupLocation: null,
           },
         });
-      } else {
-        // pickup: puedes opcionalmente guardar shipment tipo PICKUP si quieres
-        // (por ahora tu modelo permite shipment null, así que está bien)
       }
 
       const orderItems = await tx.orderItem.findMany({
@@ -281,51 +367,20 @@ export async function POST(req: NextRequest) {
       return { order, shipment, orderItems };
     });
 
-    // 7) ✅ Email (NO rompe el checkout si falla) + evita reenvío en retries
-    if (customerEmail) {
-      try {
-        const fresh = await prisma.order.findUnique({
-          where: { id: created.order.id },
-          select: {
-            id: true,
-            confirmationEmailSentAt: true,
-            createdAt: true,
-            total: true,
-            subtotal: true,
-            shippingCost: true,
-            paymentMethod: true,
-            shippingMethod: true,
-            contactName: true,
-            contactEmail: true,
-          },
-        });
-
-        if (fresh && !fresh.confirmationEmailSentAt) {
-          await sendOrderCreatedEmail({
-            to: customerEmail,
-            customerName: customerName,
-            orderId: created.order.id,
-            paymentMethod: fresh.paymentMethod, // "TRANSFER" | "CARD"
-            shippingMethod: fresh.shippingMethod, // "PICKUP" | "DELIVERY"
-            total: fresh.total,
-            subtotal: fresh.subtotal,
-            shippingCost: fresh.shippingCost,
-            createdAtISO: new Date(fresh.createdAt).toISOString(),
-            items: created.orderItems.map((it) => ({
-              name: it.productName,
-              qty: it.quantity,
-              unitPrice: Number(it.unitPrice),
-            })),
-          });
-
-          await prisma.order.update({
-            where: { id: created.order.id },
-            data: { confirmationEmailSentAt: new Date() },
-          });
-        }
-      } catch (e) {
-        console.error("[email] Error inesperado:", e);
-      }
+    // 7) ✅ Email + anti reenvío
+    try {
+      await trySendConfirmationEmailOnce({
+        orderId: created.order.id,
+        customerEmail,
+        customerName,
+        items: created.orderItems.map((it) => ({
+          productName: it.productName,
+          unitPrice: Number(it.unitPrice),
+          quantity: Number(it.quantity),
+        })),
+      });
+    } catch (e) {
+      console.error("[email] send attempt failed:", e);
     }
 
     return NextResponse.json(
