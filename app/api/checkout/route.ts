@@ -56,7 +56,7 @@ async function trySendConfirmationEmailOnce(params: {
 
   if (!apiKey || !from) {
     console.warn("[email] Missing RESEND_API_KEY or RESEND_FROM. Skipping email.");
-    return { ok: false as const, skipped: true as const, reason: "missing_env" };
+    return { ok: false as const, skipped: true as const, reason: "missing_env" as const };
   }
 
   const fresh = await prisma.order.findUnique({
@@ -77,11 +77,11 @@ async function trySendConfirmationEmailOnce(params: {
 
   if (!fresh) {
     console.warn("[email] Order not found when trying to email:", params.orderId);
-    return { ok: false as const, skipped: true as const, reason: "order_not_found" };
+    return { ok: false as const, skipped: true as const, reason: "order_not_found" as const };
   }
 
   if (fresh.confirmationEmailSentAt) {
-    return { ok: true as const, skipped: true as const, reason: "already_sent" };
+    return { ok: true as const, skipped: true as const, reason: "already_sent" as const };
   }
 
   const sendRes = await sendOrderCreatedEmail({
@@ -101,23 +101,25 @@ async function trySendConfirmationEmailOnce(params: {
     })),
   });
 
+  // ✅ ahora compila: sendRes tiene tipo con ok
+  const resendId =
+    (sendRes.ok && (sendRes.res as any)?.data?.id) ||
+    (sendRes.ok && (sendRes.res as any)?.id) ||
+    null;
+
   console.log("[email] sendOrderCreatedEmail result:", {
     orderId: params.orderId,
-    ok: sendRes?.ok,
-    skipped: (sendRes as any)?.skipped,
-    resendId: (sendRes as any)?.res?.data?.id ?? (sendRes as any)?.res?.id ?? null,
+    ok: sendRes.ok,
+    resendId,
   });
 
-  // Si el lib/email.ts decide “skip”, no marcamos enviado
-  if ((sendRes as any)?.skipped) {
-    return sendRes;
+  // Marcamos enviado SOLO si realmente se mandó ok
+  if (sendRes.ok) {
+    await prisma.order.update({
+      where: { id: params.orderId },
+      data: { confirmationEmailSentAt: new Date() },
+    });
   }
-
-  // Marcamos enviado solo si intentamos mandar
-  await prisma.order.update({
-    where: { id: params.orderId },
-    data: { confirmationEmailSentAt: new Date() },
-  });
 
   return sendRes;
 }
@@ -205,9 +207,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Validar slugs
-    const slugs = items
-      .map((i) => safeStr(i.productSlug))
-      .filter(Boolean);
+    const slugs = items.map((i) => safeStr(i.productSlug)).filter(Boolean);
 
     if (slugs.length !== items.length) {
       return NextResponse.json(
