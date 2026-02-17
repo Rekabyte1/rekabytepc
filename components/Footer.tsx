@@ -11,7 +11,13 @@ import {
   FiMail,
   FiClock,
 } from "react-icons/fi";
-import { FaInstagram, FaTiktok, FaYoutube, FaTwitch, FaWhatsapp } from "react-icons/fa";
+import {
+  FaInstagram,
+  FaTiktok,
+  FaYoutube,
+  FaTwitch,
+  FaWhatsapp,
+} from "react-icons/fa";
 
 export default function Footer() {
   return (
@@ -28,8 +34,12 @@ export default function Footer() {
                 <FiShield className="h-5 w-5 text-lime-400" />
               </span>
               <div className="text-left">
-                <p className="font-semibold leading-tight text-white">Compra segura</p>
-                <p className="text-[11px] text-neutral-400">Webpay / Mercado Pago protegidos.</p>
+                <p className="font-semibold leading-tight text-white">
+                  Compra segura
+                </p>
+                <p className="text-[11px] text-neutral-400">
+                  Webpay / Mercado Pago protegidos.
+                </p>
               </div>
             </li>
 
@@ -38,8 +48,12 @@ export default function Footer() {
                 <FiHeadphones className="h-5 w-5 text-lime-400" />
               </span>
               <div className="text-left">
-                <p className="font-semibold leading-tight text-white">Atención al cliente</p>
-                <p className="text-[11px] text-neutral-400">Soporte directo por WhatsApp.</p>
+                <p className="font-semibold leading-tight text-white">
+                  Atención al cliente
+                </p>
+                <p className="text-[11px] text-neutral-400">
+                  Soporte directo por WhatsApp.
+                </p>
               </div>
             </li>
 
@@ -48,7 +62,9 @@ export default function Footer() {
                 <FiTruck className="h-5 w-5 text-lime-400" />
               </span>
               <div className="text-left">
-                <p className="font-semibold leading-tight text-white">Envíos a todo Chile</p>
+                <p className="font-semibold leading-tight text-white">
+                  Envíos a todo Chile
+                </p>
                 <p className="text-[11px] text-neutral-400">Retiro o despacho.</p>
               </div>
             </li>
@@ -175,9 +191,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                {/* 🔧 ruta corregida */}
                 <Link href="/garantias" className="hover:text-lime-400">
                   Garantías y devoluciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacidad" className="hover:text-lime-400">
+                  Política de privacidad
                 </Link>
               </li>
               <li>
