@@ -45,6 +45,98 @@ function normalizeShipping(deliveryType: "pickup" | "shipping") {
   return deliveryType === "pickup" ? ("PICKUP" as const) : ("DELIVERY" as const);
 }
 
+/* ============================================================
+   ENVÍO: Tarifa fija por zona (Chilexpress) — backend manda
+   - pickup => $0
+   - shipping => se calcula por región
+   ============================================================ */
+
+type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
+
+function normalizeRegion(regionRaw: string) {
+  return safeStr(regionRaw).toLowerCase();
+}
+
+function zoneByRegion(regionRaw: string): ShippingZone {
+  const r = normalizeRegion(regionRaw);
+  if (!r) return "UNKNOWN";
+
+  if (r.includes("metropolitana")) return "RM";
+
+  if (
+    r.includes("arica") ||
+    r.includes("parinacota") ||
+    r.includes("tarapac") ||
+    r.includes("antofag") ||
+    r.includes("atacama") ||
+    r.includes("coquimbo")
+  ) {
+    return "NORTE";
+  }
+
+  if (
+    r.includes("valpara") ||
+    r.includes("o’higgins") ||
+    r.includes("ohiggins") ||
+    r.includes("libertador") ||
+    r.includes("maule") ||
+    r.includes("ñuble") ||
+    r.includes("nuble") ||
+    r.includes("biob") ||
+    r.includes("bío bío") ||
+    r.includes("bio bio")
+  ) {
+    return "CENTRO";
+  }
+
+  if (
+    r.includes("araucan") ||
+    r.includes("los r") ||
+    r.includes("ríos") ||
+    r.includes("rios") ||
+    r.includes("los l") ||
+    r.includes("lagos")
+  ) {
+    return "SUR";
+  }
+
+  if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
+
+  return "UNKNOWN";
+}
+
+function shippingCostByZone(zone: ShippingZone) {
+  // ✅ AJUSTA ESTOS MONTOS A TU ESTRATEGIA
+  switch (zone) {
+    case "RM":
+      return 6990;
+    case "CENTRO":
+      return 8990;
+    case "NORTE":
+      return 10990;
+    case "SUR":
+      return 10990;
+    case "EXTREMOS":
+      return 14990;
+    default:
+      return 11990;
+  }
+}
+
+function calculateShippingCost(
+  deliveryType: "pickup" | "shipping",
+  address?: CheckoutPayload["address"]
+) {
+  if (deliveryType === "pickup") return 0;
+  const region = safeStr(address?.region);
+  const zone = zoneByRegion(region);
+  return shippingCostByZone(zone);
+}
+
+/* ============================================================
+   EMAIL (idempotente)
+   ============================================================ */
+
 async function trySendConfirmationEmailOnce(params: {
   orderId: string;
   customerEmail: string;
@@ -70,8 +162,6 @@ async function trySendConfirmationEmailOnce(params: {
       shippingCost: true,
       paymentMethod: true,
       shippingMethod: true,
-      contactName: true,
-      contactEmail: true,
     },
   });
 
@@ -101,7 +191,6 @@ async function trySendConfirmationEmailOnce(params: {
     })),
   });
 
-  // ✅ ahora compila: sendRes tiene tipo con ok
   const resendId =
     (sendRes.ok && (sendRes.res as any)?.data?.id) ||
     (sendRes.ok && (sendRes.res as any)?.id) ||
@@ -111,9 +200,9 @@ async function trySendConfirmationEmailOnce(params: {
     orderId: params.orderId,
     ok: sendRes.ok,
     resendId,
+    error: !sendRes.ok ? sendRes.error : null,
   });
 
-  // Marcamos enviado SOLO si realmente se mandó ok
   if (sendRes.ok) {
     await prisma.order.update({
       where: { id: params.orderId },
@@ -123,6 +212,10 @@ async function trySendConfirmationEmailOnce(params: {
 
   return sendRes;
 }
+
+/* ============================================================
+   CHECKOUT
+   ============================================================ */
 
 export async function POST(req: NextRequest) {
   try {
@@ -148,10 +241,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!items.length) {
-      return NextResponse.json(
-        { ok: false, error: "No hay productos en el carrito." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "No hay productos en el carrito." }, { status: 400 });
     }
 
     const customerName = safeStr(customer?.name);
@@ -159,17 +249,28 @@ export async function POST(req: NextRequest) {
     const customerPhone = safeStr(customer?.phone);
 
     if (!customerName || !customerEmail) {
-      return NextResponse.json(
-        { ok: false, error: "Falta nombre o email del cliente." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Falta nombre o email del cliente." }, { status: 400 });
+    }
+
+    // ✅ Shipping: exige street + region + (city o commune)
+    if (deliveryType === "shipping") {
+      const street = safeStr(address?.street);
+      const region = safeStr(address?.region);
+      const city = safeStr(address?.city);
+      const commune = safeStr(address?.commune);
+
+      if (!street || !region || (!city && !commune)) {
+        return NextResponse.json(
+          { ok: false, error: "Falta dirección para despacho (calle, región y ciudad/comuna)." },
+          { status: 400 }
+        );
+      }
     }
 
     const normalizedPaymentMethod = normalizePayment(paymentMethod);
     const payWithCard = normalizedPaymentMethod === "CARD";
 
-    // 1) ✅ Idempotencia: si ya existe el pedido para este token, lo devolvemos
-    //    PERO: si el email no se envió, lo enviamos 1 vez.
+    // 1) ✅ Idempotencia
     const existing = await prisma.order.findUnique({
       where: { checkoutToken },
       include: {
@@ -210,10 +311,7 @@ export async function POST(req: NextRequest) {
     const slugs = items.map((i) => safeStr(i.productSlug)).filter(Boolean);
 
     if (slugs.length !== items.length) {
-      return NextResponse.json(
-        { ok: false, error: "Algún producto no tiene slug válido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Algún producto no tiene slug válido." }, { status: 400 });
     }
 
     // 3) Buscar productos
@@ -231,15 +329,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (products.length !== slugs.length) {
-      return NextResponse.json(
-        { ok: false, error: "Algún producto no existe o fue eliminado." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Algún producto no existe o fue eliminado." }, { status: 400 });
     }
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
 
-    // 4) Calcular subtotal + validar stock
+    // 4) Subtotal + stock
     let subtotal = 0;
 
     for (const item of items) {
@@ -247,10 +342,7 @@ export async function POST(req: NextRequest) {
       const product = productMap.get(slug);
 
       if (!product) {
-        return NextResponse.json(
-          { ok: false, error: "Producto no encontrado." },
-          { status: 400 }
-        );
+        return NextResponse.json({ ok: false, error: "Producto no encontrado." }, { status: 400 });
       }
 
       const quantity = Math.max(1, Number(item.quantity ?? 1));
@@ -269,8 +361,8 @@ export async function POST(req: NextRequest) {
       subtotal += unitPrice * quantity;
     }
 
-    // 5) Shipping cost (si luego lo haces real, cámbialo acá)
-    const shippingCost = deliveryType === "shipping" ? 0 : 0;
+    // 5) ✅ Shipping cost por zona (pickup = 0)
+    const shippingCost = calculateShippingCost(deliveryType, address);
     const total = subtotal + shippingCost;
 
     // 6) Transacción
@@ -280,22 +372,26 @@ export async function POST(req: NextRequest) {
       const shippingMethod = normalizeShipping(deliveryType);
 
       if (deliveryType === "shipping") {
-        if (!address?.street || !address?.city || !address?.region) {
-          throw new Error("Falta dirección para despacho.");
-        }
+        // ✅ Fallbacks para NO enviar null donde Prisma exige string
+        const streetFinal = safeStr(address?.street);
+        const regionFinal = safeStr(address?.region);
+
+        const cityFinal = safeStr(address?.city) || safeStr(address?.commune);
+        const communeFinal = safeStr(address?.commune) || safeStr(address?.city);
 
         addressRecord = await tx.address.create({
           data: {
             userId: null,
-            fullName: safeStr(address.fullName) || customerName,
-            phone: safeStr(address.phone) || customerPhone || "",
-            street: safeStr(address.street),
-            number: safeStr(address.number) || "",
-            apartment: safeStr(address.apartment) || "",
-            commune: safeStr(address.commune) || null,
-            city: safeStr(address.city),
-            region: safeStr(address.region),
-            country: safeStr(address.country) || "Chile",
+            fullName: safeStr(address?.fullName) || customerName,
+            phone: safeStr(address?.phone) || customerPhone || "",
+            street: streetFinal,
+            number: safeStr(address?.number) || "",
+            apartment: safeStr(address?.apartment) || "",
+            // ✅ IMPORTANTE: NUNCA null (evita Null constraint violation)
+            commune: communeFinal || "",
+            city: cityFinal || "",
+            region: regionFinal,
+            country: safeStr(address?.country) || "Chile",
             isDefault: false,
           },
           select: { id: true },
@@ -367,7 +463,7 @@ export async function POST(req: NextRequest) {
       return { order, shipment, orderItems };
     });
 
-    // 7) ✅ Email + anti reenvío
+    // 7) Email
     try {
       await trySendConfirmationEmailOnce({
         orderId: created.order.id,
@@ -390,6 +486,7 @@ export async function POST(req: NextRequest) {
         order: created.order,
         shipment: created.shipment,
         niceOrderNumber: orderNumberNice(created.order.id),
+        shippingCost,
       },
       { status: 201 }
     );

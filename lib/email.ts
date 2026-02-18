@@ -4,19 +4,9 @@ import { Resend } from "resend";
 type PaymentMethod = "TRANSFER" | "CARD";
 type ShippingMethod = "PICKUP" | "DELIVERY";
 
-export type SendEmailResult =
-  | {
-      ok: true;
-      skipped?: false;
-      res: unknown; // respuesta del SDK (no dependemos de tipos internos)
-    }
-  | {
-      ok: false;
-      skipped?: boolean;
-      reason?: string;
-      error?: string;
-      res?: unknown;
-    };
+type EmailSendOk = { ok: true; res: unknown };
+type EmailSendFail = { ok: false; error: string };
+export type EmailSendResult = EmailSendOk | EmailSendFail;
 
 function requireEnv(name: string) {
   const v = process.env[name];
@@ -84,6 +74,30 @@ function shippingLabel(sm: string) {
   return sm;
 }
 
+async function sendHtmlEmail(args: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<EmailSendResult> {
+  try {
+    const resend = getResend();
+    const from = getFrom();
+
+    const res = await resend.emails.send({
+      from,
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+    });
+
+    return { ok: true, res };
+  } catch (e: any) {
+    const msg = String(e?.message ?? e ?? "Error enviando email");
+    console.error("[email] sendHtmlEmail error:", e);
+    return { ok: false, error: msg };
+  }
+}
+
 /** ✅ Email 1: confirmación de pedido creado (checkout) */
 export async function sendOrderCreatedEmail(args: {
   to: string;
@@ -96,16 +110,12 @@ export async function sendOrderCreatedEmail(args: {
   shippingCost: number;
   createdAtISO: string;
   items: { name: string; qty: number; unitPrice: number }[];
-}): Promise<SendEmailResult> {
-  try {
-    const resend = getResend();
-    const from = getFrom();
+}): Promise<EmailSendResult> {
+  const niceId = orderNumberNice(args.orderId);
 
-    const niceId = orderNumberNice(args.orderId);
-
-    const itemsHtml = args.items
-      .map(
-        (it) => `
+  const itemsHtml = args.items
+    .map(
+      (it) => `
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;">${esc(
           it.name
@@ -117,10 +127,10 @@ export async function sendOrderCreatedEmail(args: {
           it.unitPrice
         )}</td>
       </tr>`
-      )
-      .join("");
+    )
+    .join("");
 
-    const html = `
+  const html = `
   <div style="background:#0b0b0b;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;">
     <div style="max-width:720px;margin:0 auto;border:1px solid #262626;border-radius:16px;overflow:hidden;background:#0d0d0d;">
       <div style="padding:18px 18px 0 18px;">
@@ -170,21 +180,11 @@ export async function sendOrderCreatedEmail(args: {
     </div>
   </div>`;
 
-    const res = await resend.emails.send({
-      from,
-      to: args.to,
-      subject: `RekaByte — Pedido ${niceId} creado`,
-      html,
-    });
-
-    return { ok: true, res };
-  } catch (err: any) {
-    console.error("[email] sendOrderCreatedEmail error:", err);
-    return {
-      ok: false,
-      error: String(err?.message ?? "sendOrderCreatedEmail failed"),
-    };
-  }
+  return sendHtmlEmail({
+    to: args.to,
+    subject: `RekaByte — Pedido ${niceId} creado`,
+    html,
+  });
 }
 
 /** ✅ Email 2: actualización de estado (admin) */
@@ -195,23 +195,19 @@ export async function sendOrderStatusUpdateEmail(args: {
   oldStatus?: string | null;
   newStatus: string;
   message?: string | null; // lo que escribes en el panel admin
-}): Promise<SendEmailResult> {
-  try {
-    const resend = getResend();
-    const from = getFrom();
+}): Promise<EmailSendResult> {
+  const niceId = orderNumberNice(args.orderId);
+  const newLabel = statusLabel(args.newStatus);
+  const oldLabel = args.oldStatus ? statusLabel(args.oldStatus) : null;
 
-    const niceId = orderNumberNice(args.orderId);
-    const newLabel = statusLabel(args.newStatus);
-    const oldLabel = args.oldStatus ? statusLabel(args.oldStatus) : null;
+  const headline =
+    args.newStatus === "PAID"
+      ? "Pago confirmado"
+      : args.newStatus === "CANCELLED"
+      ? "Pedido cancelado"
+      : "Actualización de tu pedido";
 
-    const headline =
-      args.newStatus === "PAID"
-        ? "Pago confirmado"
-        : args.newStatus === "CANCELLED"
-        ? "Pedido cancelado"
-        : "Actualización de tu pedido";
-
-    const html = `
+  const html = `
   <div style="background:#0b0b0b;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;">
     <div style="max-width:720px;margin:0 auto;border:1px solid #262626;border-radius:16px;overflow:hidden;background:#0d0d0d;">
       <div style="padding:18px 18px 0 18px;">
@@ -261,19 +257,9 @@ export async function sendOrderStatusUpdateEmail(args: {
     </div>
   </div>`;
 
-    const res = await resend.emails.send({
-      from,
-      to: args.to,
-      subject: `RekaByte — Actualización ${niceId}: ${newLabel}`,
-      html,
-    });
-
-    return { ok: true, res };
-  } catch (err: any) {
-    console.error("[email] sendOrderStatusUpdateEmail error:", err);
-    return {
-      ok: false,
-      error: String(err?.message ?? "sendOrderStatusUpdateEmail failed"),
-    };
-  }
+  return sendHtmlEmail({
+    to: args.to,
+    subject: `RekaByte — Actualización ${niceId}: ${newLabel}`,
+    html,
+  });
 }
