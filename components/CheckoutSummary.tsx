@@ -1,13 +1,89 @@
-// /components/CheckoutSummary.tsx
 "use client";
 
 import { CLP, useCart } from "./CartContext";
 import { useCheckout } from "./CheckoutStore";
 
-/**
- * Resumen SOLO visual.
- * La confirmación de pedido ahora se hace en app/checkout/confirmacion/page.tsx
- */
+/* ============================================================
+   MISMA LÓGICA QUE BACKEND (solo preview visual)
+   ============================================================ */
+
+type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
+
+function safeStr(v: unknown) {
+  return String(v ?? "").trim().toLowerCase();
+}
+
+function zoneByRegion(regionRaw: string): ShippingZone {
+  const r = safeStr(regionRaw);
+  if (!r) return "UNKNOWN";
+
+  if (r.includes("metropolitana")) return "RM";
+
+  if (
+    r.includes("arica") ||
+    r.includes("parinacota") ||
+    r.includes("tarapac") ||
+    r.includes("antofag") ||
+    r.includes("atacama") ||
+    r.includes("coquimbo")
+  ) {
+    return "NORTE";
+  }
+
+  if (
+    r.includes("valpara") ||
+    r.includes("ohiggins") ||
+    r.includes("o’higgins") ||
+    r.includes("libertador") ||
+    r.includes("maule") ||
+    r.includes("ñuble") ||
+    r.includes("nuble") ||
+    r.includes("biob") ||
+    r.includes("bio bio")
+  ) {
+    return "CENTRO";
+  }
+
+  if (
+    r.includes("araucan") ||
+    r.includes("los r") ||
+    r.includes("rios") ||
+    r.includes("los l") ||
+    r.includes("lagos")
+  ) {
+    return "SUR";
+  }
+
+  if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
+
+  return "UNKNOWN";
+}
+
+function shippingCostByZone(zone: ShippingZone) {
+  switch (zone) {
+    case "RM":
+      return 6990;
+    case "CENTRO":
+      return 8990;
+    case "NORTE":
+      return 10990;
+    case "SUR":
+      return 10990;
+    case "EXTREMOS":
+      return 14990;
+    default:
+      return 11990;
+  }
+}
+
+function calculateShipping(deliveryType: string, region?: string) {
+  if (deliveryType !== "shipping") return 0;
+  const zone = zoneByRegion(region ?? "");
+  return shippingCostByZone(zone);
+}
+
+/* ============================================================ */
+
 export default function CheckoutSummary() {
   const { items, subtotalTransfer, subtotalCard } = useCart();
   const { pago, envio } = useCheckout() as any;
@@ -18,7 +94,14 @@ export default function CheckoutSummary() {
     | "mercadopago"
     | undefined;
 
-  const shipping = envio?.costoEnvio ?? 0;
+  const deliveryType =
+    envio?.tipo === "envio" ||
+    envio?.tipo === "shipping" ||
+    envio?.tipo === "delivery"
+      ? "shipping"
+      : "pickup";
+
+  const shipping = calculateShipping(deliveryType, envio?.region);
 
   const transferLine = {
     label: "Pago con transferencias",
@@ -41,9 +124,8 @@ export default function CheckoutSummary() {
   const total = base + shipping;
 
   const isTransfer = chosen === "transferencia";
-
-  // Precio principal a destacar por ítem (si no hay método elegido, destaca transferencia)
-  const highlight = chosen === "webpay" || chosen === "mercadopago" ? "card" : "transfer";
+  const highlight =
+    chosen === "webpay" || chosen === "mercadopago" ? "card" : "transfer";
 
   return (
     <aside>
@@ -55,7 +137,6 @@ export default function CheckoutSummary() {
         <p className="text-neutral-300">No tienes productos en el carrito.</p>
       ) : (
         <>
-          {/* Ítems */}
           <div className="divide-y divide-neutral-800">
             {items.map((it) => {
               const lineTransfer = it.priceTransfer * it.quantity;
@@ -64,9 +145,7 @@ export default function CheckoutSummary() {
               return (
                 <div key={it.id} className="py-3">
                   <div className="grid grid-cols-[100px_minmax(0,1fr)_auto] items-start gap-4">
-                    {/* Thumb */}
                     <div className="h-[100px] w-[100px] overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       {it.image ? (
                         <img
                           src={it.image}
@@ -81,14 +160,16 @@ export default function CheckoutSummary() {
                       )}
                     </div>
 
-                    {/* Info */}
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-white">
                         {it.name}
                       </div>
 
                       <div className="mt-1 text-xs text-neutral-400">
-                        Cantidad: <span className="text-neutral-200">{it.quantity}</span>
+                        Cantidad:{" "}
+                        <span className="text-neutral-200">
+                          {it.quantity}
+                        </span>
                       </div>
 
                       <div className="mt-3 grid gap-2">
@@ -99,7 +180,9 @@ export default function CheckoutSummary() {
                           <span
                             className={[
                               "text-sm font-bold tabular-nums",
-                              highlight === "transfer" ? "text-lime-400" : "text-neutral-200",
+                              highlight === "transfer"
+                                ? "text-lime-400"
+                                : "text-neutral-200",
                             ].join(" ")}
                           >
                             {CLP(lineTransfer)}
@@ -113,7 +196,9 @@ export default function CheckoutSummary() {
                           <span
                             className={[
                               "text-sm font-bold tabular-nums",
-                              highlight === "card" ? "text-lime-400" : "text-neutral-200",
+                              highlight === "card"
+                                ? "text-lime-400"
+                                : "text-neutral-200",
                             ].join(" ")}
                           >
                             {CLP(lineCard)}
@@ -122,7 +207,6 @@ export default function CheckoutSummary() {
                       </div>
                     </div>
 
-                    {/* Columna derecha: vacío intencional (evita que el precio quede “pegado” al borde) */}
                     <div className="hidden md:block" />
                   </div>
                 </div>
@@ -130,7 +214,6 @@ export default function CheckoutSummary() {
             })}
           </div>
 
-          {/* Totales */}
           <div className="mt-4 border-t border-neutral-800 pt-4 text-sm">
             {lines.map((l) => (
               <div
@@ -161,7 +244,6 @@ export default function CheckoutSummary() {
             {!isTransfer && (
               <p className="mt-3 text-xs text-amber-300">
                 Por ahora solo está disponible la confirmación por transferencia.
-                Las otras opciones se activarán más adelante.
               </p>
             )}
           </div>

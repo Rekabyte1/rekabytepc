@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
-import { calcularEnvio, useCheckout } from "@/components/CheckoutStore";
+import { useCheckout } from "@/components/CheckoutStore";
 import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 
 type TipoEnvioUI = "pickup" | "delivery";
@@ -22,6 +22,80 @@ function safeStr(v: unknown) {
    - Ciudad la derivamos desde la comuna (práctico para ecommerce)
    - Si más adelante quieres "ciudad real", lo conectamos a una fuente externa
    ============================================================ */
+
+   /* ============================================================
+   SHIPPING LOGIC (ALINEADA CON BACKEND)
+   ============================================================ */
+
+type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
+
+function normalizeRegion(regionRaw: string) {
+  return safeStr(regionRaw).toLowerCase();
+}
+
+function zoneByRegion(regionRaw: string): ShippingZone {
+  const r = normalizeRegion(regionRaw);
+  if (!r) return "UNKNOWN";
+
+  if (r.includes("metropolitana")) return "RM";
+
+  if (
+    r.includes("arica") ||
+    r.includes("parinacota") ||
+    r.includes("tarapac") ||
+    r.includes("antofag") ||
+    r.includes("atacama") ||
+    r.includes("coquimbo")
+  ) return "NORTE";
+
+  if (
+    r.includes("valpara") ||
+    r.includes("ohiggins") ||
+    r.includes("o’higgins") ||
+    r.includes("libertador") ||
+    r.includes("maule") ||
+    r.includes("ñuble") ||
+    r.includes("nuble") ||
+    r.includes("biob") ||
+    r.includes("bio bio")
+  ) return "CENTRO";
+
+  if (
+    r.includes("araucan") ||
+    r.includes("los r") ||
+    r.includes("rios") ||
+    r.includes("los l") ||
+    r.includes("lagos")
+  ) return "SUR";
+
+  if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
+
+  return "UNKNOWN";
+}
+
+function shippingCostByZone(zone: ShippingZone) {
+  switch (zone) {
+    case "RM":
+      return 6990;
+    case "CENTRO":
+      return 8990;
+    case "NORTE":
+      return 10990;
+    case "SUR":
+      return 10990;
+    case "EXTREMOS":
+      return 14990;
+    default:
+      return 11990;
+  }
+}
+
+function calculateShipping(region?: string) {
+  if (!region) return 0;
+  const zone = zoneByRegion(region);
+  return shippingCostByZone(zone);
+}
+
 
 const REGIONES_COMUNAS: Record<string, string[]> = {
   "Arica y Parinacota": ["Arica", "Camarones", "Putre", "General Lagos"],
@@ -726,7 +800,8 @@ export default function Paso2Envio() {
               // delivery
               if (!canContinueDelivery) return;
 
-              const costo = calcularEnvio(courier);
+            const costo = calculateShipping(region);
+
 
               setEnvio({
                 tipo: "delivery",
@@ -859,7 +934,8 @@ export default function Paso2Envio() {
                     value={
                       tipo === "delivery"
                         ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(
-                            calcularEnvio(courier)
+                        calculateShipping(region)
+
                           )
                         : "$0"
                     }
