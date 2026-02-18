@@ -45,6 +45,7 @@ export default function Header() {
 
   return (
     <header className="rb-header">
+      {/* Topbar */}
       <div className="rb-topbar">
         <div className="rb-container rb-topbar-row">
           <div className="flex items-center">
@@ -61,13 +62,26 @@ export default function Header() {
         </div>
       </div>
 
+      {/* Main */}
       <div className="rb-main">
-        <div className="rb-container rb-main-row">
-          <Link href="/" className="rb-brand">
-            <img src="/logo2.png" alt="RekaByte" className="h-40 w-auto object-contain" />
-            <span className="rb-brand-name">RekaByte</span>
+        <div className="rb-container rb-main-row flex items-center justify-between gap-4 md:gap-8">
+          
+          {/* Logo */}
+          <Link
+            href="/"
+            className="rb-brand flex items-center gap-3 shrink-0"
+          >
+            <img
+              src="/logo2.png"
+              alt="RekaByte"
+              className="h-12 md:h-40 w-auto object-contain"
+            />
+            <span className="rb-brand-name hidden sm:inline">
+              RekaByte
+            </span>
           </Link>
 
+          {/* Buscador */}
           <div className="rb-search">
             <input placeholder="Busca los mejores productos..." />
             <button aria-label="Buscar">
@@ -75,20 +89,26 @@ export default function Header() {
             </button>
           </div>
 
+          {/* Acciones */}
           <div className="rb-actions">
             <Link href="/cuenta" className="rb-action">
-              <FaUser /> <span>Mi cuenta</span>
+              <FaUser /> <span className="hidden sm:inline">Mi cuenta</span>
             </Link>
+
             <Link href="/contacto" className="rb-action">
-              <FaPhoneAlt /> <span>Contacto</span>
+              <FaPhoneAlt /> <span className="hidden sm:inline">Contacto</span>
             </Link>
+
             <button onClick={toggleCart} className="rb-action">
-              <FaShoppingCart /> <span>Carrito</span> <CartCount />
+              <FaShoppingCart />
+              <span className="hidden sm:inline">Carrito</span>
+              <CartCount />
             </button>
           </div>
         </div>
       </div>
 
+      {/* Nav + Mega */}
       <nav className="rb-nav">
         <div className="rb-container rb-nav-row">
           <div
