@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "./CartContext";
 import CartDrawer from "./CartDrawer";
 import GamesMegaMenu from "./GamesMegaMenu";
 import CartCount from "./CartCount";
-import ServicesMenu from "./ServicesMenu";
+
+import ComponentsMenu from "./ComponentsMenu";
+import GamingStreamingMenu from "./GamingStreamingMenu";
 
 import {
   FaEnvelope,
@@ -20,11 +22,16 @@ import {
 export default function Header() {
   const { toggleCart } = useCart();
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // mega de Computadores Armados
   const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const isMobile =
-    typeof window !== "undefined" && window.innerWidth < 1024;
+  useEffect(() => {
+    const calc = () => setIsMobile(window.innerWidth < 1024);
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
 
   const openMenuSoft = () => {
     if (isMobile) return;
@@ -54,7 +61,8 @@ export default function Header() {
               <FaEnvelope /> contacto@rekabyte.cl
             </span>
             <span className="pill">
-              <FaMapMarkerAlt /> Punto de retiro, A pasos de metro Lo vial, San Miguel
+              <FaMapMarkerAlt /> Punto de retiro, A pasos de metro Lo vial, San
+              Miguel
             </span>
           </div>
           <div className="pill">
@@ -66,7 +74,6 @@ export default function Header() {
       {/* Main */}
       <div className="rb-main">
         <div className="rb-container rb-main-row flex items-center justify-between gap-4">
-
           {/* Logo */}
           <Link href="/" className="rb-brand flex items-center gap-3 shrink-0">
             <img
@@ -74,9 +81,7 @@ export default function Header() {
               alt="RekaByte"
               className="h-12 md:h-40 w-auto object-contain"
             />
-            <span className="rb-brand-name">
-              RekaByte
-            </span>
+            <span className="rb-brand-name">RekaByte</span>
           </Link>
 
           {/* Buscador */}
@@ -99,37 +104,32 @@ export default function Header() {
               <FaShoppingCart /> <span>Carrito</span> <CartCount />
             </button>
           </div>
-
         </div>
       </div>
 
       {/* Nav + Mega */}
       <nav className="rb-nav">
         <div className="rb-container rb-nav-row">
+          {/* 1) Computadores Armados (igual que antes) */}
           <div
             className="rb-mega-wrap"
             onMouseEnter={openMenuSoft}
             onMouseLeave={closeMenuSoft}
           >
-            <button
-              className="rb-pill"
-              onClick={toggleMenuMobile}
-            >
+            <button className="rb-pill" onClick={toggleMenuMobile} type="button">
               Computadores Armados
             </button>
 
             {menuOpen ? (
-              <GamesMegaMenu
-                onNavigate={() => setMenuOpen(false)}
-              />
+              <GamesMegaMenu onNavigate={() => setMenuOpen(false)} />
             ) : null}
           </div>
 
-          <Link href="/estaciones" className="rb-pill">
-            Estaciones de trabajo
-          </Link>
+          {/* 2) Componentes */}
+          <ComponentsMenu />
 
-          <ServicesMenu />
+          {/* 3) Gaming y Streaming */}
+          <GamingStreamingMenu />
         </div>
       </nav>
 

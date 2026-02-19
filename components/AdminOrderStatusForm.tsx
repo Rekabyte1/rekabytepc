@@ -44,7 +44,10 @@ export default function AdminOrderStatusForm({
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
 
   const changed = useMemo(() => {
-    return safeStr(status) !== safeStr(currentStatus) || safeStr(note) !== initialNote;
+    return (
+      safeStr(status) !== safeStr(currentStatus) ||
+      safeStr(note) !== initialNote
+    );
   }, [status, note, currentStatus, initialNote]);
 
   async function handleSubmit(e: FormEvent) {
@@ -57,16 +60,19 @@ export default function AdminOrderStatusForm({
     setEmailMsg(null);
 
     try {
-      const resp = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status,
-          noteInternal: note,
-          sendEmail,
-        }),
-        credentials: "same-origin",
-      });
+      const resp = await fetch(
+        `/api/admin/orders/${encodeURIComponent(orderId)}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            noteInternal: note,
+            sendEmail,
+          }),
+          credentials: "same-origin",
+        }
+      );
 
       const data = await resp.json().catch(() => null);
 
@@ -80,7 +86,8 @@ export default function AdminOrderStatusForm({
       if (sendEmail) {
         const em = data?.email;
         if (em?.ok) setEmailMsg("Correo enviado al cliente.");
-        else if (em && em?.ok === false) setEmailMsg(`No se pudo enviar correo: ${em?.error ?? "error"}`);
+        else if (em && em?.ok === false)
+          setEmailMsg(`No se pudo enviar correo: ${em?.error ?? "error"}`);
         else setEmailMsg("Correo: sin respuesta.");
       }
 
@@ -108,79 +115,106 @@ RekaByte`;
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-2 space-y-3">
-      <div className="space-y-1 text-sm">
-        <label className="text-neutral-300 font-extrabold">
-          Estado de pago / preparación
-        </label>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as StatusValue)}
-          className="w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="rounded-2xl border border-neutral-800 bg-black/30 backdrop-blur-sm p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Estado */}
+        <div className="space-y-2">
+          <label className="text-sm font-extrabold text-neutral-300">
+            Estado del pedido
+          </label>
 
-      <div className="space-y-1 text-sm">
-        <label className="text-neutral-300 font-extrabold">
-          Nota / mensaje para el cliente
-        </label>
-        <textarea
-          rows={4}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className="w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-        />
-        <p className="text-xs text-neutral-500">
-          Este texto se guardará en el pedido y (si está activado) se enviará por correo al cliente.
-        </p>
-      </div>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as StatusValue)}
+            className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-100 outline-none transition focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value} className="bg-neutral-900">
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <label className="flex items-center gap-2 text-sm text-neutral-200">
-        <input
-          type="checkbox"
-          checked={sendEmail}
-          onChange={(e) => setSendEmail(e.target.checked)}
-          className="h-4 w-4 accent-lime-400"
-        />
-        <span className="font-extrabold">Enviar actualización por correo</span>
-      </label>
+        {/* Nota */}
+        <div className="space-y-2">
+          <label className="text-sm font-extrabold text-neutral-300">
+            Mensaje para el cliente
+          </label>
 
-      {error && <p className="text-sm font-bold text-red-300">{error}</p>}
-      {saved && !error && <p className="text-sm font-bold text-lime-300">Cambios guardados.</p>}
-      {emailMsg && <p className="text-sm font-bold text-neutral-200">{emailMsg}</p>}
+          <textarea
+            rows={5}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Ej: Tu pedido ya fue despachado. Te enviaremos el tracking en breve."
+            className="w-full resize-none rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 outline-none transition focus:border-lime-400 focus:ring-2 focus:ring-lime-400/20"
+          />
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={loading || !changed}
-          className={[
-            "rounded-xl px-4 py-2 text-sm font-extrabold",
-            loading || !changed
-              ? "cursor-not-allowed border border-neutral-800 bg-black/10 text-neutral-500"
-              : "bg-lime-400 text-black hover:bg-lime-300",
-          ].join(" ")}
-        >
-          {loading ? "Guardando..." : "Guardar cambios"}
-        </button>
+          <p className="text-xs text-neutral-500">
+            Se guardará en el pedido y (si está activado) se enviará por correo.
+          </p>
+        </div>
 
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(buildClientTemplate());
-            } catch {}
-          }}
-          className="rounded-xl border border-neutral-800 bg-black/20 px-4 py-2 text-sm font-extrabold text-neutral-200 hover:bg-black/30"
-        >
-          Copiar texto
-        </button>
-      </div>
-    </form>
+        {/* Checkbox */}
+        <div className="flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/50 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={sendEmail}
+            onChange={(e) => setSendEmail(e.target.checked)}
+            className="h-4 w-4 accent-lime-400"
+          />
+          <span className="text-sm font-extrabold text-neutral-200">
+            Enviar actualización por correo
+          </span>
+        </div>
+
+        {/* Estados visuales */}
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
+            {error}
+          </div>
+        )}
+
+        {saved && !error && (
+          <div className="rounded-xl border border-lime-400/30 bg-lime-400/10 px-4 py-3 text-sm font-bold text-lime-300">
+            Cambios guardados correctamente.
+          </div>
+        )}
+
+        {emailMsg && (
+          <div className="rounded-xl border border-neutral-700 bg-black/40 px-4 py-3 text-sm font-bold text-neutral-200">
+            {emailMsg}
+          </div>
+        )}
+
+        {/* Botones */}
+        <div className="flex flex-wrap gap-4 pt-2">
+          <button
+            type="submit"
+            disabled={loading || !changed}
+            className={[
+              "rounded-xl px-5 py-2.5 text-sm font-extrabold transition",
+              loading || !changed
+                ? "cursor-not-allowed border border-neutral-700 bg-neutral-900 text-neutral-600"
+                : "bg-lime-400 text-black hover:bg-lime-300 shadow-md shadow-lime-400/20",
+            ].join(" ")}
+          >
+            {loading ? "Guardando..." : "Guardar cambios"}
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(buildClientTemplate());
+              } catch {}
+            }}
+            className="rounded-xl border border-neutral-700 bg-neutral-900 px-5 py-2.5 text-sm font-extrabold text-neutral-200 hover:bg-neutral-800 transition"
+          >
+            Copiar texto para WhatsApp
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

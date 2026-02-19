@@ -12,14 +12,6 @@ function CLP(value: number) {
   }).format(Number(value || 0));
 }
 
-function toISODateInput(d: Date) {
-  // yyyy-mm-dd (para input type="date")
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 const STATUS_LABELS: Record<string, string> = {
   PENDING_PAYMENT: "Pendiente",
   PAID: "Pagado",
@@ -67,7 +59,6 @@ function chipClass(kind: "status" | "payment" | "shipping", value: string) {
       : "border-neutral-700 bg-black/10 text-neutral-200";
   }
 
-  // shipping
   return value === "DELIVERY"
     ? "border-sky-400/30 bg-sky-400/10 text-sky-200"
     : "border-neutral-700 bg-black/10 text-neutral-200";
@@ -82,8 +73,32 @@ type SearchParams = {
   pageSize?: string;
   sort?: string;
   from?: string; // yyyy-mm-dd
-  to?: string;   // yyyy-mm-dd
+  to?: string; // yyyy-mm-dd
 };
+
+function shortId(id: string) {
+  if (!id) return "—";
+  if (id.length <= 16) return id;
+  return `${id.slice(0, 8)}…${id.slice(-6)}`;
+}
+
+function safeDateLabel(d: Date) {
+  return new Date(d).toLocaleString("es-CL", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+/**
+ * Interpreta el date input como hora Chile (-03:00) para que el filtro sea intuitivo.
+ * Esto evita el “corrimiento” típico cuando se usa UTC (Z).
+ */
+function chileDateRange(from?: string, to?: string) {
+  const out: { gte?: Date; lte?: Date } = {};
+  if (from) out.gte = new Date(`${from}T00:00:00-03:00`);
+  if (to) out.lte = new Date(`${to}T23:59:59-03:00`);
+  return out;
+}
 
 export default async function AdminPedidosPage({
   searchParams,
@@ -95,15 +110,19 @@ export default async function AdminPedidosPage({
   const payment = (searchParams.payment ?? "").trim();
   const shipping = (searchParams.shipping ?? "").trim();
 
-  const sort = (searchParams.sort ?? "desc").toLowerCase() === "asc" ? "asc" : "desc";
+  const sort =
+    (searchParams.sort ?? "desc").toLowerCase() === "asc" ? "asc" : "desc";
 
   const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
-  const pageSize = Math.min(50, Math.max(10, Number(searchParams.pageSize ?? 20) || 20));
+  const pageSize = Math.min(
+    50,
+    Math.max(10, Number(searchParams.pageSize ?? 20) || 20)
+  );
   const skip = (page - 1) * pageSize;
 
-  // rango fechas opcional
-  const from = (searchParams.from ?? "").trim();
-  const to = (searchParams.to ?? "").trim();
+  // Fechas opcionales (sin defaults forzados)
+  const from = (searchParams.from ?? "").trim(); // yyyy-mm-dd o ""
+  const to = (searchParams.to ?? "").trim(); // yyyy-mm-dd o ""
 
   const where: any = {};
 
@@ -112,9 +131,10 @@ export default async function AdminPedidosPage({
   if (shipping) where.shippingMethod = shipping;
 
   if (from || to) {
+    const r = chileDateRange(from || undefined, to || undefined);
     where.createdAt = {};
-    if (from) where.createdAt.gte = new Date(`${from}T00:00:00.000Z`);
-    if (to) where.createdAt.lte = new Date(`${to}T23:59:59.999Z`);
+    if (r.gte) where.createdAt.gte = r.gte;
+    if (r.lte) where.createdAt.lte = r.lte;
   }
 
   if (q) {
@@ -127,7 +147,9 @@ export default async function AdminPedidosPage({
     ];
   }
 
-  const [totalCount, orders] = await Promise.all([
+  const whereForStats = { ...where };
+
+  const [totalCount, orders, statusAgg] = await Promise.all([
     prisma.order.count({ where }),
     prisma.order.findMany({
       where,
@@ -148,16 +170,19 @@ export default async function AdminPedidosPage({
         notes: true,
       },
     }),
+    prisma.order.groupBy({
+      by: ["status"],
+      where: whereForStats,
+      _count: { _all: true },
+    }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  // defaults para filtros UI
-  const today = new Date();
-  const last30 = new Date(Date.now() - 1000 * 60 * 60 * 24 * 30);
-
-  const fromDefault = from || toISODateInput(last30);
-  const toDefault = to || toISODateInput(today);
+  const countsByStatus = statusAgg.reduce<Record<string, number>>((acc, row) => {
+    acc[row.status] = row._count._all;
+    return acc;
+  }, {});
 
   function buildLink(next: Partial<SearchParams>) {
     const sp = new URLSearchParams();
@@ -175,7 +200,6 @@ export default async function AdminPedidosPage({
       ...next,
     };
 
-    // limpia vacíos
     Object.entries(merged).forEach(([k, v]) => {
       if (v == null) return;
       const s = String(v).trim();
@@ -186,23 +210,70 @@ export default async function AdminPedidosPage({
     return `/admin/pedidos?${sp.toString()}`;
   }
 
+  // Clases “blindadas” para inputs date en dark (texto visible + icono visible)
+  const dateInputClass =
+    "mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40 " +
+    "[color-scheme:dark] " +
+    "[&::-webkit-calendar-picker-indicator]:invert " +
+    "[&::-webkit-calendar-picker-indicator]:opacity-80 " +
+    "[&::-webkit-calendar-picker-indicator]:hover:opacity-100";
+
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-100">
-      <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <main className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-100">
+      {/* Header */}
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-white">Panel administrador</h1>
-          <p className="mt-1 text-neutral-300">
-            Pedidos guardados en Supabase. Filtra, busca y revisa detalle.
+          <h1 className="text-2xl font-extrabold text-white">Pedidos</h1>
+          <p className="mt-1 text-neutral-400">
+            Gestión de pedidos registrados en la tienda.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-neutral-400">
-          <span className="rounded-full border border-neutral-800 bg-black/20 px-3 py-1">
-            Total: <span className="text-neutral-200 font-bold">{totalCount}</span>
-          </span>
-          <span className="rounded-full border border-neutral-800 bg-black/20 px-3 py-1">
-            Página: <span className="text-neutral-200 font-bold">{page}/{totalPages}</span>
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
+            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+              TOTAL
+            </div>
+            <div className="text-sm font-extrabold text-neutral-100">
+              {totalCount}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
+            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+              PENDIENTES
+            </div>
+            <div className="text-sm font-extrabold text-amber-200">
+              {countsByStatus["PENDING_PAYMENT"] ?? 0}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
+            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+              PAGADOS
+            </div>
+            <div className="text-sm font-extrabold text-lime-200">
+              {countsByStatus["PAID"] ?? 0}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
+            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+              CANCELADOS
+            </div>
+            <div className="text-sm font-extrabold text-red-200">
+              {countsByStatus["CANCELLED"] ?? 0}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
+            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+              PÁGINA
+            </div>
+            <div className="text-sm font-extrabold text-neutral-100">
+              {page}/{totalPages}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -210,23 +281,60 @@ export default async function AdminPedidosPage({
       <form
         action="/admin/pedidos"
         method="GET"
-        className="mb-5 rounded-2xl border border-neutral-800 bg-neutral-950/55 p-4"
+        className="mb-5 rounded-2xl border border-neutral-800 bg-neutral-950/55 p-3"
       >
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
-          <div className="lg:col-span-2">
-            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
-              Buscar (ID / cliente / email / nota)
+        <div className="flex flex-wrap items-end gap-2">
+          {/* Buscar */}
+          <div className="min-w-[240px] flex-1">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
+              Buscar
             </label>
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Ej: cmkm..., Emilio, gmail, etc."
-              className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-            />
+            <div className="mt-1 flex items-center gap-2 rounded-xl border border-neutral-800 bg-black/25 px-3 py-2">
+              <span className="text-neutral-500">⌕</span>
+              <input
+                name="q"
+                defaultValue={q}
+                placeholder="ID, cliente, email, nota…"
+                className="w-full bg-transparent text-sm text-neutral-200 outline-none placeholder:text-neutral-600"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
+          {/* Fechas */}
+          <div className="min-w-[260px]">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
+              Fecha
+            </label>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-[10px] font-extrabold text-neutral-600">
+                  Desde
+                </div>
+                <input
+                  type="date"
+                  name="from"
+                  defaultValue={from || ""}
+                  className={dateInputClass}
+                />
+              </div>
+
+              <div>
+                <div className="text-[10px] font-extrabold text-neutral-600">
+                  Hasta
+                </div>
+                <input
+                  type="date"
+                  name="to"
+                  defaultValue={to || ""}
+                  className={dateInputClass}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Estado */}
+          <div className="min-w-[180px]">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
               Estado
             </label>
             <select
@@ -243,8 +351,9 @@ export default async function AdminPedidosPage({
             </select>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
+          {/* Pago */}
+          <div className="min-w-[160px]">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
               Pago
             </label>
             <select
@@ -258,8 +367,9 @@ export default async function AdminPedidosPage({
             </select>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
+          {/* Envío */}
+          <div className="min-w-[160px]">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
               Envío
             </label>
             <select
@@ -273,78 +383,53 @@ export default async function AdminPedidosPage({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
-                Desde
-              </label>
-              <input
-                type="date"
-                name="from"
-                defaultValue={fromDefault}
-                className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
-                Hasta
-              </label>
-              <input
-                type="date"
-                name="to"
-                defaultValue={toDefault}
-                className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-              />
-            </div>
+          {/* Orden / PageSize */}
+          <div className="min-w-[150px]">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
+              Orden
+            </label>
+            <select
+              name="sort"
+              defaultValue={sort}
+              className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
+            >
+              <option value="desc">Más nuevos</option>
+              <option value="asc">Más antiguos</option>
+            </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
-                Orden
-              </label>
-              <select
-                name="sort"
-                defaultValue={sort}
-                className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-              >
-                <option value="desc">Más nuevos</option>
-                <option value="asc">Más antiguos</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-extrabold tracking-wide text-neutral-400">
-                Por página
-              </label>
-              <select
-                name="pageSize"
-                defaultValue={String(pageSize)}
-                className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
-              >
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="30">30</option>
-                <option value="50">50</option>
-              </select>
-            </div>
+          <div className="min-w-[140px]">
+            <label className="block text-[11px] font-extrabold tracking-wide text-neutral-500">
+              Por página
+            </label>
+            <select
+              name="pageSize"
+              defaultValue={String(pageSize)}
+              className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+            </select>
           </div>
-        </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button
-            type="submit"
-            className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-extrabold text-black hover:bg-lime-300"
-          >
-            Aplicar filtros
-          </button>
+          {/* Acciones */}
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              className="h-[42px] rounded-xl bg-lime-400 px-4 text-sm font-extrabold text-black hover:bg-lime-300"
+            >
+              Aplicar
+            </button>
 
-          <Link
-            href="/admin/pedidos"
-            className="rounded-xl border border-neutral-800 bg-black/20 px-4 py-2 text-sm font-extrabold text-neutral-200 hover:bg-black/30"
-          >
-            Limpiar
-          </Link>
+            <Link
+              href="/admin/pedidos"
+              className="h-[42px] inline-flex items-center rounded-xl border border-neutral-800 bg-black/20 px-4 text-sm font-extrabold text-neutral-200 hover:bg-black/30"
+            >
+              Limpiar
+            </Link>
+          </div>
         </div>
       </form>
 
@@ -354,109 +439,147 @@ export default async function AdminPedidosPage({
           No hay pedidos para estos filtros.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-neutral-800 bg-neutral-950/55">
-          <table className="min-w-full border-collapse text-xs">
-            <thead className="bg-black/25">
-              <tr className="border-b border-neutral-800">
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Fecha</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">ID</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Cliente</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Contacto</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Pago</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Envío</th>
-                <th className="px-3 py-3 text-right font-extrabold text-neutral-200">Total</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Estado</th>
-                <th className="px-3 py-3 text-left font-extrabold text-neutral-200">Acciones</th>
-              </tr>
-            </thead>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55">
+          <div className="flex items-center justify-between gap-3 border-b border-neutral-800 px-4 py-3">
+            <div className="text-xs text-neutral-400">
+              Mostrando{" "}
+              <span className="text-neutral-200 font-bold">
+                {Math.min(skip + 1, totalCount)}–
+                {Math.min(skip + orders.length, totalCount)}
+              </span>{" "}
+              de <span className="text-neutral-200 font-bold">{totalCount}</span>
+            </div>
+          </div>
 
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id} className="border-t border-neutral-900 hover:bg-black/15">
-                  <td className="px-3 py-3 align-top text-neutral-200">
-                    {new Date(o.createdAt).toLocaleString("es-CL")}
-                  </td>
-
-                  <td className="px-3 py-3 align-top font-mono text-[11px] text-neutral-400">
-                    {o.id}
-                  </td>
-
-                  <td className="px-3 py-3 align-top">
-                    <div className="font-bold text-neutral-100">
-                      {o.contactName || "—"}
-                    </div>
-                    {o.notes ? (
-                      <div className="mt-1 line-clamp-2 text-[11px] text-neutral-500">
-                        {o.notes}
-                      </div>
-                    ) : null}
-                  </td>
-
-                  <td className="px-3 py-3 align-top text-[12px]">
-                    <div className="text-neutral-200">{o.contactEmail || "—"}</div>
-                    {o.contactPhone ? (
-                      <div className="text-neutral-500">{o.contactPhone}</div>
-                    ) : null}
-                  </td>
-
-                  <td className="px-3 py-3 align-top">
-                    <span
-                      className={[
-                        "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-extrabold",
-                        chipClass("payment", o.paymentMethod),
-                      ].join(" ")}
-                    >
-                      {PAYMENT_LABELS[o.paymentMethod] ?? o.paymentMethod}
-                    </span>
-                  </td>
-
-                  <td className="px-3 py-3 align-top">
-                    <span
-                      className={[
-                        "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-extrabold",
-                        chipClass("shipping", o.shippingMethod),
-                      ].join(" ")}
-                    >
-                      {SHIPPING_LABELS[o.shippingMethod] ?? o.shippingMethod}
-                    </span>
-                  </td>
-
-                  <td className="px-3 py-3 align-top text-right font-extrabold text-neutral-100">
-                    {CLP(o.total)}
-                  </td>
-
-                  <td className="px-3 py-3 align-top">
-                    <span
-                      className={[
-                        "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-extrabold",
-                        chipClass("status", o.status),
-                      ].join(" ")}
-                    >
-                      {STATUS_LABELS[o.status] ?? o.status}
-                    </span>
-                  </td>
-
-                  <td className="px-3 py-3 align-top">
-                    <Link
-                      href={`/admin/pedidos/${o.id}`}
-                      className="text-lime-300 font-extrabold hover:underline"
-                    >
-                      Ver detalle
-                    </Link>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-xs">
+              <thead className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur border-b border-neutral-800">
+                <tr>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Fecha
+                  </th>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Pedido
+                  </th>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Cliente
+                  </th>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Contacto
+                  </th>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Pago
+                  </th>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Envío
+                  </th>
+                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">
+                    Total
+                  </th>
+                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">
+                    Estado
+                  </th>
+                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">
+                    Acción
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {orders.map((o) => (
+                  <tr
+                    key={o.id}
+                    className="border-t border-neutral-900 hover:bg-white/[0.03]"
+                  >
+                    <td className="px-4 py-3 align-top text-neutral-200 whitespace-nowrap">
+                      {safeDateLabel(o.createdAt)}
+                    </td>
+
+                    <td className="px-4 py-3 align-top">
+                      <div className="font-mono text-[11px] text-neutral-400">
+                        {shortId(o.id)}
+                      </div>
+                      {o.notes ? (
+                        <div className="mt-1 line-clamp-2 text-[11px] text-neutral-500">
+                          {o.notes}
+                        </div>
+                      ) : null}
+                    </td>
+
+                    <td className="px-4 py-3 align-top">
+                      <div className="font-bold text-neutral-100">
+                        {o.contactName || "—"}
+                      </div>
+                      <div className="mt-1 text-[11px] text-neutral-500">
+                        {o.contactEmail || "—"}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3 align-top text-[12px]">
+                      <div className="text-neutral-200">{o.contactEmail || "—"}</div>
+                      {o.contactPhone ? (
+                        <div className="text-neutral-500">{o.contactPhone}</div>
+                      ) : null}
+                    </td>
+
+                    <td className="px-4 py-3 align-top">
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-extrabold",
+                          chipClass("payment", o.paymentMethod),
+                        ].join(" ")}
+                      >
+                        {PAYMENT_LABELS[o.paymentMethod] ?? o.paymentMethod}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 align-top">
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-extrabold",
+                          chipClass("shipping", o.shippingMethod),
+                        ].join(" ")}
+                      >
+                        {SHIPPING_LABELS[o.shippingMethod] ?? o.shippingMethod}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 align-top text-right font-extrabold text-neutral-100 whitespace-nowrap">
+                      {CLP(o.total)}
+                    </td>
+
+                    <td className="px-4 py-3 align-top">
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-extrabold",
+                          chipClass("status", o.status),
+                        ].join(" ")}
+                      >
+                        {STATUS_LABELS[o.status] ?? o.status}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 align-top text-right">
+                      <Link
+                        href={`/admin/pedidos/${o.id}`}
+                        className="inline-flex items-center rounded-lg border border-lime-400/30 bg-lime-400/10 px-3 py-2 text-xs font-extrabold text-lime-200 hover:bg-lime-400/15"
+                      >
+                        Ver
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Paginación */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-800 px-4 py-3">
             <div className="text-xs text-neutral-400">
-              Mostrando{" "}
+              Página{" "}
               <span className="text-neutral-200 font-bold">
-                {Math.min(skip + 1, totalCount)}–{Math.min(skip + orders.length, totalCount)}
-              </span>{" "}
-              de <span className="text-neutral-200 font-bold">{totalCount}</span>
+                {page}/{totalPages}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -472,10 +595,6 @@ export default async function AdminPedidosPage({
               >
                 ← Anterior
               </Link>
-
-              <span className="rounded-xl border border-neutral-800 bg-black/20 px-3 py-2 text-xs font-extrabold text-neutral-200">
-                {page}/{totalPages}
-              </span>
 
               <Link
                 aria-disabled={page >= totalPages}

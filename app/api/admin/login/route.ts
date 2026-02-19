@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Login OK: seteamos cookie de sesión
     const res = NextResponse.json({ ok: true });
 
     res.cookies.set("admin_token", process.env.ADMIN_TOKEN!, {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
-      path: "/", // válida para todo el sitio
+      path: "/",
+      maxAge: 60 * 60 * 4, // 4 horas
     });
 
     return res;
