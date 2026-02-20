@@ -65,7 +65,7 @@ export default function SuccessClient() {
     : "Pedido creado — Pago en proceso";
 
   const sub = isTransfer
-    ? "Te dejamos los datos para transferir. Reservaremos tu compra por 24 horas."
+    ? "Te dejamos los datos para transferir. Reservaremos tu compra por 2 horas."
     : "Tu pedido fue creado correctamente. Te avisaremos cuando el pago sea confirmado.";
 
   const niceId = useMemo(() => orderNumberNice(orderId), [orderId]);

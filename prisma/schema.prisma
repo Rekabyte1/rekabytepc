@@ -10,20 +10,21 @@ datasource db {
 model User {
   id           String    @id @default(cuid())
   name         String
-  lastName     String?   // NUEVO: apellido
-  rut          String?   // NUEVO: RUT (puede ser null al inicio)
+  lastName     String?
+  rut          String?
   email        String    @unique
   passwordHash String?
   phone        String?
   createdAt    DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
-  addresses    Address[]
-  orders       Order[]
+
+  addresses Address[]
+  orders    Order[]
 }
 
 model Address {
   id        String     @id @default(cuid())
-  userId    String?    // invitado OK
+  userId    String?
   fullName  String
   phone     String
   street    String
@@ -34,26 +35,26 @@ model Address {
   country   String     @default("Chile")
   isDefault Boolean    @default(false)
   commune   String?
+
   user      User?      @relation(fields: [userId], references: [id])
   shipments Shipment[]
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  name        String
-  slug        String      @unique
-  description String?
-  price       Int
+  id            String      @id @default(cuid())
+  name          String
+  slug          String      @unique
+  description   String?
+  price         Int
+  priceCard     Int         @default(0)
+  priceTransfer Int         @default(0)
+  imageUrl      String?
+  stock         Int?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @db.Timestamptz(6)
 
-  priceCard     Int   @default(0)
-  priceTransfer Int   @default(0)
-
-  imageUrl    String?
-  stock       Int?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
-  orderItems  OrderItem[]
+  orderItems OrderItem[]
 }
 
 model Order {
@@ -75,10 +76,14 @@ model Order {
   checkoutToken           String?   @unique
   confirmationEmailSentAt DateTime? @db.Timestamptz(6)
 
-  user           User?          @relation(fields: [userId], references: [id])
-  items          OrderItem[]
-  payment        Payment?
-  shipment       Shipment?
+  paymentDueAt DateTime? @db.Timestamptz(6)
+  cancelledAt  DateTime? @db.Timestamptz(6)
+  stockReleasedAt DateTime? @db.Timestamptz(6)
+
+  user     User?      @relation(fields: [userId], references: [id])
+  items    OrderItem[]
+  payment  Payment?
+  shipment Shipment?
 }
 
 model OrderItem {
@@ -88,8 +93,9 @@ model OrderItem {
   productName String
   unitPrice   Int
   quantity    Int
-  order       Order   @relation(fields: [orderId], references: [id])
-  product     Product @relation(fields: [productId], references: [id])
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model Payment {
@@ -101,7 +107,8 @@ model Payment {
   transactionId String?
   proofUrl      String?
   createdAt     DateTime      @default(now()) @db.Timestamptz(6)
-  order         Order         @relation(fields: [orderId], references: [id])
+
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model Shipment {
@@ -115,8 +122,9 @@ model Shipment {
   estimatedDate  DateTime?      @db.Timestamptz(6)
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
-  address        Address?       @relation(fields: [addressId], references: [id])
-  order          Order          @relation(fields: [orderId], references: [id])
+
+  address Address? @relation(fields: [addressId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id])
 }
 
 enum OrderStatus {

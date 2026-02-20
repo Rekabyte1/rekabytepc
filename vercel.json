@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/release-transfer-reservations?secret=${rb_9fc1f81e1111h1111g1121d145abc}",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

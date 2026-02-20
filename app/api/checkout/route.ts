@@ -47,8 +47,6 @@ function normalizeShipping(deliveryType: "pickup" | "shipping") {
 
 /* ============================================================
    ENVÍO: Tarifa fija por zona (Chilexpress) — backend manda
-   - pickup => $0
-   - shipping => se calcula por región
    ============================================================ */
 
 type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
@@ -70,9 +68,8 @@ function zoneByRegion(regionRaw: string): ShippingZone {
     r.includes("antofag") ||
     r.includes("atacama") ||
     r.includes("coquimbo")
-  ) {
+  )
     return "NORTE";
-  }
 
   if (
     r.includes("valpara") ||
@@ -85,9 +82,8 @@ function zoneByRegion(regionRaw: string): ShippingZone {
     r.includes("biob") ||
     r.includes("bío bío") ||
     r.includes("bio bio")
-  ) {
+  )
     return "CENTRO";
-  }
 
   if (
     r.includes("araucan") ||
@@ -96,9 +92,8 @@ function zoneByRegion(regionRaw: string): ShippingZone {
     r.includes("rios") ||
     r.includes("los l") ||
     r.includes("lagos")
-  ) {
+  )
     return "SUR";
-  }
 
   if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
 
@@ -106,7 +101,6 @@ function zoneByRegion(regionRaw: string): ShippingZone {
 }
 
 function shippingCostByZone(zone: ShippingZone) {
-  // ✅ AJUSTA ESTOS MONTOS A TU ESTRATEGIA
   switch (zone) {
     case "RM":
       return 6990;
@@ -148,7 +142,11 @@ async function trySendConfirmationEmailOnce(params: {
 
   if (!apiKey || !from) {
     console.warn("[email] Missing RESEND_API_KEY or RESEND_FROM. Skipping email.");
-    return { ok: false as const, skipped: true as const, reason: "missing_env" as const };
+    return {
+      ok: false as const,
+      skipped: true as const,
+      reason: "missing_env" as const,
+    };
   }
 
   const fresh = await prisma.order.findUnique({
@@ -162,12 +160,17 @@ async function trySendConfirmationEmailOnce(params: {
       shippingCost: true,
       paymentMethod: true,
       shippingMethod: true,
+      paymentDueAt: true,
     },
   });
 
   if (!fresh) {
     console.warn("[email] Order not found when trying to email:", params.orderId);
-    return { ok: false as const, skipped: true as const, reason: "order_not_found" as const };
+    return {
+      ok: false as const,
+      skipped: true as const,
+      reason: "order_not_found" as const,
+    };
   }
 
   if (fresh.confirmationEmailSentAt) {
@@ -184,12 +187,14 @@ async function trySendConfirmationEmailOnce(params: {
     subtotal: fresh.subtotal,
     shippingCost: fresh.shippingCost,
     createdAtISO: new Date(fresh.createdAt).toISOString(),
+    // opcional para template (si no existe, no pasa nada)
+    paymentDueAtISO: fresh.paymentDueAt ? new Date(fresh.paymentDueAt).toISOString() : null,
     items: params.items.map((it) => ({
       name: it.productName,
       qty: it.quantity,
       unitPrice: Number(it.unitPrice),
     })),
-  });
+  } as any);
 
   const resendId =
     (sendRes.ok && (sendRes.res as any)?.data?.id) ||
@@ -241,7 +246,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!items.length) {
-      return NextResponse.json({ ok: false, error: "No hay productos en el carrito." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "No hay productos en el carrito." },
+        { status: 400 }
+      );
     }
 
     const customerName = safeStr(customer?.name);
@@ -249,7 +257,10 @@ export async function POST(req: NextRequest) {
     const customerPhone = safeStr(customer?.phone);
 
     if (!customerName || !customerEmail) {
-      return NextResponse.json({ ok: false, error: "Falta nombre o email del cliente." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Falta nombre o email del cliente." },
+        { status: 400 }
+      );
     }
 
     // ✅ Shipping: exige street + region + (city o commune)
@@ -269,6 +280,12 @@ export async function POST(req: NextRequest) {
 
     const normalizedPaymentMethod = normalizePayment(paymentMethod);
     const payWithCard = normalizedPaymentMethod === "CARD";
+
+    // ✅ RESERVA: si es transferencia => 2 horas (ajustable)
+    const paymentDueAt =
+      normalizedPaymentMethod === "TRANSFER"
+        ? new Date(Date.now() + 2 * 60 * 60 * 1000)
+        : null;
 
     // 1) ✅ Idempotencia
     const existing = await prisma.order.findUnique({
@@ -302,6 +319,7 @@ export async function POST(req: NextRequest) {
           order: existing,
           shipment: existing.shipment,
           idempotent: true,
+          paymentDueAt: existing.paymentDueAt ? new Date(existing.paymentDueAt).toISOString() : null,
         },
         { status: 200 }
       );
@@ -311,7 +329,10 @@ export async function POST(req: NextRequest) {
     const slugs = items.map((i) => safeStr(i.productSlug)).filter(Boolean);
 
     if (slugs.length !== items.length) {
-      return NextResponse.json({ ok: false, error: "Algún producto no tiene slug válido." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Algún producto no tiene slug válido." },
+        { status: 400 }
+      );
     }
 
     // 3) Buscar productos
@@ -329,7 +350,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (products.length !== slugs.length) {
-      return NextResponse.json({ ok: false, error: "Algún producto no existe o fue eliminado." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Algún producto no existe o fue eliminado." },
+        { status: 400 }
+      );
     }
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
@@ -372,7 +396,6 @@ export async function POST(req: NextRequest) {
       const shippingMethod = normalizeShipping(deliveryType);
 
       if (deliveryType === "shipping") {
-        // ✅ Fallbacks para NO enviar null donde Prisma exige string
         const streetFinal = safeStr(address?.street);
         const regionFinal = safeStr(address?.region);
 
@@ -387,7 +410,6 @@ export async function POST(req: NextRequest) {
             street: streetFinal,
             number: safeStr(address?.number) || "",
             apartment: safeStr(address?.apartment) || "",
-            // ✅ IMPORTANTE: NUNCA null (evita Null constraint violation)
             commune: communeFinal || "",
             city: cityFinal || "",
             region: regionFinal,
@@ -412,6 +434,7 @@ export async function POST(req: NextRequest) {
           total,
           notes: safeStr(notes) || null,
           checkoutToken,
+          paymentDueAt, // ✅ reserva por transferencia
         },
       });
 
@@ -434,11 +457,16 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // ✅ Stock decrement seguro (evita negativo por carrera)
         if (product.stock != null) {
-          await tx.product.update({
-            where: { id: product.id },
+          const updated = await tx.product.updateMany({
+            where: { id: product.id, stock: { gte: quantity } },
             data: { stock: { decrement: quantity } },
           });
+
+          if (updated.count !== 1) {
+            throw new Error(`Stock cambió mientras comprabas: ${product.name}. Intenta nuevamente.`);
+          }
         }
       }
 
@@ -487,6 +515,9 @@ export async function POST(req: NextRequest) {
         shipment: created.shipment,
         niceOrderNumber: orderNumberNice(created.order.id),
         shippingCost,
+        paymentDueAt: created.order.paymentDueAt
+          ? new Date(created.order.paymentDueAt).toISOString()
+          : null,
       },
       { status: 201 }
     );
