@@ -1,4 +1,3 @@
-// app/admin/pedidos/[id]/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import AdminOrderStatusForm from "@/components/AdminOrderStatusForm";
@@ -70,21 +69,30 @@ function shortId(id: string) {
   return s.length <= 10 ? s : `${s.slice(0, 6)}…${s.slice(-4)}`;
 }
 
-// ✅ Next.js App Router (Next 15): params NO es Promise.
-// Agrego searchParams opcional para evitar mismatches de types generados.
+// Next.js 15.5.x: en types generados, `params` puede venir como Promise en el constraint.
+// Lo tipamos así para calzar con el PageProps generado y evitar el error de build en Vercel.
 type PageProps = {
-  params: { id: string };
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
-  const orderId = params.id;
+  const { id: orderId } = await params;
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
       items: true,
-      user: { select: { id: true, email: true, name: true, lastName: true, rut: true, phone: true } },
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          lastName: true,
+          rut: true,
+          phone: true,
+        },
+      },
       payment: true,
       shipment: {
         include: {
@@ -166,9 +174,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             {order.user?.id ? (
               <p className="mt-1 text-xs text-neutral-400">
                 Usuario asociado:{" "}
-                <span className="text-neutral-200 font-bold">
-                  {order.user.email ?? order.user.id}
-                </span>
+                <span className="text-neutral-200 font-bold">{order.user.email ?? order.user.id}</span>
               </p>
             ) : (
               <p className="mt-1 text-xs text-neutral-500">Pedido sin usuario asociado (guest).</p>
@@ -227,16 +233,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                         <tr key={item.id} className="border-t border-neutral-900 hover:bg-white/[0.03]">
                           <td className="px-4 py-3 align-top text-neutral-100">
                             <div className="font-bold">{item.productName}</div>
-                            <div className="mt-0.5 text-xs text-neutral-500">
-                              {shortId(item.productId)}
-                            </div>
+                            <div className="mt-0.5 text-xs text-neutral-500">{shortId(item.productId)}</div>
                           </td>
-                          <td className="px-4 py-3 align-top text-right text-neutral-200">
-                            {item.quantity}
-                          </td>
-                          <td className="px-4 py-3 align-top text-right text-neutral-200">
-                            {CLP(item.unitPrice)}
-                          </td>
+                          <td className="px-4 py-3 align-top text-right text-neutral-200">{item.quantity}</td>
+                          <td className="px-4 py-3 align-top text-right text-neutral-200">{CLP(item.unitPrice)}</td>
                           <td className="px-4 py-3 align-top text-right font-extrabold text-neutral-100">
                             {CLP(rowTotal)}
                           </td>
@@ -282,9 +282,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="mt-4 rounded-2xl border border-neutral-800 bg-black/20 p-4">
-                  <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">
-                    DIRECCIÓN
-                  </div>
+                  <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">DIRECCIÓN</div>
 
                   {order.shipment?.address ? (
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -292,19 +290,17 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       <Info label="Teléfono" value={order.shipment.address.phone || "—"} />
                       <Info
                         label="Dirección"
-                        value={[
-                          order.shipment.address.street,
-                          order.shipment.address.number,
-                          order.shipment.address.apartment,
-                        ]
-                          .filter(Boolean)
-                          .join(" ") || "—"}
+                        value={
+                          [order.shipment.address.street, order.shipment.address.number, order.shipment.address.apartment]
+                            .filter(Boolean)
+                            .join(" ") || "—"
+                        }
                       />
                       <Info
                         label="Comuna / Ciudad"
-                        value={[order.shipment.address.commune, order.shipment.address.city]
-                          .filter(Boolean)
-                          .join(" · ") || "—"}
+                        value={
+                          [order.shipment.address.commune, order.shipment.address.city].filter(Boolean).join(" · ") || "—"
+                        }
                       />
                       <Info label="Región" value={order.shipment.address.region || "—"} />
                       <Info label="País" value={order.shipment.address.country || "Chile"} />
@@ -375,9 +371,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 /* UI helpers */
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">
-      {children}
-    </section>
+    <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">{children}</section>
   );
 }
 
@@ -386,9 +380,7 @@ function CardHeader({ title, subtle }: { title: string; subtle?: boolean }) {
     <div className="mb-3 flex items-center justify-between">
       <h2
         className={
-          subtle
-            ? "text-sm font-extrabold text-neutral-200"
-            : "text-base font-extrabold text-white"
+          subtle ? "text-sm font-extrabold text-neutral-200" : "text-base font-extrabold text-white"
         }
       >
         {title}
@@ -400,9 +392,7 @@ function CardHeader({ title, subtle }: { title: string; subtle?: boolean }) {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-neutral-800 bg-black/20 p-3">
-      <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
-        {label.toUpperCase()}
-      </div>
+      <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">{label.toUpperCase()}</div>
       <div className="mt-1 text-sm font-bold text-neutral-200 break-words">{value}</div>
     </div>
   );
