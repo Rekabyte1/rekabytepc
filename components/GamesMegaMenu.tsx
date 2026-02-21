@@ -25,7 +25,6 @@ export default function GamesMegaMenu({ onNavigate }: Props) {
           <h4>Gama de modelos</h4>
           <ul>
             <li><Link href="/modelos" onClick={handleClick}>Todos los modelos</Link></li>
-            <li><Link href="/modelos/stock" onClick={handleClick}>En stock</Link></li>
             <li><Link href="/modelos/configurador" onClick={handleClick}>Configurador</Link></li>
           </ul>
         </div>
