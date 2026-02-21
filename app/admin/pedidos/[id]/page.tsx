@@ -70,8 +70,11 @@ function shortId(id: string) {
   return s.length <= 10 ? s : `${s.slice(0, 6)}…${s.slice(-4)}`;
 }
 
+// ✅ Next.js App Router (Next 15): params NO es Promise.
+// Agrego searchParams opcional para evitar mismatches de types generados.
 type PageProps = {
   params: { id: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
@@ -299,10 +302,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       />
                       <Info
                         label="Comuna / Ciudad"
-                        value={[
-                          order.shipment.address.commune,
-                          order.shipment.address.city,
-                        ]
+                        value={[order.shipment.address.commune, order.shipment.address.city]
                           .filter(Boolean)
                           .join(" · ") || "—"}
                       />
@@ -384,7 +384,13 @@ function Card({ children }: { children: React.ReactNode }) {
 function CardHeader({ title, subtle }: { title: string; subtle?: boolean }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className={subtle ? "text-sm font-extrabold text-neutral-200" : "text-base font-extrabold text-white"}>
+      <h2
+        className={
+          subtle
+            ? "text-sm font-extrabold text-neutral-200"
+            : "text-base font-extrabold text-white"
+        }
+      >
         {title}
       </h2>
     </div>
@@ -397,9 +403,7 @@ function Info({ label, value }: { label: string; value: string }) {
       <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
         {label.toUpperCase()}
       </div>
-      <div className="mt-1 text-sm font-bold text-neutral-200 break-words">
-        {value}
-      </div>
+      <div className="mt-1 text-sm font-bold text-neutral-200 break-words">{value}</div>
     </div>
   );
 }
@@ -415,7 +419,12 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: string }) {
   return (
-    <span className={["inline-flex items-center rounded-full border px-2 py-1 text-xs font-extrabold", tone].join(" ")}>
+    <span
+      className={[
+        "inline-flex items-center rounded-full border px-2 py-1 text-xs font-extrabold",
+        tone,
+      ].join(" ")}
+    >
       {children}
     </span>
   );
