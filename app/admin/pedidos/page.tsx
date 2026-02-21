@@ -1,4 +1,3 @@
-// app/admin/pedidos/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -103,26 +102,24 @@ function chileDateRange(from?: string, to?: string) {
 export default async function AdminPedidosPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const q = (searchParams.q ?? "").trim();
-  const status = (searchParams.status ?? "").trim();
-  const payment = (searchParams.payment ?? "").trim();
-  const shipping = (searchParams.shipping ?? "").trim();
+  const sp = await searchParams;
 
-  const sort =
-    (searchParams.sort ?? "desc").toLowerCase() === "asc" ? "asc" : "desc";
+  const q = (sp.q ?? "").trim();
+  const status = (sp.status ?? "").trim();
+  const payment = (sp.payment ?? "").trim();
+  const shipping = (sp.shipping ?? "").trim();
 
-  const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
-  const pageSize = Math.min(
-    50,
-    Math.max(10, Number(searchParams.pageSize ?? 20) || 20)
-  );
+  const sort = (sp.sort ?? "desc").toLowerCase() === "asc" ? "asc" : "desc";
+
+  const page = Math.max(1, Number(sp.page ?? 1) || 1);
+  const pageSize = Math.min(50, Math.max(10, Number(sp.pageSize ?? 20) || 20));
   const skip = (page - 1) * pageSize;
 
   // Fechas opcionales (sin defaults forzados)
-  const from = (searchParams.from ?? "").trim(); // yyyy-mm-dd o ""
-  const to = (searchParams.to ?? "").trim(); // yyyy-mm-dd o ""
+  const from = (sp.from ?? "").trim(); // yyyy-mm-dd o ""
+  const to = (sp.to ?? "").trim(); // yyyy-mm-dd o ""
 
   const where: any = {};
 
@@ -185,7 +182,7 @@ export default async function AdminPedidosPage({
   }, {});
 
   function buildLink(next: Partial<SearchParams>) {
-    const sp = new URLSearchParams();
+    const sp2 = new URLSearchParams();
 
     const merged: SearchParams = {
       q,
@@ -204,10 +201,10 @@ export default async function AdminPedidosPage({
       if (v == null) return;
       const s = String(v).trim();
       if (!s) return;
-      sp.set(k, s);
+      sp2.set(k, s);
     });
 
-    return `/admin/pedidos?${sp.toString()}`;
+    return `/admin/pedidos?${sp2.toString()}`;
   }
 
   // Clases “blindadas” para inputs date en dark (texto visible + icono visible)
@@ -516,7 +513,9 @@ export default async function AdminPedidosPage({
                     </td>
 
                     <td className="px-4 py-3 align-top text-[12px]">
-                      <div className="text-neutral-200">{o.contactEmail || "—"}</div>
+                      <div className="text-neutral-200">
+                        {o.contactEmail || "—"}
+                      </div>
                       {o.contactPhone ? (
                         <div className="text-neutral-500">{o.contactPhone}</div>
                       ) : null}
