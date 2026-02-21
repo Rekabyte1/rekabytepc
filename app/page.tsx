@@ -11,8 +11,8 @@ export default function Home() {
   return (
     <main>
       {/* Título + carrusel */}
-      <h1 className="hero-title">Creamos computadoras potentes y de alta gama.</h1>
-      <HeroSlider slides={slides} intervalMs={5000} className="mb-10" />
+      <h1 className="hero-title">Rendimiento y estética en perfecto equilibrio</h1>
+      <HeroSlider slides={slides} intervalMs={5000} className="mb-5" />
 
       {/* Placeholder (opcional) */}
       <section className="section rb-container">
