@@ -3,7 +3,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: { slug: string[] };
+  params: Promise<{ slug: string[] }>;
 };
 
 function prettyFromSlug(slug: string[]) {
@@ -26,8 +26,8 @@ function prettyFromSlug(slug: string[]) {
   };
 }
 
-export default function ComponentesCatchAllPage({ params }: PageProps) {
-  const { slug } = params;
+export default async function ComponentesCatchAllPage({ params }: PageProps) {
+  const { slug } = await params;
   const info = prettyFromSlug(slug);
 
   return (
