@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CLP } from "@/components/CartContext";
 
 export type Customer = {
@@ -46,39 +46,126 @@ export type Pago = {
 };
 
 type CheckoutCtx = {
+  // Fuente de verdad
   customer: Customer | null;
   envio: Envio | null;
   pago: Pago | null;
+
+  // ✅ indica si ya cargamos sessionStorage
+  hydrated: boolean;
 
   setCustomer: (c: Customer) => void;
   setEnvio: (e: Envio) => void;
   setPago: (p: Pago) => void;
 
   reset: () => void;
+
+  // Compatibilidad legacy
+  datos?: Customer | null;
+  contacto?: Customer | null;
+  setDatos?: (c: Customer) => void;
+  setContacto?: (c: Customer) => void;
 };
 
 const CheckoutCtx = createContext<CheckoutCtx | null>(null);
 
-export function CheckoutProvider({ children }: { children: React.ReactNode }) {
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [envio, setEnvio] = useState<Envio | null>(null);
-  const [pago, setPago] = useState<Pago | null>(null);
+const SS_CUSTOMER = "checkout_customer_v1";
+const SS_ENVIO = "checkout_envio_v1";
+const SS_PAGO = "checkout_pago_v1";
 
-  const value = useMemo(
+function readSS<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeSS(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
+}
+
+function removeSS(key: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+export function CheckoutProvider({ children }: { children: React.ReactNode }) {
+  const [customer, setCustomerState] = useState<Customer | null>(null);
+  const [envio, setEnvioState] = useState<Envio | null>(null);
+  const [pago, setPagoState] = useState<Pago | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Cargar desde sessionStorage al montar (para que el guard sea estable)
+  useEffect(() => {
+    const c = readSS<Customer>(SS_CUSTOMER);
+    const e = readSS<Envio>(SS_ENVIO);
+    const p = readSS<Pago>(SS_PAGO);
+
+    if (c) setCustomerState(c);
+    if (e) setEnvioState(e);
+    if (p) setPagoState(p);
+
+    setHydrated(true);
+  }, []);
+
+  const setCustomer = (c: Customer) => {
+    setCustomerState(c);
+    writeSS(SS_CUSTOMER, c);
+    // compatibilidad con tu key antigua (por si otra pantalla la usa)
+    writeSS("checkout_datos", c);
+  };
+
+  const setEnvio = (e: Envio) => {
+    setEnvioState(e);
+    writeSS(SS_ENVIO, e);
+  };
+
+  const setPago = (p: Pago) => {
+    setPagoState(p);
+    writeSS(SS_PAGO, p);
+  };
+
+  const reset = () => {
+    setCustomerState(null);
+    setEnvioState(null);
+    setPagoState(null);
+    removeSS(SS_CUSTOMER);
+    removeSS(SS_ENVIO);
+    removeSS(SS_PAGO);
+    removeSS("checkout_datos");
+  };
+
+  const value = useMemo<CheckoutCtx>(
     () => ({
       customer,
       envio,
       pago,
+      hydrated,
       setCustomer,
       setEnvio,
       setPago,
-      reset: () => {
-        setCustomer(null);
-        setEnvio(null);
-        setPago(null);
-      },
+      reset,
+
+      // legacy
+      datos: customer,
+      contacto: customer,
+      setDatos: setCustomer,
+      setContacto: setCustomer,
     }),
-    [customer, envio, pago]
+    [customer, envio, pago, hydrated]
   );
 
   return <CheckoutCtx.Provider value={value}>{children}</CheckoutCtx.Provider>;
@@ -90,12 +177,11 @@ export function useCheckout() {
   return ctx;
 }
 
-// Helpers “mock” para costo de envío por courier (puedes cambiarlos luego)
+// Helpers “mock” para costo de envío por courier (ajústalo si quieres)
 export function calcularEnvio(courier: "chilexpress" | "bluexpress") {
-  return courier === "bluexpress" ? 14000 : 82000; // sólo ejemplo visible
+  return courier === "bluexpress" ? 14000 : 8200;
 }
 
-// Texto de ayuda por método de pago
 export const PAYMENT_HELP = {
   transferencia:
     "Transferencia o depósito bancario. Recibirás los datos al confirmar tu compra.",
@@ -104,5 +190,4 @@ export const PAYMENT_HELP = {
   webpay: "Paga con débito o crédito mediante Webpay.",
 } as const;
 
-// Utilidad local (si no quieres importar CLP)
 export const CLP_LOCAL = CLP;

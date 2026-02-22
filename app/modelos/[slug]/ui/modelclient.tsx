@@ -285,7 +285,7 @@ export default function ModelClient({ build, gameTitle, gameSlug }: Props) {
         <p className="rb-p">
           {title} es una configuración pensada para {gameTitle ?? "tu uso"}.
           Incluye componentes seleccionados para estabilidad, temperaturas y una experiencia sólida.
-          Acá puedes agregar una descripción larga por build para SEO (ideal: 120–200 palabras).
+           agregar una descripción larga por build para SEO (ideal: 120–200 palabras).
         </p>
       </section>
 
@@ -307,7 +307,7 @@ export default function ModelClient({ build, gameTitle, gameSlug }: Props) {
       <section className="rb-card rb-section rb-mb">
         <h2 className="rb-h2">Video del armado</h2>
         <p className="rb-p">
-          Cuando subas tu video, aquí quedará incrustado para aumentar confianza y conversión.
+           video, aquí quedará incrustado para aumentar confianza y conversión.
         </p>
 
         {videoUrl ? (

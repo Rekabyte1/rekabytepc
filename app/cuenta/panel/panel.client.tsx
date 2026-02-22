@@ -1,4 +1,3 @@
-// app/cuenta/panel/panel.client.tsx
 "use client";
 
 import Link from "next/link";
@@ -56,6 +55,14 @@ type Order = {
   notes: string | null;
   items: OrderItem[];
   shipment: Shipment | null;
+};
+
+type Profile = {
+  name: string;
+  lastName: string;
+  phone: string;
+  rut: string;
+  email: string;
 };
 
 export default function CuentaPanelClient({ tab, userEmail }: Props) {
@@ -122,13 +129,11 @@ export default function CuentaPanelClient({ tab, userEmail }: Props) {
       setOrdersLoading(true);
 
       try {
-        // ✅ Endpoint correcto
         const res = await fetch("/api/account/orders", { cache: "no-store" });
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data?.ok) {
-          const msg =
-            data?.error || `Error al cargar pedidos (HTTP ${res.status}).`;
+          const msg = data?.error || `Error al cargar pedidos (HTTP ${res.status}).`;
           throw new Error(msg);
         }
 
@@ -261,7 +266,7 @@ export default function CuentaPanelClient({ tab, userEmail }: Props) {
                   <EmptyBlock
                     title="Aún no tienes compras"
                     text="Cuando hagas un pedido logueado, aparecerá aquí."
-                    hint='Tip: asegúrate de estar logueado (en /cuenta/panel debe mostrar tu correo) y luego hacer el checkout.'
+                    hint='Tip: asegúrate de estar logueado y luego hacer el checkout.'
                   />
                 )}
 
@@ -275,13 +280,7 @@ export default function CuentaPanelClient({ tab, userEmail }: Props) {
               </div>
             )}
 
-            {active === "datos" && (
-              <EmptyBlock
-                title="Datos personales"
-                text="Aquí irá el formulario para editar nombre y teléfono del usuario."
-                hint="Luego hacemos /api/account/profile (GET/PUT) y actualizamos prisma.user."
-              />
-            )}
+            {active === "datos" && <ProfileForm userEmail={userEmail} />}
 
             {active === "direcciones" && (
               <EmptyBlock
@@ -308,6 +307,194 @@ export default function CuentaPanelClient({ tab, userEmail }: Props) {
             )}
           </div>
         </section>
+      </div>
+    </div>
+  );
+}
+
+function ProfileForm({ userEmail }: { userEmail: string }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  const [form, setForm] = useState<Profile>({
+    name: "",
+    lastName: "",
+    phone: "",
+    rut: "",
+    email: userEmail,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setErr(null);
+      setOkMsg(null);
+      setLoading(true);
+      try {
+        const r = await fetch("/api/account/profile", { cache: "no-store" });
+        const j = await r.json().catch(() => null);
+
+        if (!r.ok || !j?.ok) {
+          throw new Error(j?.error || `No se pudo cargar perfil (HTTP ${r.status}).`);
+        }
+
+        const u = j.user as any;
+
+        if (!mounted) return;
+        setForm({
+          name: String(u?.name ?? "").trim(),
+          lastName: String(u?.lastName ?? "").trim(),
+          phone: String(u?.phone ?? "").trim(),
+          rut: String(u?.rut ?? "").trim(),
+          email: String(u?.email ?? userEmail).trim(),
+        });
+      } catch (e: any) {
+        if (!mounted) return;
+        setErr(e?.message || "Error al cargar datos.");
+      } finally {
+        if (!mounted) return;
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userEmail]);
+
+  const onSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(null);
+    setOkMsg(null);
+
+    const name = form.name.trim();
+    if (!name) {
+      setErr("El nombre es obligatorio.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const r = await fetch("/api/account/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          lastName: form.lastName,
+          phone: form.phone,
+          rut: form.rut,
+        }),
+      });
+
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.ok) {
+        throw new Error(j?.error || `No se pudo guardar (HTTP ${r.status}).`);
+      }
+
+      setOkMsg("Datos actualizados correctamente.");
+    } catch (e: any) {
+      setErr(e?.message || "Error al guardar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-neutral-800 bg-black/20 p-5 animate-pulse">
+        <div className="h-4 w-48 bg-neutral-800 rounded mb-3" />
+        <div className="h-3 w-64 bg-neutral-800 rounded mb-2" />
+        <div className="h-3 w-40 bg-neutral-800 rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSave} className="space-y-4">
+      <div className="rounded-2xl border border-neutral-800 bg-black/20 p-5">
+        <div className="text-lg font-extrabold text-white">Datos personales</div>
+        <p className="mt-2 text-sm text-neutral-300">
+          Estos datos se usan para pre-rellenar el checkout y acelerar tu compra.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Nombre"
+            value={form.name}
+            onChange={(v) => setForm((s) => ({ ...s, name: v }))}
+            placeholder="Ej: Emilio"
+          />
+          <Field
+            label="Apellido"
+            value={form.lastName}
+            onChange={(v) => setForm((s) => ({ ...s, lastName: v }))}
+            placeholder="Ej: Recabarren"
+          />
+          <Field
+            label="Teléfono"
+            value={form.phone}
+            onChange={(v) => setForm((s) => ({ ...s, phone: v }))}
+            placeholder="+56 9 1234 5678"
+          />
+          <Field
+            label="RUT"
+            value={form.rut}
+            onChange={(v) => setForm((s) => ({ ...s, rut: v }))}
+            placeholder="12.345.678-9"
+          />
+        </div>
+
+        <div className="mt-4 text-xs text-neutral-500">
+          Correo asociado: <span className="text-neutral-200 font-bold">{form.email}</span>
+        </div>
+
+        {err && (
+          <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-200">
+            {err}
+          </div>
+        )}
+
+        {okMsg && (
+          <div className="mt-4 rounded-2xl border border-lime-400/25 bg-lime-400/10 p-3 text-sm text-lime-200">
+            {okMsg}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="mt-4 w-full rounded-2xl bg-lime-400 px-4 py-2.5 font-extrabold text-neutral-950 hover:brightness-110 disabled:opacity-60"
+        >
+          {saving ? "Guardando..." : "Guardar cambios"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm text-neutral-300 mb-1">{label}</label>
+      <div className="flex items-center gap-2 rounded-2xl border border-neutral-800 bg-black/25 px-3">
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent py-2.5 text-neutral-100 placeholder-neutral-500 outline-none"
+        />
       </div>
     </div>
   );

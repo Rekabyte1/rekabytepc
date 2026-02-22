@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 
-const slides = ['/banners/banner-1.jpg', '/banners/banner-2.jpg', '/banners/banner-3.jpg'];
+const slides = ['/banners/banner-1.jpg', '/banners/banner-2.jpg', '/banners/banner-3.jpg',];
 
 export default function Hero() {
   const [index, setIndex] = useState(0);
