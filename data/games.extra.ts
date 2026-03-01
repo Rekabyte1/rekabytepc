@@ -20,7 +20,7 @@ const OFICINA = {
   priceCard: 0,
   stock: 0,
   specs: [
-    { label: "Tarjeta de video", value: "Integrada (RDNA3)" },
+    { label: "Tarjeta de video", value: "Integrada (RDNA)" },
     { label: "CPU", value: "Ryzen 5 8600G" },
     { label: "Placa madre", value: "B650" },
     { label: "RAM", value: "2x16GB DDR5" },
