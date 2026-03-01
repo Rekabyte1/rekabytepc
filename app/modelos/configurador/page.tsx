@@ -4,9 +4,9 @@ export default function ConfiguradorPage() {
   return (
     <main className="checkout-page">
       <div className="mx-auto max-w-6xl px-4">
-        <h1 className="mb-2 text-2xl font-extrabold text-white">Configurador</h1>
+        <h1 className="mb-2 text-2xl font-extrabold text-white">Configurador PC</h1>
         <p className="text-neutral-300">
-          Muy pronto podrás armar tu PC paso a paso (CPU, GPU, RAM, almacenamiento y gabinete), ver
+          A futuro podrás armar tu PC paso a paso (CPU, GPU, RAM, almacenamiento y gabinete), ver
           compatibilidades y el precio en tiempo real.
         </p>
 
@@ -17,9 +17,8 @@ export default function ConfiguradorPage() {
             <a href="/modelos" className="text-lime-400 hover:underline">
               todos los modelos
             </a>{" "}
-            o los{" "}
+            {" "}
             <a href="/modelos/stock" className="text-lime-400 hover:underline">
-              equipos en stock
             </a>.
           </p>
         </div>

@@ -1,6 +1,8 @@
+// app/admin/pedidos/[id]/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import AdminOrderStatusForm from "@/components/AdminOrderStatusForm";
+import AdminReleaseReservationButton from "@/components/AdminReleaseReservationButton";
 
 export const dynamic = "force-dynamic";
 
@@ -69,8 +71,6 @@ function shortId(id: string) {
   return s.length <= 10 ? s : `${s.slice(0, 6)}…${s.slice(-4)}`;
 }
 
-// Next.js 15.5.x: en types generados, `params` puede venir como Promise en el constraint.
-// Lo tipamos así para calzar con el PageProps generado y evitar el error de build en Vercel.
 type PageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -132,6 +132,11 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const customerName =
     order.contactName || [order.user?.name, order.user?.lastName].filter(Boolean).join(" ") || "—";
 
+  const canReleaseReservation =
+    order.paymentMethod === "TRANSFER" &&
+    order.status === "PENDING_PAYMENT" &&
+    !order.stockReleasedAt;
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-100">
       {/* Header */}
@@ -179,6 +184,24 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             ) : (
               <p className="mt-1 text-xs text-neutral-500">Pedido sin usuario asociado (guest).</p>
             )}
+
+            {order.paymentDueAt ? (
+              <p className="mt-1 text-xs text-neutral-400">
+                Vence:{" "}
+                <span className="text-neutral-200 font-bold">
+                  {new Date(order.paymentDueAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}
+                </span>
+              </p>
+            ) : null}
+
+            {order.stockReleasedAt ? (
+              <p className="mt-1 text-xs text-neutral-500">
+                Stock liberado:{" "}
+                <span className="text-neutral-200 font-bold">
+                  {new Date(order.stockReleasedAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}
+                </span>
+              </p>
+            ) : null}
           </div>
 
           {/* Top right mini summary (mobile) */}
@@ -272,9 +295,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                     label="Fecha estimada"
                     value={
                       order.shipment?.estimatedDate
-                        ? new Date(order.shipment.estimatedDate).toLocaleDateString("es-CL", {
-                            dateStyle: "medium",
-                          })
+                        ? new Date(order.shipment.estimatedDate).toLocaleDateString("es-CL", { dateStyle: "medium" })
                         : "—"
                     }
                   />
@@ -298,9 +319,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       />
                       <Info
                         label="Comuna / Ciudad"
-                        value={
-                          [order.shipment.address.commune, order.shipment.address.city].filter(Boolean).join(" · ") || "—"
-                        }
+                        value={[order.shipment.address.commune, order.shipment.address.city].filter(Boolean).join(" · ") || "—"}
                       />
                       <Info label="Región" value={order.shipment.address.region || "—"} />
                       <Info label="País" value={order.shipment.address.country || "Chile"} />
@@ -318,7 +337,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
         {/* RIGHT */}
         <div className="lg:col-span-1 space-y-6">
-          {/* Sticky column */}
           <div className="space-y-6 lg:sticky lg:top-6">
             {/* Resumen */}
             <Card>
@@ -355,11 +373,24 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             {/* Estado / Acciones */}
             <Card>
               <CardHeader title="Acciones" />
-              <AdminOrderStatusForm
-                orderId={order.id}
-                currentStatus={order.status as any}
-                currentNotes={order.notes}
-              />
+              <div className="grid gap-4">
+                <AdminReleaseReservationButton orderId={order.id} canShow={canReleaseReservation} />
+
+                <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
+                  <div className="text-xs font-extrabold text-neutral-200">Estado</div>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Cambia el estado del pedido. (Nota: cambiar a CANCELLED no devuelve stock a menos que tu endpoint lo haga.)
+                  </p>
+
+                  <div className="mt-3">
+                    <AdminOrderStatusForm
+                      orderId={order.id}
+                      currentStatus={order.status as any}
+                      currentNotes={order.notes}
+                    />
+                  </div>
+                </div>
+              </div>
             </Card>
           </div>
         </div>
@@ -378,11 +409,7 @@ function Card({ children }: { children: React.ReactNode }) {
 function CardHeader({ title, subtle }: { title: string; subtle?: boolean }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2
-        className={
-          subtle ? "text-sm font-extrabold text-neutral-200" : "text-base font-extrabold text-white"
-        }
-      >
+      <h2 className={subtle ? "text-sm font-extrabold text-neutral-200" : "text-base font-extrabold text-white"}>
         {title}
       </h2>
     </div>
@@ -409,12 +436,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: string }) {
   return (
-    <span
-      className={[
-        "inline-flex items-center rounded-full border px-2 py-1 text-xs font-extrabold",
-        tone,
-      ].join(" ")}
-    >
+    <span className={["inline-flex items-center rounded-full border px-2 py-1 text-xs font-extrabold", tone].join(" ")}>
       {children}
     </span>
   );

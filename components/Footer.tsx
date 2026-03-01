@@ -27,7 +27,6 @@ export default function Footer() {
       {/* ============================ */}
       <div className="border-b border-neutral-800">
         <div className="mx-auto max-w-7xl px-4">
-          {/* SIEMPRE 3 columnas, incluso en móvil */}
           <ul className="grid grid-cols-3 gap-6 py-4 text-xs">
             <li className="flex items-center gap-3 justify-start border-r border-neutral-800 pr-6">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900/90">
@@ -57,7 +56,7 @@ export default function Footer() {
               </div>
             </li>
 
-            <li className="flex items-center gap-3 justify-start pl-6 last:border-r-0">
+            <li className="flex items-center gap-3 justify-start pl-6">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900/90">
                 <FiTruck className="h-5 w-5 text-lime-400" />
               </span>
@@ -65,7 +64,9 @@ export default function Footer() {
                 <p className="font-semibold leading-tight text-white">
                   Envíos a todo Chile
                 </p>
-                <p className="text-[11px] text-neutral-400">Retiro o despacho.</p>
+                <p className="text-[11px] text-neutral-400">
+                  Retiro o despacho.
+                </p>
               </div>
             </li>
           </ul>
@@ -77,70 +78,41 @@ export default function Footer() {
       {/* ===================== */}
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="flex flex-wrap gap-8">
-          {/* Col 1 */}
-          <div className="min-w-[240px] flex-1 md:basis-1/4">
+          {/* Col 1 - Marca */}
+          <div className="min-w-[220px] flex-1 md:basis-1/5">
             <p className="text-lg font-extrabold text-white">RekaByte</p>
             <p className="mt-2 text-sm text-neutral-400">
-              Computadoras armadas y estaciones de trabajo. Rendimiento real y
-              soporte post-venta.
+              Computadoras armadas, hardware y más. Construido por gamers,
+              enfocado en rendimiento real y estabilidad.
             </p>
 
             <div className="mt-3 flex items-center gap-3 text-neutral-400">
-              <a
-                href="https://instagram.com/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Instagram"
-                className="transition-colors hover:text-lime-400"
-              >
-                <FaInstagram className="h-5 w-5" />
-              </a>
-              <a
-                href="https://tiktok.com/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="TikTok"
-                className="transition-colors hover:text-lime-400"
-              >
-                <FaTiktok className="h-5 w-5" />
-              </a>
-              <a
-                href="https://youtube.com/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="YouTube"
-                className="transition-colors hover:text-lime-400"
-              >
-                <FaYoutube className="h-5 w-5" />
-              </a>
-              <a
-                href="https://twitch.tv/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Twitch"
-                className="transition-colors hover:text-lime-400"
-              >
-                <FaTwitch className="h-5 w-5" />
-              </a>
-              <a
-                href="https://wa.me/56912345678"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="WhatsApp"
-                className="transition-colors hover:text-lime-400"
-              >
-                <FaWhatsapp className="h-5 w-5" />
-              </a>
+              <FaInstagram className="h-5 w-5 hover:text-lime-400" />
+              <FaTiktok className="h-5 w-5 hover:text-lime-400" />
+              <FaYoutube className="h-5 w-5 hover:text-lime-400" />
+              <FaTwitch className="h-5 w-5 hover:text-lime-400" />
+              <FaWhatsapp className="h-5 w-5 hover:text-lime-400" />
             </div>
           </div>
 
-          {/* Col 2 */}
-          <div className="min-w-[240px] flex-1 md:basis-1/4">
+          {/* Col 2 - Quiénes somos */}
+          <div className="min-w-[220px] flex-1 md:basis-1/5">
+            <p className="font-semibold text-white">Quiénes somos</p>
+            <p className="mt-2 text-sm text-neutral-400">
+              RekaByte nace desde la experiencia real en gaming, software y 
+              hardware. Cada equipo es ensamblado y probado con
+              criterios técnicos sólidos, buscando equilibrio entre
+              rendimiento, estética y confiabilidad.
+            </p>
+          </div>
+
+          {/* Col 3 - Contacto */}
+          <div className="min-w-[220px] flex-1 md:basis-1/5">
             <p className="font-semibold text-white">Contacto</p>
             <ul className="mt-2 space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <FiMapPin className="h-4 w-4 text-neutral-400" />
-                A pasos de metro Lo vial, San Miguel
+                San Miguel, Santiago
               </li>
               <li className="flex items-center gap-2">
                 <FiPhone className="h-4 w-4 text-neutral-400" />
@@ -148,41 +120,27 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <FiMail className="h-4 w-4 text-neutral-400" />
-                <a
-                  href="mailto:contacto@rekabyte.cl"
-                  className="hover:text-lime-400"
-                >
-                  contacto@rekabyte.cl
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaWhatsapp className="h-4 w-4 text-neutral-400" />
-                <a
-                  href="https://wa.me/56912345678"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-lime-400"
-                >
-                  Escríbenos por WhatsApp
-                </a>
+                contacto@rekabyte.cl
               </li>
             </ul>
           </div>
 
-          {/* Col 3 */}
-          <div className="min-w-[240px] flex-1 md:basis-1/4">
+          {/* Col 4 - Horario */}
+          <div className="min-w-[220px] flex-1 md:basis-1/5">
             <p className="font-semibold text-white">Horario</p>
             <ul className="mt-2 space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <FiClock className="h-4 w-4 text-neutral-400" />
                 Lunes a Viernes, 10:00–18:30 hrs.
               </li>
-              <li className="text-neutral-400">Punto de retiro disponible.</li>
+              <li className="text-neutral-400">
+                Punto de retiro disponible.
+              </li>
             </ul>
           </div>
 
-          {/* Col 4 */}
-          <div className="min-w-[240px] flex-1 md:basis-1/4">
+          {/* Col 5 - Información */}
+          <div className="min-w-[220px] flex-1 md:basis-1/5">
             <p className="font-semibold text-white">Información</p>
             <ul className="mt-2 space-y-1 text-sm">
               <li>
@@ -203,11 +161,6 @@ export default function Footer() {
               <li>
                 <Link href="/envios" className="hover:text-lime-400">
                   Envíos y retiros
-                </Link>
-              </li>
-              <li>
-                <Link href="/contacto" className="hover:text-lime-400">
-                  Contáctanos
                 </Link>
               </li>
             </ul>
