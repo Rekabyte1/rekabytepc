@@ -1,11 +1,12 @@
-// app/api/checkout/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOrderCreatedEmail } from "@/lib/email";
+import { DocumentType, Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
+type CheckoutDocumentUI = "boleta" | "factura";
 
 type CheckoutPayload = {
   checkoutToken: string;
@@ -13,6 +14,11 @@ type CheckoutPayload = {
   customer: { name: string; email: string; phone?: string };
   deliveryType: "pickup" | "shipping";
   paymentMethod: CheckoutPaymentUI;
+
+  // ✅ NUEVO
+  documentType?: CheckoutDocumentUI;
+  invoiceData?: any;
+
   address?: {
     fullName?: string;
     phone?: string;
@@ -43,6 +49,11 @@ function normalizePayment(method: CheckoutPaymentUI): "TRANSFER" | "CARD" {
 
 function normalizeShipping(deliveryType: "pickup" | "shipping") {
   return deliveryType === "pickup" ? ("PICKUP" as const) : ("DELIVERY" as const);
+}
+
+function normalizeDocumentType(doc?: CheckoutDocumentUI): DocumentType {
+  const d = safeStr(doc).toLowerCase();
+  return d === "factura" ? DocumentType.FACTURA : DocumentType.BOLETA;
 }
 
 /* ============================================================
@@ -161,6 +172,8 @@ async function trySendConfirmationEmailOnce(params: {
       paymentMethod: true,
       shippingMethod: true,
       paymentDueAt: true,
+      documentType: true,
+      invoiceData: true,
     },
   });
 
@@ -187,13 +200,14 @@ async function trySendConfirmationEmailOnce(params: {
     subtotal: fresh.subtotal,
     shippingCost: fresh.shippingCost,
     createdAtISO: new Date(fresh.createdAt).toISOString(),
-    // opcional para template (si no existe, no pasa nada)
     paymentDueAtISO: fresh.paymentDueAt ? new Date(fresh.paymentDueAt).toISOString() : null,
     items: params.items.map((it) => ({
       name: it.productName,
       qty: it.quantity,
       unitPrice: Number(it.unitPrice),
     })),
+    documentType: fresh.documentType,
+    invoiceData: fresh.invoiceData as any,
   } as any);
 
   const resendId =
@@ -234,6 +248,10 @@ export async function POST(req: NextRequest) {
     const address = body.address;
     const notes = body.notes ?? "";
 
+    // ✅ NUEVO (DOCUMENTO)
+    const documentType = normalizeDocumentType(body.documentType);
+    const invoiceDataRaw = body.invoiceData ?? null;
+
     if (!checkoutToken) {
       return NextResponse.json(
         {
@@ -246,10 +264,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!items.length) {
-      return NextResponse.json(
-        { ok: false, error: "No hay productos en el carrito." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "No hay productos en el carrito." }, { status: 400 });
     }
 
     const customerName = safeStr(customer?.name);
@@ -257,10 +272,7 @@ export async function POST(req: NextRequest) {
     const customerPhone = safeStr(customer?.phone);
 
     if (!customerName || !customerEmail) {
-      return NextResponse.json(
-        { ok: false, error: "Falta nombre o email del cliente." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Falta nombre o email del cliente." }, { status: 400 });
     }
 
     // ✅ Shipping: exige street + region + (city o commune)
@@ -278,14 +290,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ✅ Factura: validación mínima
+    if (documentType === DocumentType.FACTURA) {
+      const inv: any = invoiceDataRaw || {};
+      const razon = safeStr(inv?.razonSocial ?? inv?.razon_social ?? inv?.razon ?? "");
+      const rut = safeStr(inv?.rutEmpresa ?? inv?.rut_empresa ?? inv?.rut ?? "");
+      if (!razon || !rut) {
+        return NextResponse.json(
+          { ok: false, error: "Si seleccionas FACTURA, debes completar al menos Razón social y RUT empresa." },
+          { status: 400 }
+        );
+      }
+    }
+
     const normalizedPaymentMethod = normalizePayment(paymentMethod);
     const payWithCard = normalizedPaymentMethod === "CARD";
 
     // ✅ RESERVA: si es transferencia => 2 horas (ajustable)
     const paymentDueAt =
-      normalizedPaymentMethod === "TRANSFER"
-        ? new Date(Date.now() + 2 * 60 * 60 * 1000)
-        : null;
+      normalizedPaymentMethod === "TRANSFER" ? new Date(Date.now() + 2 * 60 * 60 * 1000) : null;
 
     // 1) ✅ Idempotencia
     const existing = await prisma.order.findUnique({
@@ -329,10 +352,7 @@ export async function POST(req: NextRequest) {
     const slugs = items.map((i) => safeStr(i.productSlug)).filter(Boolean);
 
     if (slugs.length !== items.length) {
-      return NextResponse.json(
-        { ok: false, error: "Algún producto no tiene slug válido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Algún producto no tiene slug válido." }, { status: 400 });
     }
 
     // 3) Buscar productos
@@ -350,10 +370,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (products.length !== slugs.length) {
-      return NextResponse.json(
-        { ok: false, error: "Algún producto no existe o fue eliminado." },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Algún producto no existe o fue eliminado." }, { status: 400 });
     }
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
@@ -372,10 +389,7 @@ export async function POST(req: NextRequest) {
       const quantity = Math.max(1, Number(item.quantity ?? 1));
 
       if (product.stock != null && product.stock < quantity) {
-        return NextResponse.json(
-          { ok: false, error: `No hay stock suficiente de ${product.name}.` },
-          { status: 400 }
-        );
+        return NextResponse.json({ ok: false, error: `No hay stock suficiente de ${product.name}.` }, { status: 400 });
       }
 
       const unitPrice = payWithCard
@@ -434,7 +448,11 @@ export async function POST(req: NextRequest) {
           total,
           notes: safeStr(notes) || null,
           checkoutToken,
-          paymentDueAt, // ✅ reserva por transferencia
+          paymentDueAt,
+
+          // ✅ NUEVO
+          documentType,
+          invoiceData: documentType === DocumentType.FACTURA ? (invoiceDataRaw as any) : null,
         },
       });
 
@@ -457,7 +475,6 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // ✅ Stock decrement seguro (evita negativo por carrera)
         if (product.stock != null) {
           const updated = await tx.product.updateMany({
             where: { id: product.id, stock: { gte: quantity } },
@@ -515,9 +532,7 @@ export async function POST(req: NextRequest) {
         shipment: created.shipment,
         niceOrderNumber: orderNumberNice(created.order.id),
         shippingCost,
-        paymentDueAt: created.order.paymentDueAt
-          ? new Date(created.order.paymentDueAt).toISOString()
-          : null,
+        paymentDueAt: created.order.paymentDueAt ? new Date(created.order.paymentDueAt).toISOString() : null,
       },
       { status: 201 }
     );

@@ -18,7 +18,7 @@ import { useCart } from "@/components/CartContext";
 type Props = { build: Build; gameTitle?: string };
 
 const CLP = (n: number) =>
-  n.toLocaleString("es-CL", {
+  Number(n || 0).toLocaleString("es-CL", {
     style: "currency",
     currency: "CLP",
     maximumFractionDigits: 0,
@@ -47,6 +47,7 @@ async function fetchLive(slug: string): Promise<LiveProduct | null> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slugs: [slug] }),
+      cache: "no-store",
     });
 
     const data = await res.json().catch(() => ({}));
@@ -83,7 +84,7 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
   const prev = () => setIdx((v) => (v - 1 + images.length) % images.length);
   const next = () => setIdx((v) => (v + 1) % images.length);
 
-  // ===== Stock desde BD (igual que ModelClient) =====
+  // ===== Live desde BD =====
   const [mounted, setMounted] = useState(false);
   const [live, setLive] = useState<LiveProduct | null>(null);
   const [loadingLive, setLoadingLive] = useState(false);
@@ -107,12 +108,23 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
     };
   }, [mounted, build.productSlug]);
 
-  // stock: BD primero, fallback a build.stock si existiera, si no 0
+  // ===== Stock: BD primero, fallback a build.stock, si no 0 =====
   const stock =
     typeof live?.stock === "number" ? live.stock : (build as any)?.stock ?? 0;
 
   const isOut = (stock ?? 0) <= 0;
   const isLow = (stock ?? 0) > 0 && (stock ?? 0) <= 3;
+
+  // ===== Precios: BD primero, fallback a build.* (evita 0 en juegos) =====
+  const priceTransfer =
+    typeof live?.priceTransfer === "number" && live.priceTransfer > 0
+      ? live.priceTransfer
+      : (build as any)?.priceTransfer ?? 0;
+
+  const priceCard =
+    typeof live?.priceCard === "number" && live.priceCard > 0
+      ? live.priceCard
+      : (build as any)?.priceCard ?? 0;
 
   // Toggle specs
   const [open, setOpen] = useState(false);
@@ -134,8 +146,8 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
         id: build.productSlug,
         name: build.title,
         image: cover,
-        priceTransfer: build.priceTransfer,
-        priceCard: build.priceCard,
+        priceTransfer,
+        priceCard,
       },
       1
     );
@@ -286,7 +298,7 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
               <span className="text-sm">Transferencia</span>
             </div>
             <div className="text-lg font-extrabold text-lime-400">
-              {CLP(build.priceTransfer)}
+              {CLP(priceTransfer)}
             </div>
           </div>
 
@@ -296,7 +308,7 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
               <span className="text-sm">Otros medios (Webpay / MercadoPago)</span>
             </div>
             <div className="text-base font-semibold text-neutral-100">
-              {CLP(build.priceCard)}
+              {CLP(priceCard)}
             </div>
           </div>
 

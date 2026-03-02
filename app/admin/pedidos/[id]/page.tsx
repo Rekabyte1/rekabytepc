@@ -71,6 +71,18 @@ function shortId(id: string) {
   return s.length <= 10 ? s : `${s.slice(0, 6)}…${s.slice(-4)}`;
 }
 
+function safeStr(v: any) {
+  return String(v ?? "").trim();
+}
+
+function pickInv(inv: any, keys: string[]) {
+  for (const k of keys) {
+    const val = inv?.[k];
+    if (safeStr(val)) return safeStr(val);
+  }
+  return "—";
+}
+
 type PageProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -133,13 +145,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     order.contactName || [order.user?.name, order.user?.lastName].filter(Boolean).join(" ") || "—";
 
   const canReleaseReservation =
-    order.paymentMethod === "TRANSFER" &&
-    order.status === "PENDING_PAYMENT" &&
-    !order.stockReleasedAt;
+    order.paymentMethod === "TRANSFER" && order.status === "PENDING_PAYMENT" && !order.stockReleasedAt;
+
+  const docType = (order as any).documentType ?? "BOLETA";
+  const isFactura = docType === "FACTURA";
+  const inv = ((order as any).invoiceData ?? null) as any;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-100">
-      {/* Header */}
       <div className="mb-5 flex flex-col gap-3">
         <Link href="/admin/pedidos" className="text-xs text-lime-300 font-extrabold w-fit">
           ← Volver a pedidos
@@ -148,8 +161,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl font-extrabold text-white">
-              Pedido{" "}
-              <span className="font-mono text-base text-neutral-400 break-all">{order.id}</span>
+              Pedido <span className="font-mono text-base text-neutral-400 break-all">{order.id}</span>
             </h1>
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -159,21 +171,19 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               <Badge tone="border-neutral-800 bg-black/20 text-neutral-200">
                 {totalItems} item{totalItems === 1 ? "" : "s"}
               </Badge>
+
               {order.confirmationEmailSentAt ? (
                 <Badge tone="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
                   Confirmación enviada
                 </Badge>
               ) : (
-                <Badge tone="border-neutral-800 bg-black/20 text-neutral-300">
-                  Confirmación no enviada
-                </Badge>
+                <Badge tone="border-neutral-800 bg-black/20 text-neutral-300">Confirmación no enviada</Badge>
               )}
             </div>
 
             <p className="mt-2 text-xs text-neutral-400">
-              Creado el <span className="text-neutral-200 font-bold">{createdAt}</span>
-              {" · "}
-              Última actualización <span className="text-neutral-200 font-bold">{updatedAt}</span>
+              Creado el <span className="text-neutral-200 font-bold">{createdAt}</span> · Última actualización{" "}
+              <span className="text-neutral-200 font-bold">{updatedAt}</span>
             </p>
 
             {order.user?.id ? (
@@ -204,7 +214,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             ) : null}
           </div>
 
-          {/* Top right mini summary (mobile) */}
           <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-4 md:min-w-[280px]">
             <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">RESUMEN</div>
 
@@ -220,11 +229,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* 2 columns layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* LEFT */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Productos */}
           <Card>
             <CardHeader title="Productos" />
             {order.items.length === 0 ? (
@@ -272,7 +278,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             )}
           </Card>
 
-          {/* Envío / Dirección */}
           <Card>
             <CardHeader title="Envío" />
 
@@ -325,20 +330,51 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       <Info label="País" value={order.shipment.address.country || "Chile"} />
                     </div>
                   ) : (
-                    <p className="mt-2 text-sm text-neutral-400">
-                      No hay dirección asociada al envío (addressId vacío).
-                    </p>
+                    <p className="mt-2 text-sm text-neutral-400">No hay dirección asociada al envío (addressId vacío).</p>
                   )}
                 </div>
               </>
             )}
           </Card>
+
+          <Card>
+            <CardHeader title="Documento" />
+            <div className="grid gap-3 md:grid-cols-2">
+              <Info label="Tipo" value={isFactura ? "Factura" : "Boleta"} />
+              <Info
+                label="Requiere datos"
+                value={isFactura ? "Sí (se muestran abajo)" : "No (solo boleta)"}
+              />
+            </div>
+
+            {isFactura ? (
+              <div className="mt-4 rounded-2xl border border-neutral-800 bg-black/20 p-4">
+                <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">DATOS DE FACTURACIÓN</div>
+
+                {inv ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <Info label="Razón social" value={pickInv(inv, ["razonSocial", "razon_social", "razon"])} />
+                    <Info label="RUT empresa" value={pickInv(inv, ["rutEmpresa", "rut_empresa", "rut"])} />
+                    <Info label="Giro" value={pickInv(inv, ["giro"])} />
+                    <Info label="Teléfono" value={pickInv(inv, ["telefono", "phone"])} />
+                    <Info label="Región" value={pickInv(inv, ["region"])} />
+                    <Info label="Comuna" value={pickInv(inv, ["comuna", "commune"])} />
+                    <Info label="Calle" value={pickInv(inv, ["calle", "street"])} />
+                    <Info label="Número" value={pickInv(inv, ["numero", "number"])} />
+                    <Info label="Depto / Oficina" value={pickInv(inv, ["depto", "deptoOficina", "apartment", "oficina"])} />
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-neutral-400">No hay invoiceData guardado en este pedido.</p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-neutral-500">Este pedido no requiere datos de facturación.</p>
+            )}
+          </Card>
         </div>
 
-        {/* RIGHT */}
         <div className="lg:col-span-1 space-y-6">
           <div className="space-y-6 lg:sticky lg:top-6">
-            {/* Resumen */}
             <Card>
               <CardHeader title="Resumen" subtle />
               <div className="space-y-2 text-sm">
@@ -351,7 +387,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               </div>
             </Card>
 
-            {/* Información de orden */}
             <Card>
               <CardHeader title="Información de orden" subtle />
               <div className="grid gap-3">
@@ -370,7 +405,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               </div>
             </Card>
 
-            {/* Estado / Acciones */}
             <Card>
               <CardHeader title="Acciones" />
               <div className="grid gap-4">
@@ -399,11 +433,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   );
 }
 
-/* UI helpers */
 function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">{children}</section>
-  );
+  return <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">{children}</section>;
 }
 
 function CardHeader({ title, subtle }: { title: string; subtle?: boolean }) {

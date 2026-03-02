@@ -12,6 +12,7 @@ import { useSession } from "next-auth/react";
 
 type Stage = "review" | "upload";
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
+type CheckoutDocumentUI = "boleta" | "factura";
 
 const CHECKOUT_TOKEN_KEY = "rb_checkout_token_v1";
 
@@ -38,49 +39,6 @@ function clearCheckoutToken() {
   try {
     window.sessionStorage.removeItem(CHECKOUT_TOKEN_KEY);
   } catch {}
-}
-
-function CopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <button
-      type="button"
-      className={`cs-copy ${copied ? "is-copied" : ""}`}
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(value);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1200);
-        } catch {}
-      }}
-      aria-label="Copiar"
-      title="Copiar"
-    >
-      {copied ? "Copiado" : "Copiar"}
-      <style jsx>{`
-        .cs-copy {
-          border: 1px solid #2a2a2a;
-          background: rgba(20, 20, 20, 0.55);
-          color: #e5e7eb;
-          font-weight: 900;
-          font-size: 12px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: border-color 0.15s ease, color 0.15s ease;
-        }
-        .cs-copy:hover {
-          border-color: #3a3a3a;
-        }
-        .cs-copy.is-copied {
-          border-color: rgba(182, 255, 46, 0.6);
-          color: #b6ff2e;
-        }
-      `}</style>
-    </button>
-  );
 }
 
 function normalizeDeliveryType(tipo: any): "pickup" | "shipping" {
@@ -125,7 +83,7 @@ export default function Paso4Confirmacion() {
 
   const { items, subtotalTransfer, subtotalCard, clear: clearCart } = useCart();
 
-  const [stage, setStage] = useState<Stage>("review");
+  const [stage] = useState<Stage>("review");
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
 
@@ -153,19 +111,13 @@ export default function Paso4Confirmacion() {
     const e3 = String(datosEfectivos?.mail ?? "").trim();
     const s = String(sessionEmail ?? "").trim();
     return (e1 || e2 || e3 || s || "").trim();
-  }, [
-    datosEfectivos?.email,
-    datosEfectivos?.correo,
-    datosEfectivos?.mail,
-    sessionEmail,
-  ]);
+  }, [datosEfectivos?.email, datosEfectivos?.correo, datosEfectivos?.mail, sessionEmail]);
 
   const customerPhone = useMemo(() => {
     return String(datosEfectivos?.telefono ?? "").trim();
   }, [datosEfectivos?.telefono]);
 
-  const payingWithTransfer =
-    (pago?.metodo ?? "transferencia") === "transferencia";
+  const payingWithTransfer = (pago?.metodo ?? "transferencia") === "transferencia";
 
   const selectedSubtotal = useMemo(
     () => (payingWithTransfer ? subtotalTransfer : subtotalCard),
@@ -178,6 +130,23 @@ export default function Paso4Confirmacion() {
     return normalizeDeliveryType(envio?.tipo);
   }, [envio?.tipo]);
 
+  // ✅ DOCUMENTO + DATOS FACTURA (desde el store)
+  const documentType: CheckoutDocumentUI = useMemo(() => {
+    const d = String(pago?.documento ?? "boleta").toLowerCase();
+    return d === "factura" ? "factura" : "boleta";
+  }, [pago?.documento]);
+
+  const invoiceData = useMemo(() => {
+    // Acepta varias formas según cómo lo guardes en tu store
+    return (
+      (pago?.factura as any) ??
+      (pago?.datosFactura as any) ??
+      (pago?.invoice as any) ??
+      (pago?.invoiceData as any) ??
+      null
+    );
+  }, [pago]);
+
   const missing = useMemo(() => {
     const miss: string[] = [];
     if (!customerName) miss.push("nombre");
@@ -188,6 +157,15 @@ export default function Paso4Confirmacion() {
       if (!envio?.region) miss.push("región");
     }
     if (!created && !items?.length) miss.push("carrito");
+
+    // ✅ si es factura, exige mínimo razon social + rut empresa
+    if (documentType === "factura") {
+      const razon = String(invoiceData?.razonSocial ?? invoiceData?.razon_social ?? invoiceData?.razon ?? "").trim();
+      const rut = String(invoiceData?.rutEmpresa ?? invoiceData?.rut_empresa ?? invoiceData?.rut ?? "").trim();
+      if (!razon) miss.push("razón social");
+      if (!rut) miss.push("RUT empresa");
+    }
+
     return miss;
   }, [
     customerName,
@@ -198,6 +176,8 @@ export default function Paso4Confirmacion() {
     envio?.region,
     items?.length,
     created,
+    documentType,
+    invoiceData,
   ]);
 
   useEffect(() => {
@@ -220,19 +200,15 @@ export default function Paso4Confirmacion() {
     setUiSuccess(null);
 
     if (missing.length) {
-      setUiError(
-        `Falta completar: ${missing.join(", ")}. Revisa los pasos anteriores.`
-      );
+      setUiError(`Falta completar: ${missing.join(", ")}. Revisa los pasos anteriores.`);
       return;
     }
 
     setCreating(true);
 
     try {
-      const paymentMethod = (pago?.metodo ??
-        "transferencia") as CheckoutPaymentUI;
+      const paymentMethod = (pago?.metodo ?? "transferencia") as CheckoutPaymentUI;
 
-      // ✅ IMPORTANTE: token estable por intento de compra
       const checkoutToken = getOrCreateCheckoutToken();
 
       const payload = {
@@ -246,11 +222,13 @@ export default function Paso4Confirmacion() {
           email: customerEmail || "EMPTY",
           phone: customerPhone || "",
         },
-        deliveryType:
-          deliveryType === "shipping"
-            ? ("shipping" as const)
-            : ("pickup" as const),
+        deliveryType: deliveryType === "shipping" ? ("shipping" as const) : ("pickup" as const),
         paymentMethod,
+
+        // ✅ NUEVO: documento + factura
+        documentType,
+        invoiceData: documentType === "factura" ? invoiceData : null,
+
         address:
           deliveryType === "shipping"
             ? {
@@ -278,8 +256,7 @@ export default function Paso4Confirmacion() {
 
       if (!res.ok || data?.ok === false) {
         throw new Error(
-          data?.error ??
-            `No se pudo crear el pedido (HTTP ${res.status}). Intenta nuevamente.`
+          data?.error ?? `No se pudo crear el pedido (HTTP ${res.status}). Intenta nuevamente.`
         );
       }
 
@@ -295,28 +272,17 @@ export default function Paso4Confirmacion() {
         deliveryType,
       });
 
-      // ✅ ya se creó el pedido: podemos limpiar token para que el siguiente intento sea otro
       clearCheckoutToken();
-
-      // limpiar carrito
       clearCart();
 
-      setUiSuccess(
-        `Pedido creado correctamente (${orderNumberNice(
-          finalId
-        )}). Redirigiendo...`
-      );
+      setUiSuccess(`Pedido creado correctamente (${orderNumberNice(finalId)}). Redirigiendo...`);
 
       const pm = payingWithTransfer ? "transferencia" : "card";
       const dt = deliveryType === "shipping" ? "shipping" : "pickup";
-      router.replace(
-        `/checkout/success?orderId=${encodeURIComponent(finalId)}&pm=${pm}&dt=${dt}`
-      );
+      router.replace(`/checkout/success?orderId=${encodeURIComponent(finalId)}&pm=${pm}&dt=${dt}`);
     } catch (err: any) {
       console.error("Error confirmando pedido:", err);
-      setUiError(
-        err?.message ?? "Ocurrió un error al crear el pedido. Intenta nuevamente."
-      );
+      setUiError(err?.message ?? "Ocurrió un error al crear el pedido. Intenta nuevamente.");
     } finally {
       setCreating(false);
     }
@@ -336,9 +302,7 @@ export default function Paso4Confirmacion() {
             <div className="cs-accent" />
             <div>
               <h2 className="cs-card-title">Paso 4: Revisa y confirma</h2>
-              <p className="cs-card-sub">
-                Verifica entrega y pago. Luego confirma el pedido.
-              </p>
+              <p className="cs-card-sub">Verifica entrega y pago. Luego confirma el pedido.</p>
             </div>
           </div>
 
@@ -357,125 +321,115 @@ export default function Paso4Confirmacion() {
             </div>
           )}
 
-          {stage === "review" ? (
-            <>
-              <div className="cs-panels">
-                <div className="cs-panel">
-                  <div className="cs-panel-top">
-                    <div>
-                      <div className="cs-panel-title">Forma de entrega</div>
-                      <div className="cs-panel-sub">
-                        {deliveryType === "pickup" ? (
-                          <>
-                            Retiro en tienda (gratis)
-                            <span className="cs-muted">
-                              {" "}
-                              · A pasos de metro Lo Vial, San Miguel
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            Despacho a domicilio
-                            <span className="cs-muted">
-                              {" "}
-                              · {envio?.direccion ?? "Dirección no especificada"}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <Link href="/checkout/envio" className="cs-link">
-                      Modificar
-                    </Link>
-                  </div>
-
-                  <div className="cs-line-row">
-                    <span className="cs-muted">Costo envío</span>
-                    <span className="cs-strong">{CLP(envio?.costoEnvio ?? 0)}</span>
-                  </div>
-                </div>
-
-                <div className="cs-panel">
-                  <div className="cs-panel-top">
-                    <div>
-                      <div className="cs-panel-title">Medio de pago</div>
-                      <div className="cs-panel-sub">
-                        {payingWithTransfer ? (
-                          <>
-                            Transferencia / Depósito bancario
-                            <span className="cs-muted">
-                              {" "}
-                              · Documento: {pago?.documento ?? "boleta"}
-                            </span>
-                          </>
-                        ) : pago?.metodo === "webpay" ? (
-                          <>Webpay</>
-                        ) : (
-                          <>Mercado Pago</>
-                        )}
-                      </div>
-                    </div>
-
-                    <Link href="/checkout/pago" className="cs-link">
-                      Modificar
-                    </Link>
-                  </div>
-
-                  {!payingWithTransfer && (
-                    <div className="cs-note">
-                      Este método está en preparación. Si lo usas, el pedido igual se
-                      creará.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="cs-callout">
-                <div className="cs-callout-title">Antes de confirmar</div>
-                <p className="cs-callout-text">
-                  Confirma para crear el pedido. Verás el resultado en una pantalla final
-                  con instrucciones.
-                </p>
-
-                {missing.length ? (
-                  <p className="cs-missing">
-                    Falta completar:{" "}
-                    <span className="cs-strong">{missing.join(", ")}</span>
-                  </p>
-                ) : null}
-
-                <div className="cs-actions">
-                  <button
-                    type="button"
-                    className="rb-btn"
-                    onClick={handleConfirmPedido}
-                    disabled={missing.length > 0 || creating || created}
-                  >
-                    {created
-                      ? "Pedido creado"
-                      : creating
-                      ? "Confirmando..."
-                      : "Confirmar pedido"}
-                  </button>
-
-                  <Link href="/" className="rb-btn rb-btn--ghost">
-                    Volver al inicio
-                  </Link>
-                </div>
-              </div>
-
-              <div className="cs-total">
-                <span>Total a pagar</span>
-                <span className="cs-total-amount">{CLP(total)}</span>
-              </div>
-            </>
-          ) : (
+          <div className="cs-panels">
             <div className="cs-panel">
-              <div className="cs-panel-title">Listo</div>
-              <div className="cs-note">Redirigiendo a la pantalla final...</div>
+              <div className="cs-panel-top">
+                <div>
+                  <div className="cs-panel-title">Forma de entrega</div>
+                  <div className="cs-panel-sub">
+                    {deliveryType === "pickup" ? (
+                      <>
+                        Retiro en tienda (gratis)
+                        <span className="cs-muted"> · A pasos de metro Lo Vial, San Miguel</span>
+                      </>
+                    ) : (
+                      <>
+                        Despacho a domicilio
+                        <span className="cs-muted"> · {envio?.direccion ?? "Dirección no especificada"}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <Link href="/checkout/envio" className="cs-link">
+                  Modificar
+                </Link>
+              </div>
+
+              <div className="cs-line-row">
+                <span className="cs-muted">Costo envío</span>
+                <span className="cs-strong">{CLP(envio?.costoEnvio ?? 0)}</span>
+              </div>
             </div>
-          )}
+
+            <div className="cs-panel">
+              <div className="cs-panel-top">
+                <div>
+                  <div className="cs-panel-title">Medio de pago</div>
+                  <div className="cs-panel-sub">
+                    {payingWithTransfer ? (
+                      <>
+                        Transferencia / Depósito bancario
+                        <span className="cs-muted"> · Documento: {documentType}</span>
+                      </>
+                    ) : pago?.metodo === "webpay" ? (
+                      <>
+                        Webpay
+                        <span className="cs-muted"> · Documento: {documentType}</span>
+                      </>
+                    ) : (
+                      <>
+                        Mercado Pago
+                        <span className="cs-muted"> · Documento: {documentType}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <Link href="/checkout/pago" className="cs-link">
+                  Modificar
+                </Link>
+              </div>
+
+              {!payingWithTransfer && (
+                <div className="cs-note">
+                  Este método está en preparación. Si lo usas, el pedido igual se creará.
+                </div>
+              )}
+            </div>
+
+            {documentType === "factura" ? (
+              <div className="cs-panel">
+                <div className="cs-panel-title">Datos de facturación</div>
+                <div className="cs-note" style={{ marginTop: 8 }}>
+                  Se guardarán en el pedido para que puedas emitir la factura desde el admin.
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="cs-callout">
+            <div className="cs-callout-title">Antes de confirmar</div>
+            <p className="cs-callout-text">
+              Confirma para crear el pedido. Verás el resultado en una pantalla final con instrucciones.
+            </p>
+
+            {missing.length ? (
+              <p className="cs-missing">
+                Falta completar: <span className="cs-strong">{missing.join(", ")}</span>
+              </p>
+            ) : null}
+
+            <div className="cs-actions">
+              <button
+                type="button"
+                className="rb-btn"
+                onClick={handleConfirmPedido}
+                disabled={missing.length > 0 || creating || created}
+              >
+                {created ? "Pedido creado" : creating ? "Confirmando..." : "Confirmar pedido"}
+              </button>
+
+              <Link href="/" className="rb-btn rb-btn--ghost">
+                Volver al inicio
+              </Link>
+            </div>
+          </div>
+
+          <div className="cs-total">
+            <span>Total a pagar</span>
+            <span className="cs-total-amount">{CLP(total)}</span>
+          </div>
         </section>
 
         <aside className="cs-summary">

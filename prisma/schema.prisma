@@ -76,9 +76,13 @@ model Order {
   checkoutToken           String?   @unique
   confirmationEmailSentAt DateTime? @db.Timestamptz(6)
 
-  paymentDueAt DateTime? @db.Timestamptz(6)
-  cancelledAt  DateTime? @db.Timestamptz(6)
-  stockReleasedAt DateTime? @db.Timestamptz(6)
+  paymentDueAt     DateTime? @db.Timestamptz(6)
+  cancelledAt      DateTime? @db.Timestamptz(6)
+  stockReleasedAt  DateTime? @db.Timestamptz(6)
+
+  // ✅ NUEVO: documento + datos de facturación
+  documentType DocumentType @default(BOLETA)
+  invoiceData  Json?
 
   user     User?      @relation(fields: [userId], references: [id])
   items    OrderItem[]
@@ -125,6 +129,11 @@ model Shipment {
 
   address Address? @relation(fields: [addressId], references: [id])
   order   Order    @relation(fields: [orderId], references: [id])
+}
+
+enum DocumentType {
+  BOLETA
+  FACTURA
 }
 
 enum OrderStatus {
