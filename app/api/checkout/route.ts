@@ -1,7 +1,9 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOrderCreatedEmail } from "@/lib/email";
-import { DocumentType, Prisma } from "@prisma/client";
+import { DocumentType } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +16,8 @@ type CheckoutPayload = {
   customer: { name: string; email: string; phone?: string };
   deliveryType: "pickup" | "shipping";
   paymentMethod: CheckoutPaymentUI;
-
-  // ✅ NUEVO
   documentType?: CheckoutDocumentUI;
   invoiceData?: any;
-
   address?: {
     fullName?: string;
     phone?: string;
@@ -56,10 +55,6 @@ function normalizeDocumentType(doc?: CheckoutDocumentUI): DocumentType {
   return d === "factura" ? DocumentType.FACTURA : DocumentType.BOLETA;
 }
 
-/* ============================================================
-   ENVÍO: Tarifa fija por zona (Chilexpress) — backend manda
-   ============================================================ */
-
 type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
 
 function normalizeRegion(regionRaw: string) {
@@ -79,8 +74,9 @@ function zoneByRegion(regionRaw: string): ShippingZone {
     r.includes("antofag") ||
     r.includes("atacama") ||
     r.includes("coquimbo")
-  )
+  ) {
     return "NORTE";
+  }
 
   if (
     r.includes("valpara") ||
@@ -93,8 +89,9 @@ function zoneByRegion(regionRaw: string): ShippingZone {
     r.includes("biob") ||
     r.includes("bío bío") ||
     r.includes("bio bio")
-  )
+  ) {
     return "CENTRO";
+  }
 
   if (
     r.includes("araucan") ||
@@ -103,8 +100,9 @@ function zoneByRegion(regionRaw: string): ShippingZone {
     r.includes("rios") ||
     r.includes("los l") ||
     r.includes("lagos")
-  )
+  ) {
     return "SUR";
+  }
 
   if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
 
@@ -137,10 +135,6 @@ function calculateShippingCost(
   const zone = zoneByRegion(region);
   return shippingCostByZone(zone);
 }
-
-/* ============================================================
-   EMAIL (idempotente)
-   ============================================================ */
 
 async function trySendConfirmationEmailOnce(params: {
   orderId: string;
@@ -210,18 +204,6 @@ async function trySendConfirmationEmailOnce(params: {
     invoiceData: fresh.invoiceData as any,
   } as any);
 
-  const resendId =
-    (sendRes.ok && (sendRes.res as any)?.data?.id) ||
-    (sendRes.ok && (sendRes.res as any)?.id) ||
-    null;
-
-  console.log("[email] sendOrderCreatedEmail result:", {
-    orderId: params.orderId,
-    ok: sendRes.ok,
-    resendId,
-    error: !sendRes.ok ? sendRes.error : null,
-  });
-
   if (sendRes.ok) {
     await prisma.order.update({
       where: { id: params.orderId },
@@ -232,12 +214,11 @@ async function trySendConfirmationEmailOnce(params: {
   return sendRes;
 }
 
-/* ============================================================
-   CHECKOUT
-   ============================================================ */
-
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    const checkoutUserId = (session?.user as any)?.id as string | undefined;
+
     const body = (await req.json()) as Partial<CheckoutPayload>;
 
     const checkoutToken = safeStr(body.checkoutToken);
@@ -248,7 +229,6 @@ export async function POST(req: NextRequest) {
     const address = body.address;
     const notes = body.notes ?? "";
 
-    // ✅ NUEVO (DOCUMENTO)
     const documentType = normalizeDocumentType(body.documentType);
     const invoiceDataRaw = body.invoiceData ?? null;
 
@@ -275,7 +255,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Falta nombre o email del cliente." }, { status: 400 });
     }
 
-    // ✅ Shipping: exige street + region + (city o commune)
     if (deliveryType === "shipping") {
       const street = safeStr(address?.street);
       const region = safeStr(address?.region);
@@ -290,7 +269,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ✅ Factura: validación mínima
     if (documentType === DocumentType.FACTURA) {
       const inv: any = invoiceDataRaw || {};
       const razon = safeStr(inv?.razonSocial ?? inv?.razon_social ?? inv?.razon ?? "");
@@ -306,11 +284,11 @@ export async function POST(req: NextRequest) {
     const normalizedPaymentMethod = normalizePayment(paymentMethod);
     const payWithCard = normalizedPaymentMethod === "CARD";
 
-    // ✅ RESERVA: si es transferencia => 2 horas (ajustable)
     const paymentDueAt =
-      normalizedPaymentMethod === "TRANSFER" ? new Date(Date.now() + 2 * 60 * 60 * 1000) : null;
+      normalizedPaymentMethod === "TRANSFER"
+        ? new Date(Date.now() + 2 * 60 * 60 * 1000)
+        : null;
 
-    // 1) ✅ Idempotencia
     const existing = await prisma.order.findUnique({
       where: { checkoutToken },
       include: {
@@ -348,14 +326,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2) Validar slugs
     const slugs = items.map((i) => safeStr(i.productSlug)).filter(Boolean);
 
     if (slugs.length !== items.length) {
       return NextResponse.json({ ok: false, error: "Algún producto no tiene slug válido." }, { status: 400 });
     }
 
-    // 3) Buscar productos
     const products = await prisma.product.findMany({
       where: { slug: { in: slugs } },
       select: {
@@ -375,7 +351,6 @@ export async function POST(req: NextRequest) {
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
 
-    // 4) Subtotal + stock
     let subtotal = 0;
 
     for (const item of items) {
@@ -389,7 +364,10 @@ export async function POST(req: NextRequest) {
       const quantity = Math.max(1, Number(item.quantity ?? 1));
 
       if (product.stock != null && product.stock < quantity) {
-        return NextResponse.json({ ok: false, error: `No hay stock suficiente de ${product.name}.` }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: `No hay stock suficiente de ${product.name}.` },
+          { status: 400 }
+        );
       }
 
       const unitPrice = payWithCard
@@ -399,11 +377,9 @@ export async function POST(req: NextRequest) {
       subtotal += unitPrice * quantity;
     }
 
-    // 5) ✅ Shipping cost por zona (pickup = 0)
     const shippingCost = calculateShippingCost(deliveryType, address);
     const total = subtotal + shippingCost;
 
-    // 6) Transacción
     const created = await prisma.$transaction(async (tx) => {
       let addressRecord: { id: string } | null = null;
 
@@ -412,13 +388,12 @@ export async function POST(req: NextRequest) {
       if (deliveryType === "shipping") {
         const streetFinal = safeStr(address?.street);
         const regionFinal = safeStr(address?.region);
-
         const cityFinal = safeStr(address?.city) || safeStr(address?.commune);
         const communeFinal = safeStr(address?.commune) || safeStr(address?.city);
 
         addressRecord = await tx.address.create({
           data: {
-            userId: null,
+            userId: checkoutUserId ?? null,
             fullName: safeStr(address?.fullName) || customerName,
             phone: safeStr(address?.phone) || customerPhone || "",
             street: streetFinal,
@@ -436,7 +411,7 @@ export async function POST(req: NextRequest) {
 
       const order = await tx.order.create({
         data: {
-          userId: null,
+          userId: checkoutUserId ?? null,
           contactEmail: customerEmail,
           contactName: customerName,
           contactPhone: customerPhone || null,
@@ -449,8 +424,6 @@ export async function POST(req: NextRequest) {
           notes: safeStr(notes) || null,
           checkoutToken,
           paymentDueAt,
-
-          // ✅ NUEVO
           documentType,
           invoiceData: documentType === DocumentType.FACTURA ? (invoiceDataRaw as any) : null,
         },
@@ -508,7 +481,6 @@ export async function POST(req: NextRequest) {
       return { order, shipment, orderItems };
     });
 
-    // 7) Email
     try {
       await trySendConfirmationEmailOnce({
         orderId: created.order.id,
@@ -532,7 +504,9 @@ export async function POST(req: NextRequest) {
         shipment: created.shipment,
         niceOrderNumber: orderNumberNice(created.order.id),
         shippingCost,
-        paymentDueAt: created.order.paymentDueAt ? new Date(created.order.paymentDueAt).toISOString() : null,
+        paymentDueAt: created.order.paymentDueAt
+          ? new Date(created.order.paymentDueAt).toISOString()
+          : null,
       },
       { status: 201 }
     );

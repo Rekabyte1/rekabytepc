@@ -1,34 +1,35 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
-import {
-  FaShoppingBag,
-  FaUser,
-  FaMapMarkerAlt,
-  FaFileInvoice,
-  FaKey,
-} from "react-icons/fa";
 
 type TabKey = "compras" | "datos" | "direcciones" | "facturacion" | "password";
 
-type Props = {
-  tab: string;
-  userEmail: string;
+type ApiOk<T> = { ok: true } & T;
+type ApiErr = { ok: false; error: string };
+
+type UserProfile = {
+  id: string;
+  email: string;
+  name: string;
+  lastName: string | null;
+  phone: string | null;
+  rut: string | null;
 };
 
-type OrderStatus =
-  | "PENDING_PAYMENT"
-  | "PAID"
-  | "PREPARING"
-  | "SHIPPED"
-  | "DELIVERED"
-  | "COMPLETED"
-  | "CANCELLED";
-
-type PaymentMethod = "CARD" | "TRANSFER";
-type ShippingMethod = "DELIVERY" | "PICKUP";
+type Address = {
+  id: string;
+  fullName: string;
+  phone: string;
+  street: string;
+  number: string | null;
+  apartment: string | null;
+  city: string | null;
+  commune: string | null;
+  region: string;
+  country: string;
+  isDefault: boolean;
+};
 
 type OrderItem = {
   id: string;
@@ -38,443 +39,122 @@ type OrderItem = {
 };
 
 type Shipment = {
-  status: "PENDING" | "READY" | "ON_ROUTE" | "DELIVERED";
-  trackingCode: string | null;
+  type: "DELIVERY" | "PICKUP";
   pickupLocation: string | null;
+  trackingCode: string | null;
+  status: string;
 };
 
 type Order = {
   id: string;
-  createdAt: string;
-  status: OrderStatus;
-  paymentMethod: PaymentMethod;
-  shippingMethod: ShippingMethod;
+  status: string;
+  paymentMethod: "CARD" | "TRANSFER";
+  shippingMethod: "DELIVERY" | "PICKUP";
   subtotal: number;
   shippingCost: number;
   total: number;
-  notes: string | null;
+  createdAt: string;
+  paymentDueAt: string | null;
   items: OrderItem[];
   shipment: Shipment | null;
 };
 
-type Profile = {
-  name: string;
-  lastName: string;
-  phone: string;
-  rut: string;
-  email: string;
+type BillingProfile = {
+  documentType: "BOLETA" | "FACTURA";
+  razonSocial: string | null;
+  rutEmpresa: string | null;
+  giro: string | null;
+  address: string | null;
+  city: string | null;
+  commune: string | null;
+  region: string | null;
 };
 
-export default function CuentaPanelClient({ tab, userEmail }: Props) {
-  const active: TabKey = useMemo(() => {
-    const t = (tab || "").toLowerCase();
-    if (t === "compras") return "compras";
-    if (t === "datos" || t === "datos-personales") return "datos";
-    if (t === "direcciones") return "direcciones";
-    if (t === "facturacion" || t === "datos-de-facturacion") return "facturacion";
-    if (t === "password" || t === "contrasena" || t === "contraseña") return "password";
-    return "compras";
-  }, [tab]);
-
-  const items: Array<{
-    key: TabKey;
-    label: string;
-    icon: React.ReactNode;
-    href: string;
-  }> = [
-    {
-      key: "compras",
-      label: "Compras",
-      icon: <FaShoppingBag className="text-neutral-300" />,
-      href: "/cuenta/panel?tab=compras",
-    },
-    {
-      key: "datos",
-      label: "Datos personales",
-      icon: <FaUser className="text-neutral-300" />,
-      href: "/cuenta/panel?tab=datos",
-    },
-    {
-      key: "direcciones",
-      label: "Direcciones",
-      icon: <FaMapMarkerAlt className="text-neutral-300" />,
-      href: "/cuenta/panel?tab=direcciones",
-    },
-    {
-      key: "facturacion",
-      label: "Datos de facturación",
-      icon: <FaFileInvoice className="text-neutral-300" />,
-      href: "/cuenta/panel?tab=facturacion",
-    },
-    {
-      key: "password",
-      label: "Contraseña",
-      icon: <FaKey className="text-neutral-300" />,
-      href: "/cuenta/panel?tab=password",
-    },
-  ];
-
-  // ====== Compras: traer pedidos del usuario ======
-  const [orders, setOrders] = useState<Order[] | null>(null);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersErr, setOrdersErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function load() {
-      if (active !== "compras") return;
-
-      setOrdersErr(null);
-      setOrdersLoading(true);
-
-      try {
-        const res = await fetch("/api/account/orders", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok || !data?.ok) {
-          const msg = data?.error || `Error al cargar pedidos (HTTP ${res.status}).`;
-          throw new Error(msg);
-        }
-
-        if (!isMounted) return;
-        setOrders(Array.isArray(data?.orders) ? data.orders : []);
-      } catch (e: any) {
-        if (!isMounted) return;
-        setOrdersErr(e?.message || "Error al cargar pedidos.");
-        setOrders([]);
-      } finally {
-        if (!isMounted) return;
-        setOrdersLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      isMounted = false;
-    };
-  }, [active]);
-
-  return (
-    <div className="mx-auto max-w-6xl">
-      {/* Breadcrumb + logout */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-neutral-400">
-          <Link href="/" className="hover:text-lime-300 text-neutral-300">
-            Inicio
-          </Link>
-          <span className="mx-2 text-neutral-600">/</span>
-          <span className="text-neutral-200">Mi cuenta</span>
-        </div>
-
-        <button
-          onClick={() => signOut({ callbackUrl: "/cuenta" })}
-          className="rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm font-bold text-neutral-200 hover:bg-black/35"
-        >
-          Cerrar sesión
-        </button>
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Mi cuenta
-        </h1>
-        <p className="mt-2 text-sm text-neutral-400">{userEmail}</p>
-      </div>
-
-      {/* Layout */}
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        {/* Sidebar */}
-        <aside className="rounded-2xl border border-neutral-800 bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)] overflow-hidden">
-          <div className="px-5 py-4 border-b border-neutral-800">
-            <p className="text-xs font-extrabold tracking-[.16em] text-lime-300/90">
-              MI CUENTA
-            </p>
-            <p className="mt-1 text-sm text-neutral-400">
-              Gestiona tus datos y revisa tu historial.
-            </p>
-          </div>
-
-          <nav className="p-2">
-            {items.map((it) => {
-              const isActive = it.key === active;
-              return (
-                <Link
-                  key={it.key}
-                  href={it.href}
-                  className={[
-                    "flex items-center gap-3 rounded-xl px-3 py-3 transition border",
-                    isActive
-                      ? "border-lime-400/35 bg-lime-400/10 text-white"
-                      : "border-transparent hover:border-neutral-800 hover:bg-black/20 text-neutral-200",
-                  ].join(" ")}
-                >
-                  <span
-                    className={[
-                      "inline-flex h-9 w-9 items-center justify-center rounded-xl border",
-                      isActive
-                        ? "border-lime-400/30 bg-black/30"
-                        : "border-neutral-800 bg-black/20",
-                    ].join(" ")}
-                  >
-                    {it.icon}
-                  </span>
-
-                  <div className="min-w-0">
-                    <div className="font-bold leading-tight">{it.label}</div>
-                    <div className="text-xs text-neutral-500">
-                      {subtitleFor(it.key)}
-                    </div>
-                  </div>
-
-                  <span
-                    className={[
-                      "ml-auto text-xs font-extrabold px-2 py-1 rounded-full border",
-                      isActive
-                        ? "border-lime-400/30 text-lime-300 bg-black/20"
-                        : "border-neutral-800 text-neutral-500 bg-black/10",
-                    ].join(" ")}
-                  >
-                    {isActive ? "Activo" : "Ver"}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
-
-        {/* Content */}
-        <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)] overflow-hidden">
-          <div className="px-6 py-5 border-b border-neutral-800">
-            <h2 className="text-xl font-extrabold text-white">{titleFor(active)}</h2>
-            <p className="mt-1 text-sm text-neutral-400">{descFor(active)}</p>
-          </div>
-
-          <div className="p-6">
-            {active === "compras" && (
-              <div className="space-y-4">
-                {ordersLoading && <SkeletonOrders />}
-
-                {!ordersLoading && ordersErr && (
-                  <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-4 text-sm text-red-200">
-                    {ordersErr}
-                  </div>
-                )}
-
-                {!ordersLoading && orders && orders.length === 0 && (
-                  <EmptyBlock
-                    title="Aún no tienes compras"
-                    text="Cuando hagas un pedido logueado, aparecerá aquí."
-                    hint='Tip: asegúrate de estar logueado y luego hacer el checkout.'
-                  />
-                )}
-
-                {!ordersLoading && orders && orders.length > 0 && (
-                  <div className="space-y-4">
-                    {orders.map((o) => (
-                      <OrderCard key={o.id} order={o} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {active === "datos" && <ProfileForm userEmail={userEmail} />}
-
-            {active === "direcciones" && (
-              <EmptyBlock
-                title="Direcciones"
-                text="Aquí irá el CRUD de direcciones (tabla Address) y marcar una como default."
-                hint="Luego hacemos /api/account/addresses (GET/POST/PUT/DELETE)."
-              />
-            )}
-
-            {active === "facturacion" && (
-              <EmptyBlock
-                title="Datos de facturación"
-                text="Aquí podrás guardar datos para boleta/factura."
-                hint="Si quieres facturación real, conviene crear un modelo BillingProfile en Prisma."
-              />
-            )}
-
-            {active === "password" && (
-              <EmptyBlock
-                title="Contraseña"
-                text="Aquí irá el cambio de contraseña (actual + nueva)."
-                hint="Se valida la actual con bcrypt y se actualiza passwordHash."
-              />
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+function clp(n: number) {
+  try {
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+      maximumFractionDigits: 0,
+    }).format(n);
+  } catch {
+    return `$${n}`;
+  }
 }
 
-function ProfileForm({ userEmail }: { userEmail: string }) {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [okMsg, setOkMsg] = useState<string | null>(null);
-
-  const [form, setForm] = useState<Profile>({
-    name: "",
-    lastName: "",
-    phone: "",
-    rut: "",
-    email: userEmail,
+async function apiJSON<T>(url: string, init?: RequestInit): Promise<ApiOk<T> | ApiErr> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers || {}),
+    },
   });
+  const data = await res.json().catch(() => null);
+  if (!data) return { ok: false, error: "Respuesta inválida del servidor." };
+  return data;
+}
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setErr(null);
-      setOkMsg(null);
-      setLoading(true);
-      try {
-        const r = await fetch("/api/account/profile", { cache: "no-store" });
-        const j = await r.json().catch(() => null);
-
-        if (!r.ok || !j?.ok) {
-          throw new Error(j?.error || `No se pudo cargar perfil (HTTP ${r.status}).`);
-        }
-
-        const u = j.user as any;
-
-        if (!mounted) return;
-        setForm({
-          name: String(u?.name ?? "").trim(),
-          lastName: String(u?.lastName ?? "").trim(),
-          phone: String(u?.phone ?? "").trim(),
-          rut: String(u?.rut ?? "").trim(),
-          email: String(u?.email ?? userEmail).trim(),
-        });
-      } catch (e: any) {
-        if (!mounted) return;
-        setErr(e?.message || "Error al cargar datos.");
-      } finally {
-        if (!mounted) return;
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [userEmail]);
-
-  const onSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErr(null);
-    setOkMsg(null);
-
-    const name = form.name.trim();
-    if (!name) {
-      setErr("El nombre es obligatorio.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const r = await fetch("/api/account/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          lastName: form.lastName,
-          phone: form.phone,
-          rut: form.rut,
-        }),
-      });
-
-      const j = await r.json().catch(() => null);
-      if (!r.ok || !j?.ok) {
-        throw new Error(j?.error || `No se pudo guardar (HTTP ${r.status}).`);
-      }
-
-      setOkMsg("Datos actualizados correctamente.");
-    } catch (e: any) {
-      setErr(e?.message || "Error al guardar.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="rounded-2xl border border-neutral-800 bg-black/20 p-5 animate-pulse">
-        <div className="h-4 w-48 bg-neutral-800 rounded mb-3" />
-        <div className="h-3 w-64 bg-neutral-800 rounded mb-2" />
-        <div className="h-3 w-40 bg-neutral-800 rounded" />
-      </div>
-    );
-  }
-
+function TabButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <form onSubmit={onSave} className="space-y-4">
-      <div className="rounded-2xl border border-neutral-800 bg-black/20 p-5">
-        <div className="text-lg font-extrabold text-white">Datos personales</div>
-        <p className="mt-2 text-sm text-neutral-300">
-          Estos datos se usan para pre-rellenar el checkout y acelerar tu compra.
-        </p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Field
-            label="Nombre"
-            value={form.name}
-            onChange={(v) => setForm((s) => ({ ...s, name: v }))}
-            placeholder="Ej: Emilio"
-          />
-          <Field
-            label="Apellido"
-            value={form.lastName}
-            onChange={(v) => setForm((s) => ({ ...s, lastName: v }))}
-            placeholder="Ej: Recabarren"
-          />
-          <Field
-            label="Teléfono"
-            value={form.phone}
-            onChange={(v) => setForm((s) => ({ ...s, phone: v }))}
-            placeholder="+56 9 1234 5678"
-          />
-          <Field
-            label="RUT"
-            value={form.rut}
-            onChange={(v) => setForm((s) => ({ ...s, rut: v }))}
-            placeholder="12.345.678-9"
-          />
-        </div>
-
-        <div className="mt-4 text-xs text-neutral-500">
-          Correo asociado: <span className="text-neutral-200 font-bold">{form.email}</span>
-        </div>
-
-        {err && (
-          <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-200">
-            {err}
-          </div>
-        )}
-
-        {okMsg && (
-          <div className="mt-4 rounded-2xl border border-lime-400/25 bg-lime-400/10 p-3 text-sm text-lime-200">
-            {okMsg}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="mt-4 w-full rounded-2xl bg-lime-400 px-4 py-2.5 font-extrabold text-neutral-950 hover:brightness-110 disabled:opacity-60"
-        >
-          {saving ? "Guardando..." : "Guardar cambios"}
-        </button>
-      </div>
-    </form>
+    <button
+      onClick={onClick}
+      className={[
+        "w-full text-left flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition",
+        active
+          ? "border-lime-400/40 bg-lime-400/10"
+          : "border-white/10 bg-white/5 hover:bg-white/7",
+      ].join(" ")}
+    >
+      <span className="text-sm font-semibold">{label}</span>
+      <span
+        className={[
+          "text-xs px-2 py-1 rounded-full",
+          active ? "bg-lime-400/15 text-lime-300" : "bg-white/5 text-white/60",
+        ].join(" ")}
+      >
+        {active ? "Activo" : "Ver"}
+      </span>
+    </button>
   );
 }
 
 function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-white/70 mb-2">{label}</span>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-lime-400/30"
+      />
+    </label>
+  );
+}
+
+function TextArea({
   label,
   value,
   onChange,
@@ -486,264 +166,709 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <div>
-      <label className="block text-sm text-neutral-300 mb-1">{label}</label>
-      <div className="flex items-center gap-2 rounded-2xl border border-neutral-800 bg-black/25 px-3">
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full bg-transparent py-2.5 text-neutral-100 placeholder-neutral-500 outline-none"
-        />
-      </div>
-    </div>
+    <label className="block">
+      <span className="block text-xs text-white/70 mb-2">{label}</span>
+      <textarea
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full min-h-[96px] rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-lime-400/30"
+      />
+    </label>
   );
 }
 
-function subtitleFor(key: TabKey) {
-  switch (key) {
-    case "compras":
-      return "Historial de pedidos";
-    case "datos":
-      return "Tu información básica";
-    case "direcciones":
-      return "Envíos y retiro";
-    case "facturacion":
-      return "Boleta y factura";
-    case "password":
-      return "Seguridad de la cuenta";
-  }
-}
+export default function PanelClient({ initialTab }: { initialTab: string }) {
+  const initial: TabKey = (["compras", "datos", "direcciones", "facturacion", "password"].includes(initialTab)
+    ? initialTab
+    : "compras") as TabKey;
 
-function titleFor(key: TabKey) {
-  switch (key) {
-    case "compras":
-      return "Compras";
-    case "datos":
-      return "Datos personales";
-    case "direcciones":
-      return "Direcciones";
-    case "facturacion":
-      return "Datos de facturación";
-    case "password":
-      return "Contraseña";
-  }
-}
+  const [tab, setTab] = useState<TabKey>(initial);
 
-function descFor(key: TabKey) {
-  switch (key) {
-    case "compras":
-      return "Revisa tus pedidos y sus estados.";
-    case "datos":
-      return "Actualiza tus datos personales.";
-    case "direcciones":
-      return "Gestiona tus direcciones guardadas.";
-    case "facturacion":
-      return "Guarda datos para boletas y facturas.";
-    case "password":
-      return "Actualiza tu contraseña de acceso.";
-  }
-}
+  // Estado global
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
-function EmptyBlock({
-  title,
-  text,
-  hint,
-}: {
-  title: string;
-  text: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-neutral-800 bg-black/20 p-5">
-      <div className="text-lg font-extrabold text-white">{title}</div>
-      <p className="mt-2 text-sm text-neutral-300">{text}</p>
-      {hint ? <p className="mt-3 text-xs text-neutral-500">{hint}</p> : null}
-    </div>
+  // Datos personales
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [pName, setPName] = useState("");
+  const [pLastName, setPLastName] = useState("");
+  const [pPhone, setPPhone] = useState("");
+  const [pRut, setPRut] = useState("");
+
+  // Compras
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersTotal, setOrdersTotal] = useState(0);
+  const pageSize = 10;
+
+  // Direcciones
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addrMode, setAddrMode] = useState<"list" | "create" | "edit">("list");
+  const [addrEditId, setAddrEditId] = useState<string | null>(null);
+
+  const [aFullName, setAFullName] = useState("");
+  const [aPhone, setAPhone] = useState("");
+  const [aStreet, setAStreet] = useState("");
+  const [aNumber, setANumber] = useState("");
+  const [aApartment, setAApartment] = useState("");
+  const [aCity, setACity] = useState("");
+  const [aCommune, setACommune] = useState("");
+  const [aRegion, setARegion] = useState("");
+  const [aCountry, setACountry] = useState("Chile");
+  const [aDefault, setADefault] = useState(false);
+
+  // Facturación
+  const [billing, setBilling] = useState<BillingProfile>({
+    documentType: "BOLETA",
+    razonSocial: null,
+    rutEmpresa: null,
+    giro: null,
+    address: null,
+    city: null,
+    commune: null,
+    region: null,
+  });
+
+  // Password
+  const [curPass, setCurPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [newPass2, setNewPass2] = useState("");
+
+  const tabs: { key: TabKey; label: string; subtitle: string }[] = useMemo(
+    () => [
+      { key: "compras", label: "Compras", subtitle: "Historial de pedidos" },
+      { key: "datos", label: "Datos personales", subtitle: "Tu información básica" },
+      { key: "direcciones", label: "Direcciones", subtitle: "Envíos y retiro" },
+      { key: "facturacion", label: "Datos de facturación", subtitle: "Boleta y factura" },
+      { key: "password", label: "Contraseña", subtitle: "Seguridad de tu cuenta" },
+    ],
+    []
   );
-}
 
-function SkeletonOrders() {
+  function pushToast(type: "ok" | "err", msg: string) {
+    setToast({ type, msg });
+    window.setTimeout(() => setToast(null), 3500);
+  }
+
+  // Load base (profile + billing) una vez
+  useEffect(() => {
+    (async () => {
+      const res = await apiJSON<{ user: UserProfile }>("/api/account/profile");
+      if (!res.ok) return pushToast("err", res.error);
+
+      setProfile(res.user);
+      setPName(res.user.name || "");
+      setPLastName(res.user.lastName || "");
+      setPPhone(res.user.phone || "");
+      setPRut(res.user.rut || "");
+
+      const b = await apiJSON<{ billingProfile: BillingProfile | null }>("/api/account/billing");
+      if (b.ok && b.billingProfile) setBilling(b.billingProfile);
+    })();
+  }, []);
+
+  // Load orders al entrar a compras / cambiar página
+  useEffect(() => {
+    if (tab !== "compras") return;
+    (async () => {
+      const url = `/api/account/orders?page=${ordersPage}&pageSize=${pageSize}`;
+      const res = await apiJSON<{ orders: Order[]; total: number }>(url);
+      if (!res.ok) return pushToast("err", res.error);
+      setOrders(res.orders || []);
+      setOrdersTotal(res.total || 0);
+    })();
+  }, [tab, ordersPage]);
+
+  // Load addresses al entrar a direcciones
+  useEffect(() => {
+    if (tab !== "direcciones") return;
+    (async () => {
+      const res = await apiJSON<{ addresses: Address[] }>("/api/account/addresses");
+      if (!res.ok) return pushToast("err", res.error);
+      setAddresses(res.addresses || []);
+      setAddrMode("list");
+    })();
+  }, [tab]);
+
+  function resetAddressForm() {
+    setAFullName("");
+    setAPhone("");
+    setAStreet("");
+    setANumber("");
+    setAApartment("");
+    setACity("");
+    setACommune("");
+    setARegion("");
+    setACountry("Chile");
+    setADefault(false);
+    setAddrEditId(null);
+  }
+
+  function fillAddressForm(a: Address) {
+    setAFullName(a.fullName || "");
+    setAPhone(a.phone || "");
+    setAStreet(a.street || "");
+    setANumber(a.number || "");
+    setAApartment(a.apartment || "");
+    setACity(a.city || "");
+    setACommune(a.commune || "");
+    setARegion(a.region || "");
+    setACountry(a.country || "Chile");
+    setADefault(Boolean(a.isDefault));
+    setAddrEditId(a.id);
+  }
+
+  async function saveProfile() {
+    setLoading(true);
+    const res = await apiJSON<{ user: UserProfile }>("/api/account/profile", {
+      method: "PUT",
+      body: JSON.stringify({
+        name: pName,
+        lastName: pLastName,
+        phone: pPhone,
+        rut: pRut,
+      }),
+    });
+    setLoading(false);
+
+    if (!res.ok) return pushToast("err", res.error);
+    setProfile(res.user);
+    pushToast("ok", "Datos personales actualizados.");
+  }
+
+  async function loadAddresses() {
+    const res = await apiJSON<{ addresses: Address[] }>("/api/account/addresses");
+    if (!res.ok) return pushToast("err", res.error);
+    setAddresses(res.addresses || []);
+  }
+
+  async function createAddress() {
+    setLoading(true);
+    const res = await apiJSON<{ address: Address }>("/api/account/addresses", {
+      method: "POST",
+      body: JSON.stringify({
+        fullName: aFullName,
+        phone: aPhone,
+        street: aStreet,
+        number: aNumber,
+        apartment: aApartment,
+        city: aCity,
+        commune: aCommune,
+        region: aRegion,
+        country: aCountry,
+        isDefault: aDefault,
+      }),
+    });
+    setLoading(false);
+
+    if (!res.ok) return pushToast("err", res.error);
+    pushToast("ok", "Dirección creada.");
+    await loadAddresses();
+    setAddrMode("list");
+    resetAddressForm();
+  }
+
+  async function updateAddress() {
+    if (!addrEditId) return;
+    setLoading(true);
+    const res = await apiJSON<{ address: Address }>(`/api/account/addresses/${addrEditId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        fullName: aFullName,
+        phone: aPhone,
+        street: aStreet,
+        number: aNumber,
+        apartment: aApartment,
+        city: aCity,
+        commune: aCommune,
+        region: aRegion,
+        country: aCountry,
+        isDefault: aDefault,
+      }),
+    });
+    setLoading(false);
+
+    if (!res.ok) return pushToast("err", res.error);
+    pushToast("ok", "Dirección actualizada.");
+    await loadAddresses();
+    setAddrMode("list");
+    resetAddressForm();
+  }
+
+  async function deleteAddress(id: string) {
+    if (!confirm("¿Eliminar esta dirección?")) return;
+    setLoading(true);
+    const res = await apiJSON<{}>(`/api/account/addresses/${id}`, { method: "DELETE" });
+    setLoading(false);
+
+    if (!res.ok) return pushToast("err", res.error);
+    pushToast("ok", "Dirección eliminada.");
+    await loadAddresses();
+  }
+
+  async function saveBilling() {
+    setLoading(true);
+    const res = await apiJSON<{ billingProfile: BillingProfile }>("/api/account/billing", {
+      method: "PUT",
+      body: JSON.stringify(billing),
+    });
+    setLoading(false);
+
+    if (!res.ok) return pushToast("err", res.error);
+    setBilling(res.billingProfile);
+    pushToast("ok", "Datos de facturación guardados.");
+  }
+
+  async function changePassword() {
+    setLoading(true);
+    const res = await apiJSON<{}>("/api/account/password", {
+      method: "PUT",
+      body: JSON.stringify({
+        currentPassword: curPass,
+        newPassword: newPass,
+        confirmPassword: newPass2,
+      }),
+    });
+    setLoading(false);
+
+    if (!res.ok) return pushToast("err", res.error);
+    setCurPass("");
+    setNewPass("");
+    setNewPass2("");
+    pushToast("ok", "Contraseña actualizada.");
+  }
+
+  const ordersMaxPage = Math.max(1, Math.ceil(ordersTotal / pageSize));
+
   return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }).map((_, i) => (
+    <div className="rb-container py-10">
+     <div className="mb-6 flex items-center justify-between">
+  <div>
+    <div className="text-white/60 text-sm mb-2">Inicio / Mi cuenta</div>
+    <h1 className="text-3xl font-extrabold text-white">Mi cuenta</h1>
+    <div className="text-white/60 mt-1 text-sm">{profile?.email || ""}</div>
+  </div>
+
+  <button
+    onClick={() => signOut({ callbackUrl: "/" })}
+    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+  >
+    Cerrar sesión
+  </button>
+</div>
+
+      {toast && (
         <div
-          key={i}
-          className="rounded-2xl border border-neutral-800 bg-black/20 p-4 animate-pulse"
+          className={[
+            "mb-6 rounded-xl border px-4 py-3 text-sm",
+            toast.type === "ok"
+              ? "border-lime-400/30 bg-lime-400/10 text-lime-200"
+              : "border-red-500/30 bg-red-500/10 text-red-200",
+          ].join(" ")}
         >
-          <div className="h-4 w-48 bg-neutral-800 rounded mb-3" />
-          <div className="h-3 w-64 bg-neutral-800 rounded mb-2" />
-          <div className="h-3 w-40 bg-neutral-800 rounded" />
+          {toast.msg}
         </div>
-      ))}
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+        {/* Sidebar */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="text-xs tracking-widest text-lime-300/80 font-bold">MI CUENTA</div>
+          <div className="text-xs text-white/60 mb-4">Gestiona tus datos y revisa tu historial.</div>
+
+          <div className="space-y-3">
+            {tabs.map((t) => (
+              <TabButton
+                key={t.key}
+                active={tab === t.key}
+                label={t.label}
+                onClick={() => {
+                  setTab(t.key);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", t.key);
+                  window.history.replaceState({}, "", url.toString());
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          {tab === "compras" && (
+            <div>
+              <h2 className="text-xl font-bold text-white">Compras</h2>
+              <div className="text-sm text-white/60 mt-1">Revisa tus pedidos y sus estados.</div>
+
+              <div className="mt-6 space-y-4">
+                {orders.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+                    <div className="text-white font-semibold">Aún no tienes compras</div>
+                    <div className="text-white/60 text-sm mt-2">
+                      Cuando hagas un pedido logueado, aparecerá aquí.
+                    </div>
+                  </div>
+                ) : (
+                  orders.map((o) => (
+                    <div
+                      key={o.id}
+                      className="rounded-2xl border border-white/10 bg-black/30 p-5"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                        <div>
+                          <div className="text-white font-bold">
+                            Pedido <span className="text-white/60 text-sm font-mono">{o.id}</span>
+                          </div>
+                          <div className="text-white/60 text-sm mt-1">
+                            {new Date(o.createdAt).toLocaleString("es-CL")}
+                            {o.paymentDueAt ? (
+                              <> · Vence: {new Date(o.paymentDueAt).toLocaleString("es-CL")}</>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                            <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+                              {o.status}
+                            </span>
+                            <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+                              {o.paymentMethod === "TRANSFER" ? "Transferencia" : "Tarjeta"}
+                            </span>
+                            <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+                              {o.shippingMethod === "PICKUP" ? "Retiro" : "Despacho"}
+                            </span>
+                            <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+                              {o.items.reduce((acc, it) => acc + it.quantity, 0)} item(s)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="min-w-[240px] rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <div className="text-xs text-white/60 font-semibold mb-3">RESUMEN</div>
+                          <div className="flex items-center justify-between text-sm text-white/80">
+                            <span>Subtotal</span>
+                            <span className="font-semibold">{clp(o.subtotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm text-white/80 mt-2">
+                            <span>Envío</span>
+                            <span className="font-semibold">{clp(o.shippingCost)}</span>
+                          </div>
+                          <div className="border-t border-white/10 my-3" />
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-white font-bold">TOTAL</span>
+                            <span className="text-lime-300 font-extrabold">{clp(o.total)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 border-t border-white/10 pt-4">
+                        <div className="text-sm text-white font-semibold mb-2">Productos</div>
+                        <div className="space-y-2">
+                          {o.items.map((it) => (
+                            <div
+                              key={it.id}
+                              className="flex items-center justify-between text-sm text-white/80"
+                            >
+                              <span>
+                                {it.productName} <span className="text-white/50">x{it.quantity}</span>
+                              </span>
+                              <span className="font-semibold">{clp(it.unitPrice * it.quantity)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {ordersTotal > 0 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      disabled={ordersPage <= 1}
+                      onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
+                      className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 disabled:opacity-40"
+                    >
+                      Anterior
+                    </button>
+                    <div className="text-sm text-white/60">
+                      Página {ordersPage} de {ordersMaxPage}
+                    </div>
+                    <button
+                      disabled={ordersPage >= ordersMaxPage}
+                      onClick={() => setOrdersPage((p) => Math.min(ordersMaxPage, p + 1))}
+                      className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 disabled:opacity-40"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === "datos" && (
+            <div>
+              <h2 className="text-xl font-bold text-white">Datos personales</h2>
+              <div className="text-sm text-white/60 mt-1">Actualiza tus datos personales.</div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Nombre" value={pName} onChange={setPName} placeholder="Ej: Emilio" />
+                  <Field label="Apellido" value={pLastName} onChange={setPLastName} placeholder="Ej: Recabarren" />
+                  <Field label="Teléfono" value={pPhone} onChange={setPPhone} placeholder="Ej: +56 9 1234 5678" />
+                  <Field label="RUT" value={pRut} onChange={setPRut} placeholder="Ej: 12.345.678-9" />
+                </div>
+
+                <button
+                  disabled={loading}
+                  onClick={saveProfile}
+                  className="mt-5 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-extrabold text-black disabled:opacity-60"
+                >
+                  Guardar cambios
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "direcciones" && (
+            <div>
+              <h2 className="text-xl font-bold text-white">Direcciones</h2>
+              <div className="text-sm text-white/60 mt-1">Gestiona tus direcciones guardadas.</div>
+
+              {addrMode === "list" && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-white/60">
+                      {addresses.length ? `${addresses.length} dirección(es)` : "No tienes direcciones guardadas."}
+                    </div>
+                    <button
+                      onClick={() => {
+                        resetAddressForm();
+                        setAddrMode("create");
+                      }}
+                      className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-bold text-black"
+                    >
+                      Agregar dirección
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {addresses.map((a) => (
+                      <div key={a.id} className="rounded-2xl border border-white/10 bg-black/30 p-5">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                          <div>
+                            <div className="text-white font-bold flex items-center gap-2">
+                              {a.fullName}
+                              {a.isDefault && (
+                                <span className="text-xs px-2 py-1 rounded-full bg-lime-400/15 text-lime-300 border border-lime-400/20">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-white/70 text-sm mt-1">{a.phone}</div>
+                            <div className="text-white/70 text-sm mt-2">
+                              {a.street} {a.number || ""} {a.apartment ? `Depto ${a.apartment}` : ""}
+                            </div>
+                            <div className="text-white/60 text-sm mt-1">
+                              {(a.commune || a.city || "")} · {a.region} · {a.country}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                fillAddressForm(a);
+                                setAddrMode("edit");
+                              }}
+                              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => deleteAddress(a.id)}
+                              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(addrMode === "create" || addrMode === "edit") && (
+                <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-white font-bold">
+                      {addrMode === "create" ? "Nueva dirección" : "Editar dirección"}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAddrMode("list");
+                        resetAddressForm();
+                      }}
+                      className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80"
+                    >
+                      Volver
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Nombre completo" value={aFullName} onChange={setAFullName} />
+                    <Field label="Teléfono" value={aPhone} onChange={setAPhone} />
+                    <Field label="Calle" value={aStreet} onChange={setAStreet} />
+                    <Field label="Número" value={aNumber} onChange={setANumber} />
+                    <Field label="Depto / Casa" value={aApartment} onChange={setAApartment} />
+                    <Field label="Ciudad" value={aCity} onChange={setACity} placeholder="Opcional si usas comuna" />
+                    <Field label="Comuna" value={aCommune} onChange={setACommune} placeholder="Opcional si usas ciudad" />
+                    <Field label="Región" value={aRegion} onChange={setARegion} />
+                    <Field label="País" value={aCountry} onChange={setACountry} />
+                    <label className="flex items-center gap-3 mt-2">
+                      <input
+                        type="checkbox"
+                        checked={aDefault}
+                        onChange={(e) => setADefault(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm text-white/80">Marcar como dirección default</span>
+                    </label>
+                  </div>
+
+                  <button
+                    disabled={loading}
+                    onClick={addrMode === "create" ? createAddress : updateAddress}
+                    className="mt-5 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-extrabold text-black disabled:opacity-60"
+                  >
+                    {addrMode === "create" ? "Guardar dirección" : "Guardar cambios"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "facturacion" && (
+            <div>
+              <h2 className="text-xl font-bold text-white">Datos de facturación</h2>
+              <div className="text-sm text-white/60 mt-1">Guarda datos para boletas y facturas.</div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="block">
+                    <span className="block text-xs text-white/70 mb-2">Tipo de documento</span>
+                    <select
+                      value={billing.documentType}
+                      onChange={(e) =>
+                        setBilling((b) => ({
+                          ...b,
+                          documentType: e.target.value as BillingProfile["documentType"],
+                        }))
+                      }
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-lime-400/30"
+                    >
+                      <option value="BOLETA">Boleta</option>
+                      <option value="FACTURA">Factura</option>
+                    </select>
+                  </label>
+
+                  <div className="md:col-span-2 border-t border-white/10 my-2" />
+
+                  <Field
+                    label="Razón social"
+                    value={billing.razonSocial || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, razonSocial: v }))}
+                    placeholder="Solo si es factura"
+                  />
+                  <Field
+                    label="RUT empresa"
+                    value={billing.rutEmpresa || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, rutEmpresa: v }))}
+                    placeholder="Solo si es factura"
+                  />
+                  <Field
+                    label="Giro"
+                    value={billing.giro || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, giro: v }))}
+                    placeholder="Opcional"
+                  />
+                  <Field
+                    label="Dirección"
+                    value={billing.address || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, address: v }))}
+                    placeholder="Opcional"
+                  />
+                  <Field
+                    label="Ciudad"
+                    value={billing.city || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, city: v }))}
+                    placeholder="Opcional"
+                  />
+                  <Field
+                    label="Comuna"
+                    value={billing.commune || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, commune: v }))}
+                    placeholder="Opcional"
+                  />
+                  <Field
+                    label="Región"
+                    value={billing.region || ""}
+                    onChange={(v) => setBilling((b) => ({ ...b, region: v }))}
+                    placeholder="Opcional"
+                  />
+                </div>
+
+                <button
+                  disabled={loading}
+                  onClick={saveBilling}
+                  className="mt-5 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-extrabold text-black disabled:opacity-60"
+                >
+                  Guardar datos de facturación
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "password" && (
+            <div>
+              <h2 className="text-xl font-bold text-white">Contraseña</h2>
+              <div className="text-sm text-white/60 mt-1">Actualiza tu contraseña de acceso.</div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field
+                    label="Contraseña actual"
+                    value={curPass}
+                    onChange={setCurPass}
+                    type="password"
+                  />
+                  <div />
+                  <Field
+                    label="Nueva contraseña"
+                    value={newPass}
+                    onChange={setNewPass}
+                    type="password"
+                  />
+                  <Field
+                    label="Confirmar nueva contraseña"
+                    value={newPass2}
+                    onChange={setNewPass2}
+                    type="password"
+                  />
+                </div>
+
+                <button
+                  disabled={loading}
+                  onClick={changePassword}
+                  className="mt-5 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-extrabold text-black disabled:opacity-60"
+                >
+                  Cambiar contraseña
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
-}
-
-function OrderCard({ order }: { order: Order }) {
-  const date = safeDate(order.createdAt);
-  const total = moneyCLP(order.total);
-
-  const status = statusLabel(order.status);
-  const statusTone = statusClass(order.status);
-
-  const pay = order.paymentMethod === "TRANSFER" ? "Transferencia" : "Tarjeta";
-  const ship = order.shippingMethod === "PICKUP" ? "Retiro" : "Envío";
-
-  return (
-    <div className="rounded-2xl border border-neutral-800 bg-black/20 overflow-hidden">
-      <div className="p-4 md:p-5 border-b border-neutral-800 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm text-neutral-400">Pedido</div>
-            <div className="font-extrabold text-white truncate">
-              #{order.id.slice(-8).toUpperCase()}
-            </div>
-
-            <span
-              className={`ml-0 md:ml-2 inline-flex items-center rounded-full border px-2 py-1 text-xs font-extrabold ${statusTone}`}
-            >
-              {status}
-            </span>
-
-            <span className="inline-flex items-center rounded-full border border-neutral-800 bg-black/10 px-2 py-1 text-xs font-extrabold text-neutral-200">
-              {ship}
-            </span>
-
-            <span className="inline-flex items-center rounded-full border border-neutral-800 bg-black/10 px-2 py-1 text-xs font-extrabold text-neutral-200">
-              {pay}
-            </span>
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400">
-            <span>
-              Fecha: <span className="text-neutral-200">{date}</span>
-            </span>
-            <span>
-              Total: <span className="text-neutral-200">{total}</span>
-            </span>
-          </div>
-        </div>
-
-        {order.shipment?.trackingCode ? (
-          <div className="text-xs text-neutral-400">
-            Tracking:{" "}
-            <span className="text-neutral-200 font-bold">
-              {order.shipment.trackingCode}
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="p-4 md:p-5">
-        <div className="text-sm font-extrabold text-white">Productos</div>
-
-        <div className="mt-3 space-y-2">
-          {order.items?.map((it) => (
-            <div
-              key={it.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-black/10 px-3 py-2"
-            >
-              <div className="min-w-0">
-                <div className="font-bold text-neutral-200 truncate">
-                  {it.productName}
-                </div>
-                <div className="text-xs text-neutral-500">
-                  {it.quantity} × {moneyCLP(it.unitPrice)}
-                </div>
-              </div>
-              <div className="text-sm font-extrabold text-white">
-                {moneyCLP(it.unitPrice * it.quantity)}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {(order.notes || order.shipment?.pickupLocation) ? (
-          <div className="mt-4 rounded-xl border border-neutral-800 bg-black/10 p-3">
-            {order.notes ? (
-              <div className="text-xs text-neutral-400">
-                Nota: <span className="text-neutral-200">{order.notes}</span>
-              </div>
-            ) : null}
-
-            {order.shipment?.pickupLocation ? (
-              <div className="mt-2 text-xs text-neutral-400">
-                Dirección (guest):{" "}
-                <span className="text-neutral-200">
-                  {order.shipment.pickupLocation}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function moneyCLP(n: number) {
-  try {
-    return new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: "CLP",
-      maximumFractionDigits: 0,
-    }).format(Number(n || 0));
-  } catch {
-    return `$${Number(n || 0)}`;
-  }
-}
-
-function safeDate(iso: string) {
-  try {
-    const d = new Date(iso);
-    return new Intl.DateTimeFormat("es-CL", {
-      year: "numeric",
-      month: "long",
-      day: "2-digit",
-    }).format(d);
-  } catch {
-    return iso;
-  }
-}
-
-function statusLabel(s: OrderStatus) {
-  switch (s) {
-    case "PENDING_PAYMENT":
-      return "Pendiente de pago";
-    case "PAID":
-      return "Pagado";
-    case "PREPARING":
-      return "Preparando";
-    case "SHIPPED":
-      return "Enviado";
-    case "DELIVERED":
-      return "Entregado";
-    case "COMPLETED":
-      return "Completado";
-    case "CANCELLED":
-      return "Cancelado";
-    default:
-      return s;
-  }
-}
-
-function statusClass(s: OrderStatus) {
-  switch (s) {
-    case "PENDING_PAYMENT":
-      return "border-amber-400/30 bg-amber-400/10 text-amber-200";
-    case "PAID":
-      return "border-lime-400/30 bg-lime-400/10 text-lime-200";
-    case "PREPARING":
-      return "border-sky-400/30 bg-sky-400/10 text-sky-200";
-    case "SHIPPED":
-      return "border-indigo-400/30 bg-indigo-400/10 text-indigo-200";
-    case "DELIVERED":
-    case "COMPLETED":
-      return "border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
-    case "CANCELLED":
-      return "border-red-400/30 bg-red-400/10 text-red-200";
-    default:
-      return "border-neutral-700 bg-black/10 text-neutral-200";
-  }
 }

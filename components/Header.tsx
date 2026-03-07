@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "./CartContext";
 import CartDrawer from "./CartDrawer";
 import GamesMegaMenu from "./GamesMegaMenu";
@@ -20,11 +21,15 @@ import {
 } from "react-icons/fa";
 
 export default function Header() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { toggleCart } = useCart();
 
-  const [menuOpen, setMenuOpen] = useState(false); // mega de Computadores Armados
+  const [menuOpen, setMenuOpen] = useState(false);
   const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 1024);
@@ -32,6 +37,11 @@ export default function Header() {
     window.addEventListener("resize", calc);
     return () => window.removeEventListener("resize", calc);
   }, []);
+
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    setQuery(q);
+  }, [searchParams]);
 
   const openMenuSoft = () => {
     if (isMobile) return;
@@ -51,9 +61,21 @@ export default function Header() {
     setMenuOpen((prev) => !prev);
   };
 
+  function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const q = query.trim();
+
+    if (!q) {
+      router.push("/productos");
+      return;
+    }
+
+    router.push(`/productos?q=${encodeURIComponent(q)}`);
+  }
+
   return (
     <header className="rb-header">
-      {/* Topbar */}
       <div className="rb-topbar">
         <div className="rb-container rb-topbar-row">
           <div className="flex items-center">
@@ -71,10 +93,8 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Main */}
       <div className="rb-main">
         <div className="rb-container rb-main-row flex items-center justify-between gap-4">
-          {/* Logo */}
           <Link href="/" className="rb-brand flex items-center gap-3 shrink-0">
             <img
               src="/logo2.png"
@@ -84,15 +104,18 @@ export default function Header() {
             <span className="rb-brand-name">RekaByte</span>
           </Link>
 
-          {/* Buscador */}
-          <div className="rb-search">
-            <input placeholder="Busca los mejores productos..." />
-            <button aria-label="Buscar">
+          <form className="rb-search" onSubmit={handleSearchSubmit}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Busca los mejores productos..."
+              aria-label="Buscar productos"
+            />
+            <button type="submit" aria-label="Buscar">
               <FaSearch />
             </button>
-          </div>
+          </form>
 
-          {/* Acciones */}
           <div className="rb-actions">
             <Link href="/cuenta" className="rb-action">
               <FaUser /> <span>Mi cuenta</span>
@@ -107,10 +130,8 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Nav + Mega */}
       <nav className="rb-nav">
         <div className="rb-container rb-nav-row">
-          {/* 1) Computadores Armados (igual que antes) */}
           <div
             className="rb-mega-wrap"
             onMouseEnter={openMenuSoft}
@@ -125,10 +146,7 @@ export default function Header() {
             ) : null}
           </div>
 
-          {/* 2) Componentes */}
           <ComponentsMenu />
-
-          {/* 3) Gaming y Streaming */}
           <GamingStreamingMenu />
         </div>
       </nav>
