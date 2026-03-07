@@ -1,12 +1,86 @@
-// app/contacto/page.tsx
-import { FaEnvelope, FaPhoneAlt, FaMapMarkerAlt, FaWhatsapp } from "react-icons/fa";
+"use client";
 
-export const metadata = {
-  title: "Contacto | RekaByte",
-  description: "Canales de contacto y soporte de RekaByte.",
-};
+import { FormEvent, useState } from "react";
+import {
+  FaEnvelope,
+  FaPhoneAlt,
+  FaMapMarkerAlt,
+  FaWhatsapp,
+} from "react-icons/fa";
 
 export default function ContactoPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{
+    type: "ok" | "error";
+    text: string;
+  } | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    setStatus(null);
+
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      subject: subject.trim(),
+      message: message.trim(),
+    };
+
+    if (!payload.name || !payload.email || !payload.subject || !payload.message) {
+      setStatus({
+        type: "error",
+        text: "Debes completar nombre, correo, asunto y mensaje.",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const resp = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok || !data?.ok) {
+        setStatus({
+          type: "error",
+          text: data?.error ?? "No se pudo enviar el mensaje. Intenta nuevamente.",
+        });
+        return;
+      }
+
+      setStatus({
+        type: "ok",
+        text: "Tu mensaje fue enviado correctamente. Te responderemos en horario hábil.",
+      });
+
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+    } catch (error) {
+      console.error("Error enviando formulario de contacto:", error);
+      setStatus({
+        type: "error",
+        text: "Ocurrió un error de red. Intenta nuevamente.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="rb-container py-10">
       <h1 className="text-center text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
@@ -84,7 +158,7 @@ export default function ContactoPage() {
             <FaEnvelope className="text-lime-400" /> Escríbenos
           </h2>
 
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm text-neutral-300" htmlFor="c-name">
@@ -94,6 +168,8 @@ export default function ContactoPage() {
                   id="c-name"
                   type="text"
                   placeholder="Tu nombre"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-lg border border-neutral-700 bg-neutral-900/70 px-3 py-2 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400"
                 />
               </div>
@@ -106,6 +182,8 @@ export default function ContactoPage() {
                   id="c-email"
                   type="email"
                   placeholder="tu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-lg border border-neutral-700 bg-neutral-900/70 px-3 py-2 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400"
                 />
               </div>
@@ -119,6 +197,8 @@ export default function ContactoPage() {
                 id="c-subject"
                 type="text"
                 placeholder="¿Sobre qué trata?"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
                 className="w-full rounded-lg border border-neutral-700 bg-neutral-900/70 px-3 py-2 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400"
               />
             </div>
@@ -130,16 +210,37 @@ export default function ContactoPage() {
               <textarea
                 id="c-msg"
                 rows={5}
-                placeholder="Cuéntanos en qué te ayudamos…"
+                placeholder="Cuéntanos en qué te ayudamos..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 className="w-full resize-y rounded-lg border border-neutral-700 bg-neutral-900/70 px-3 py-2 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400"
               />
             </div>
 
+            {status ? (
+              <div
+                className={[
+                  "rounded-lg border px-3 py-3 text-sm",
+                  status.type === "ok"
+                    ? "border-lime-400/30 bg-lime-400/10 text-lime-200"
+                    : "border-red-500/30 bg-red-500/10 text-red-200",
+                ].join(" ")}
+              >
+                {status.text}
+              </div>
+            ) : null}
+
             <button
               type="submit"
-              className="w-full rounded-lg bg-lime-400 px-4 py-2 font-semibold text-neutral-900 hover:brightness-110"
+              disabled={loading}
+              className={[
+                "w-full rounded-lg px-4 py-2 font-semibold transition",
+                loading
+                  ? "cursor-wait bg-lime-300/70 text-neutral-800"
+                  : "bg-lime-400 text-neutral-900 hover:brightness-110",
+              ].join(" ")}
             >
-              Enviar mensaje
+              {loading ? "Enviando..." : "Enviar mensaje"}
             </button>
 
             <p className="text-xs text-neutral-500">

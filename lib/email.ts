@@ -1,4 +1,3 @@
-// lib/email.ts
 import { Resend } from "resend";
 
 type PaymentMethod = "TRANSFER" | "CARD";
@@ -22,8 +21,11 @@ function getResend() {
 }
 
 function getFrom() {
-  // Ej: RekaByte <contacto@rekabyte.cl>
   return requireEnv("RESEND_FROM");
+}
+
+function getContactTo() {
+  return process.env.CONTACT_FORM_TO?.trim() || "contacto@rekabyte.cl";
 }
 
 function orderNumberNice(id: string) {
@@ -78,6 +80,7 @@ async function sendHtmlEmail(args: {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
 }): Promise<EmailSendResult> {
   try {
     const resend = getResend();
@@ -88,6 +91,7 @@ async function sendHtmlEmail(args: {
       to: args.to,
       subject: args.subject,
       html: args.html,
+      replyTo: args.replyTo,
     });
 
     return { ok: true, res };
@@ -96,6 +100,65 @@ async function sendHtmlEmail(args: {
     console.error("[email] sendHtmlEmail error:", e);
     return { ok: false, error: msg };
   }
+}
+
+/** ✅ Contacto: formulario web */
+export async function sendContactFormEmail(args: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<EmailSendResult> {
+  const to = getContactTo();
+
+  const html = `
+  <div style="background:#0b0b0b;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+    <div style="max-width:720px;margin:0 auto;border:1px solid #262626;border-radius:16px;overflow:hidden;background:#0d0d0d;">
+      <div style="padding:18px 18px 0 18px;">
+        <div style="height:4px;width:48px;background:#b6ff2e;border-radius:999px;margin-bottom:12px;"></div>
+        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:900;">Nuevo mensaje de contacto</h1>
+        <p style="margin:8px 0 0;color:#a3a3a3;font-size:14px;line-height:1.5;">
+          Recibiste un nuevo mensaje desde el formulario de contacto de RekaByte.
+        </p>
+      </div>
+
+      <div style="padding:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Nombre</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(args.name)}</div>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Correo</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(args.email)}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+          <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Asunto</div>
+          <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(args.subject)}</div>
+        </div>
+
+        <div style="margin-top:12px;border:1px solid rgba(182,255,46,0.25);background:rgba(182,255,46,0.06);border-radius:14px;padding:12px;">
+          <div style="color:#e5e7eb;font-weight:900;margin-bottom:6px;">Mensaje</div>
+          <div style="color:#d4d4d4;font-size:13px;line-height:1.6;white-space:pre-wrap;">${esc(
+            args.message
+          )}</div>
+        </div>
+
+        <p style="margin:12px 0 0;color:#737373;font-size:12px;line-height:1.5;">
+          Puedes responder directamente a este correo para contestarle al cliente.
+        </p>
+      </div>
+    </div>
+  </div>`;
+
+  return sendHtmlEmail({
+    to,
+    subject: `RekaByte Contacto — ${args.subject}`,
+    html,
+    replyTo: args.email,
+  });
 }
 
 /** ✅ Email 1: confirmación de pedido creado (checkout) */
@@ -194,7 +257,7 @@ export async function sendOrderStatusUpdateEmail(args: {
   orderId: string;
   oldStatus?: string | null;
   newStatus: string;
-  message?: string | null; // lo que escribes en el panel admin
+  message?: string | null;
 }): Promise<EmailSendResult> {
   const niceId = orderNumberNice(args.orderId);
   const newLabel = statusLabel(args.newStatus);
