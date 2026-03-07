@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCart } from "./CartContext";
 import CartDrawer from "./CartDrawer";
 import GamesMegaMenu from "./GamesMegaMenu";
@@ -22,13 +22,11 @@ import {
 
 export default function Header() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toggleCart } = useCart();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -39,9 +37,11 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    const q = searchParams.get("q") || "";
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q") || "";
     setQuery(q);
-  }, [searchParams]);
+  }, []);
 
   const openMenuSoft = () => {
     if (isMobile) return;
