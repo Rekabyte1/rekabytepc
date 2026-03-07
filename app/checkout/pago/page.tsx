@@ -1,4 +1,3 @@
-// app/checkout/pago/page.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
@@ -44,7 +43,6 @@ export default function Paso3Pago() {
       </div>
 
       <div className="cs-grid">
-        {/* IZQUIERDA */}
         <section className="cs-card">
           <div className="cs-head">
             <div className="cs-accent" />
@@ -61,6 +59,10 @@ export default function Paso3Pago() {
             onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget as HTMLFormElement);
+
+              if (metodo === "webpay") {
+                return;
+              }
 
               const documento = doc;
 
@@ -83,7 +85,6 @@ export default function Paso3Pago() {
               router.push("/checkout/confirmacion");
             }}
           >
-            {/* Métodos */}
             <div className="cs-block">
               <div className="cs-block-title">Método de pago</div>
 
@@ -94,26 +95,48 @@ export default function Paso3Pago() {
                     ["mercadopago", "Mercado Pago", prices.mercadopago],
                     ["webpay", "Webpay", prices.webpay],
                   ] as const
-                ).map(([key, label, price]) => (
-                  <label key={key} className={`cs-choice ${metodo === key ? "is-selected" : ""}`}>
-                    <input
-                      type="radio"
-                      name="metodo"
-                      value={key}
-                      checked={metodo === key}
-                      onChange={() => setMetodo(key)}
-                    />
-                    <div className="cs-choice-body">
-                      <div className="cs-choice-title">{label}</div>
-                      <div className="cs-choice-sub">{PAYMENT_HELP[key]}</div>
-                    </div>
-                    <div className="cs-price">{price}</div>
-                  </label>
-                ))}
+                ).map(([key, label, price]) => {
+                  const disabled = key === "webpay";
+
+                  return (
+                    <label
+                      key={key}
+                      className={`cs-choice ${metodo === key ? "is-selected" : ""} ${
+                        disabled ? "is-disabled" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="metodo"
+                        value={key}
+                        checked={metodo === key}
+                        onChange={() => {
+                          if (disabled) return;
+                          setMetodo(key);
+                        }}
+                        disabled={disabled}
+                      />
+
+                      <div className="cs-choice-body">
+                        <div className="cs-choice-title-row">
+                          <div className="cs-choice-title">{label}</div>
+                          {disabled ? <span className="cs-badge-soon">Próximamente</span> : null}
+                        </div>
+
+                        <div className="cs-choice-sub">
+                          {disabled
+                            ? "Muy pronto podrás pagar con débito o crédito mediante Webpay."
+                            : PAYMENT_HELP[key]}
+                        </div>
+                      </div>
+
+                      <div className="cs-price">{price}</div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Documento */}
             <div className="cs-block">
               <div className="cs-block-title">Documento</div>
 
@@ -138,7 +161,12 @@ export default function Paso3Pago() {
                 Si necesitas factura, completa los datos tributarios y la dirección comercial.
               </p>
 
-              {/* Datos de factura */}
+              {metodo === "mercadopago" ? (
+                <div className="cs-note cs-note--mp">
+                  Al continuar, serás redirigido a Mercado Pago para completar el pago.
+                </div>
+              ) : null}
+
               <div className={`cs-factura ${doc === "factura" ? "is-open" : ""}`}>
                 <div className="cs-factura-inner">
                   <div className="cs-factura-title">Datos de factura</div>
@@ -252,14 +280,13 @@ export default function Paso3Pago() {
               <button type="button" onClick={() => router.back()} className="rb-btn rb-btn--ghost">
                 Volver
               </button>
-              <button type="submit" className="rb-btn">
+              <button type="submit" className="rb-btn" disabled={metodo === "webpay"}>
                 Continuar
               </button>
             </div>
           </form>
         </section>
 
-        {/* DERECHA */}
         <aside className="cs-summary">
           <CheckoutSummary />
         </aside>
@@ -382,9 +409,26 @@ export default function Paso3Pago() {
           box-shadow: 0 0 0 1px rgba(182, 255, 46, 0.15) inset;
         }
 
+        .cs-choice.is-disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+
+        .cs-choice.is-disabled:hover {
+          border-color: #262626;
+          background: rgba(20, 20, 20, 0.55);
+        }
+
         .cs-choice input[type="radio"] {
           margin-top: 2px;
           accent-color: #b6ff2e;
+        }
+
+        .cs-choice-title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
         }
 
         .cs-choice-title {
@@ -392,6 +436,18 @@ export default function Paso3Pago() {
           font-weight: 800;
           font-size: 14px;
           line-height: 1.2;
+        }
+
+        .cs-badge-soon {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          border: 1px solid rgba(250, 204, 21, 0.25);
+          background: rgba(250, 204, 21, 0.08);
+          color: #facc15;
+          padding: 2px 8px;
+          font-size: 11px;
+          font-weight: 900;
         }
 
         .cs-choice-sub {
@@ -443,6 +499,21 @@ export default function Paso3Pago() {
           color: #737373;
           font-size: 12px;
           line-height: 1.45;
+        }
+
+        .cs-note {
+          margin-top: 10px;
+          color: #737373;
+          font-size: 12px;
+          line-height: 1.45;
+        }
+
+        .cs-note--mp {
+          border: 1px solid rgba(182, 255, 46, 0.22);
+          background: rgba(182, 255, 46, 0.06);
+          border-radius: 12px;
+          padding: 10px 12px;
+          color: #d4d4d4;
         }
 
         .cs-factura {

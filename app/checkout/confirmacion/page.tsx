@@ -117,7 +117,8 @@ export default function Paso4Confirmacion() {
     return String(datosEfectivos?.telefono ?? "").trim();
   }, [datosEfectivos?.telefono]);
 
-  const payingWithTransfer = (pago?.metodo ?? "transferencia") === "transferencia";
+  const paymentMethod = (pago?.metodo ?? "transferencia") as CheckoutPaymentUI;
+  const payingWithTransfer = paymentMethod === "transferencia";
 
   const selectedSubtotal = useMemo(
     () => (payingWithTransfer ? subtotalTransfer : subtotalCard),
@@ -130,14 +131,12 @@ export default function Paso4Confirmacion() {
     return normalizeDeliveryType(envio?.tipo);
   }, [envio?.tipo]);
 
-  // ✅ DOCUMENTO + DATOS FACTURA (desde el store)
   const documentType: CheckoutDocumentUI = useMemo(() => {
     const d = String(pago?.documento ?? "boleta").toLowerCase();
     return d === "factura" ? "factura" : "boleta";
   }, [pago?.documento]);
 
   const invoiceData = useMemo(() => {
-    // Acepta varias formas según cómo lo guardes en tu store
     return (
       (pago?.factura as any) ??
       (pago?.datosFactura as any) ??
@@ -158,10 +157,13 @@ export default function Paso4Confirmacion() {
     }
     if (!created && !items?.length) miss.push("carrito");
 
-    // ✅ si es factura, exige mínimo razon social + rut empresa
     if (documentType === "factura") {
-      const razon = String(invoiceData?.razonSocial ?? invoiceData?.razon_social ?? invoiceData?.razon ?? "").trim();
-      const rut = String(invoiceData?.rutEmpresa ?? invoiceData?.rut_empresa ?? invoiceData?.rut ?? "").trim();
+      const razon = String(
+        invoiceData?.razonSocial ?? invoiceData?.razon_social ?? invoiceData?.razon ?? ""
+      ).trim();
+      const rut = String(
+        invoiceData?.rutEmpresa ?? invoiceData?.rut_empresa ?? invoiceData?.rut ?? ""
+      ).trim();
       if (!razon) miss.push("razón social");
       if (!rut) miss.push("RUT empresa");
     }
@@ -204,11 +206,14 @@ export default function Paso4Confirmacion() {
       return;
     }
 
+    if (paymentMethod === "webpay") {
+      setUiError("Webpay estará disponible próximamente.");
+      return;
+    }
+
     setCreating(true);
 
     try {
-      const paymentMethod = (pago?.metodo ?? "transferencia") as CheckoutPaymentUI;
-
       const checkoutToken = getOrCreateCheckoutToken();
 
       const payload = {
@@ -224,11 +229,8 @@ export default function Paso4Confirmacion() {
         },
         deliveryType: deliveryType === "shipping" ? ("shipping" as const) : ("pickup" as const),
         paymentMethod,
-
-        // ✅ NUEVO: documento + factura
         documentType,
         invoiceData: documentType === "factura" ? invoiceData : null,
-
         address:
           deliveryType === "shipping"
             ? {
@@ -246,21 +248,22 @@ export default function Paso4Confirmacion() {
         notes: (pago as any)?.comentarios ?? "",
       };
 
-      const res = await fetch("/api/checkout", {
+      const checkoutRes = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const data: any = await res.json().catch(() => ({}));
+      const checkoutData: any = await checkoutRes.json().catch(() => ({}));
 
-      if (!res.ok || data?.ok === false) {
+      if (!checkoutRes.ok || checkoutData?.ok === false) {
         throw new Error(
-          data?.error ?? `No se pudo crear el pedido (HTTP ${res.status}). Intenta nuevamente.`
+          checkoutData?.error ??
+            `No se pudo crear el pedido (HTTP ${checkoutRes.status}). Intenta nuevamente.`
         );
       }
 
-      const realOrderId = String(data?.orderId ?? data?.order?.id ?? "");
+      const realOrderId = String(checkoutData?.orderId ?? checkoutData?.order?.id ?? "");
       const finalId = realOrderId || orderId;
 
       setOrderId(finalId);
@@ -272,12 +275,33 @@ export default function Paso4Confirmacion() {
         deliveryType,
       });
 
+      if (paymentMethod === "mercadopago") {
+        const mpRes = await fetch("/api/mercadopago/create-preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: finalId }),
+        });
+
+        const mpData: any = await mpRes.json().catch(() => ({}));
+
+        if (!mpRes.ok || !mpData?.ok || !mpData?.initPoint) {
+          throw new Error(
+            mpData?.error ?? "No se pudo iniciar el pago con Mercado Pago."
+          );
+        }
+
+        clearCheckoutToken();
+        clearCart();
+        window.location.href = String(mpData.initPoint);
+        return;
+      }
+
       clearCheckoutToken();
       clearCart();
 
       setUiSuccess(`Pedido creado correctamente (${orderNumberNice(finalId)}). Redirigiendo...`);
 
-      const pm = payingWithTransfer ? "transferencia" : "card";
+      const pm = "transferencia";
       const dt = deliveryType === "shipping" ? "shipping" : "pickup";
       router.replace(`/checkout/success?orderId=${encodeURIComponent(finalId)}&pm=${pm}&dt=${dt}`);
     } catch (err: any) {
@@ -357,19 +381,19 @@ export default function Paso4Confirmacion() {
                 <div>
                   <div className="cs-panel-title">Medio de pago</div>
                   <div className="cs-panel-sub">
-                    {payingWithTransfer ? (
+                    {paymentMethod === "transferencia" ? (
                       <>
                         Transferencia / Depósito bancario
                         <span className="cs-muted"> · Documento: {documentType}</span>
                       </>
-                    ) : pago?.metodo === "webpay" ? (
+                    ) : paymentMethod === "mercadopago" ? (
                       <>
-                        Webpay
+                        Mercado Pago
                         <span className="cs-muted"> · Documento: {documentType}</span>
                       </>
                     ) : (
                       <>
-                        Mercado Pago
+                        Webpay
                         <span className="cs-muted"> · Documento: {documentType}</span>
                       </>
                     )}
@@ -381,11 +405,17 @@ export default function Paso4Confirmacion() {
                 </Link>
               </div>
 
-              {!payingWithTransfer && (
+              {paymentMethod === "mercadopago" ? (
                 <div className="cs-note">
-                  Este método está en preparación. Si lo usas, el pedido igual se creará.
+                  Al confirmar, te redirigiremos a Mercado Pago para completar la transacción.
                 </div>
-              )}
+              ) : null}
+
+              {paymentMethod === "webpay" ? (
+                <div className="cs-note">
+                  Webpay estará disponible próximamente.
+                </div>
+              ) : null}
             </div>
 
             {documentType === "factura" ? (
@@ -401,7 +431,9 @@ export default function Paso4Confirmacion() {
           <div className="cs-callout">
             <div className="cs-callout-title">Antes de confirmar</div>
             <p className="cs-callout-text">
-              Confirma para crear el pedido. Verás el resultado en una pantalla final con instrucciones.
+              {paymentMethod === "mercadopago"
+                ? "Confirma para crear el pedido e ir a Mercado Pago."
+                : "Confirma para crear el pedido. Verás el resultado en una pantalla final con instrucciones."}
             </p>
 
             {missing.length ? (
@@ -415,9 +447,17 @@ export default function Paso4Confirmacion() {
                 type="button"
                 className="rb-btn"
                 onClick={handleConfirmPedido}
-                disabled={missing.length > 0 || creating || created}
+                disabled={missing.length > 0 || creating || created || paymentMethod === "webpay"}
               >
-                {created ? "Pedido creado" : creating ? "Confirmando..." : "Confirmar pedido"}
+                {created
+                  ? "Pedido creado"
+                  : creating
+                  ? paymentMethod === "mercadopago"
+                    ? "Redirigiendo a Mercado Pago..."
+                    : "Confirmando..."
+                  : paymentMethod === "mercadopago"
+                  ? "Ir a Mercado Pago"
+                  : "Confirmar pedido"}
               </button>
 
               <Link href="/" className="rb-btn rb-btn--ghost">
