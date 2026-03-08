@@ -145,7 +145,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     order.contactName || [order.user?.name, order.user?.lastName].filter(Boolean).join(" ") || "—";
 
   const canReleaseReservation =
-    order.paymentMethod === "TRANSFER" && order.status === "PENDING_PAYMENT" && !order.stockReleasedAt;
+    (order.paymentMethod === "TRANSFER" || order.paymentMethod === "CARD") &&
+    order.status === "PENDING_PAYMENT" &&
+    !order.stockReleasedAt;
 
   const docType = (order as any).documentType ?? "BOLETA";
   const isFactura = docType === "FACTURA";
@@ -177,7 +179,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   Confirmación enviada
                 </Badge>
               ) : (
-                <Badge tone="border-neutral-800 bg-black/20 text-neutral-300">Confirmación no enviada</Badge>
+                <Badge tone="border-neutral-800 bg-black/20 text-neutral-300">
+                  Confirmación no enviada
+                </Badge>
               )}
             </div>
 
@@ -199,7 +203,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               <p className="mt-1 text-xs text-neutral-400">
                 Vence:{" "}
                 <span className="text-neutral-200 font-bold">
-                  {new Date(order.paymentDueAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}
+                  {new Date(order.paymentDueAt).toLocaleString("es-CL", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
                 </span>
               </p>
             ) : null}
@@ -208,7 +215,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               <p className="mt-1 text-xs text-neutral-500">
                 Stock liberado:{" "}
                 <span className="text-neutral-200 font-bold">
-                  {new Date(order.stockReleasedAt).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}
+                  {new Date(order.stockReleasedAt).toLocaleString("es-CL", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
                 </span>
               </p>
             ) : null}
@@ -300,7 +310,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                     label="Fecha estimada"
                     value={
                       order.shipment?.estimatedDate
-                        ? new Date(order.shipment.estimatedDate).toLocaleDateString("es-CL", { dateStyle: "medium" })
+                        ? new Date(order.shipment.estimatedDate).toLocaleDateString("es-CL", {
+                            dateStyle: "medium",
+                          })
                         : "—"
                     }
                   />
@@ -317,20 +329,30 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       <Info
                         label="Dirección"
                         value={
-                          [order.shipment.address.street, order.shipment.address.number, order.shipment.address.apartment]
+                          [
+                            order.shipment.address.street,
+                            order.shipment.address.number,
+                            order.shipment.address.apartment,
+                          ]
                             .filter(Boolean)
                             .join(" ") || "—"
                         }
                       />
                       <Info
                         label="Comuna / Ciudad"
-                        value={[order.shipment.address.commune, order.shipment.address.city].filter(Boolean).join(" · ") || "—"}
+                        value={
+                          [order.shipment.address.commune, order.shipment.address.city]
+                            .filter(Boolean)
+                            .join(" · ") || "—"
+                        }
                       />
                       <Info label="Región" value={order.shipment.address.region || "—"} />
                       <Info label="País" value={order.shipment.address.country || "Chile"} />
                     </div>
                   ) : (
-                    <p className="mt-2 text-sm text-neutral-400">No hay dirección asociada al envío (addressId vacío).</p>
+                    <p className="mt-2 text-sm text-neutral-400">
+                      No hay dirección asociada al envío (addressId vacío).
+                    </p>
                   )}
                 </div>
               </>
@@ -349,7 +371,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
             {isFactura ? (
               <div className="mt-4 rounded-2xl border border-neutral-800 bg-black/20 p-4">
-                <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">DATOS DE FACTURACIÓN</div>
+                <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">
+                  DATOS DE FACTURACIÓN
+                </div>
 
                 {inv ? (
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -361,7 +385,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                     <Info label="Comuna" value={pickInv(inv, ["comuna", "commune"])} />
                     <Info label="Calle" value={pickInv(inv, ["calle", "street"])} />
                     <Info label="Número" value={pickInv(inv, ["numero", "number"])} />
-                    <Info label="Depto / Oficina" value={pickInv(inv, ["depto", "deptoOficina", "apartment", "oficina"])} />
+                    <Info
+                      label="Depto / Oficina"
+                      value={pickInv(inv, ["depto", "deptoOficina", "apartment", "oficina", "extra"])}
+                    />
                   </div>
                 ) : (
                   <p className="mt-2 text-sm text-neutral-400">No hay invoiceData guardado en este pedido.</p>
@@ -408,7 +435,11 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <Card>
               <CardHeader title="Acciones" />
               <div className="grid gap-4">
-                <AdminReleaseReservationButton orderId={order.id} canShow={canReleaseReservation} />
+                <AdminReleaseReservationButton
+                  orderId={order.id}
+                  canShow={canReleaseReservation}
+                  paymentMethod={order.paymentMethod}
+                />
 
                 <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
                   <div className="text-xs font-extrabold text-neutral-200">Estado</div>
@@ -434,7 +465,11 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">{children}</section>;
+  return (
+    <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">
+      {children}
+    </section>
+  );
 }
 
 function CardHeader({ title, subtle }: { title: string; subtle?: boolean }) {

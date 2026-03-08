@@ -9,13 +9,22 @@ function safeStr(v: unknown) {
 
 function getSiteUrl(req: NextRequest) {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (envUrl) return envUrl.replace(/\/+$/, "");
-  return req.nextUrl.origin.replace(/\/+$/, "");
+  const base = envUrl || req.nextUrl.origin;
+  return base.replace(/\/+$/, "");
+}
+
+function isLocalUrl(url: string) {
+  return (
+    url.includes("localhost") ||
+    url.includes("127.0.0.1") ||
+    url.includes("0.0.0.0")
+  );
 }
 
 export async function POST(req: NextRequest) {
   try {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
+
     if (!accessToken) {
       return NextResponse.json(
         { ok: false, error: "Falta MERCADOPAGO_ACCESS_TOKEN en variables de entorno." },
@@ -56,6 +65,7 @@ export async function POST(req: NextRequest) {
     }
 
     const siteUrl = getSiteUrl(req);
+    const isLocal = isLocalUrl(siteUrl);
 
     const items = order.items.map((item) => ({
       id: item.productId,
@@ -75,20 +85,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const preferenceBody = {
+    const preferenceBody: Record<string, any> = {
       items,
       payer: {
-        name: order.contactName,
-        email: order.contactEmail,
+        name: order.contactName || undefined,
+        email: order.contactEmail || undefined,
       },
       external_reference: order.id,
       notification_url: `${siteUrl}/api/mercadopago/webhook`,
-      back_urls: {
-        success: `${siteUrl}/checkout/success?source=mercadopago&status=success&orderId=${encodeURIComponent(order.id)}`,
-        pending: `${siteUrl}/checkout/success?source=mercadopago&status=pending&orderId=${encodeURIComponent(order.id)}`,
-        failure: `${siteUrl}/checkout/success?source=mercadopago&status=failure&orderId=${encodeURIComponent(order.id)}`,
-      },
-      auto_return: "approved",
       payment_methods: {
         excluded_payment_types: [
           { id: "ticket" },
@@ -103,6 +107,17 @@ export async function POST(req: NextRequest) {
       statement_descriptor: "REKABYTE",
     };
 
+    if (!isLocal) {
+      preferenceBody.back_urls = {
+        success: `${siteUrl}/checkout/success?source=mercadopago&status=success&orderId=${encodeURIComponent(order.id)}`,
+        pending: `${siteUrl}/checkout/success?source=mercadopago&status=pending&orderId=${encodeURIComponent(order.id)}`,
+        failure: `${siteUrl}/checkout/success?source=mercadopago&status=failure&orderId=${encodeURIComponent(order.id)}`,
+      };
+
+      preferenceBody.auto_return = "approved";
+      preferenceBody.binary_mode = true;
+    }
+
     const mpResp = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
@@ -110,16 +125,22 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(preferenceBody),
+      cache: "no-store",
     });
 
     const mpData = await mpResp.json().catch(() => null);
 
     if (!mpResp.ok || !mpData?.init_point) {
       console.error("Mercado Pago create preference error:", mpData);
+
       return NextResponse.json(
         {
           ok: false,
-          error: mpData?.message || "No se pudo crear la preferencia de Mercado Pago.",
+          error:
+            mpData?.message ||
+            mpData?.cause?.[0]?.description ||
+            "No se pudo crear la preferencia de Mercado Pago.",
+          mp: mpData ?? null,
         },
         { status: 500 }
       );
@@ -130,9 +151,11 @@ export async function POST(req: NextRequest) {
       preferenceId: mpData.id,
       initPoint: mpData.init_point,
       sandboxInitPoint: mpData.sandbox_init_point ?? null,
+      localMode: isLocal,
     });
   } catch (error) {
     console.error("Error POST /api/mercadopago/create-preference:", error);
+
     return NextResponse.json(
       { ok: false, error: "Error interno al crear la preferencia de pago." },
       { status: 500 }

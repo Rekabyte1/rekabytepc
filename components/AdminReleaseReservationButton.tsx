@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 export default function AdminReleaseReservationButton(props: {
   orderId: string;
   canShow: boolean;
+  paymentMethod?: "TRANSFER" | "CARD" | string;
 }) {
-  const { orderId, canShow } = props;
+  const { orderId, canShow, paymentMethod } = props;
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -17,13 +18,21 @@ export default function AdminReleaseReservationButton(props: {
 
   if (!canShow) return null;
 
+  const paymentLabel =
+    paymentMethod === "TRANSFER"
+      ? "transferencia"
+      : paymentMethod === "CARD"
+      ? "tarjeta / Mercado Pago / Webpay"
+      : "pago pendiente";
+
   async function handleRelease() {
     setErr(null);
     setOkMsg(null);
 
     const confirmed = window.confirm(
-      "¿Liberar reserva y cancelar este pedido?\n\nEsto devolverá el stock y dejará el pedido en CANCELLED."
+      `¿Liberar reserva y cancelar este pedido?\n\nEsto devolverá el stock y dejará el pedido en CANCELLED.\nMétodo: ${paymentLabel}`
     );
+
     if (!confirmed) return;
 
     setLoading(true);
@@ -57,8 +66,10 @@ export default function AdminReleaseReservationButton(props: {
   return (
     <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
       <div className="text-xs font-extrabold text-neutral-200">Reserva</div>
+
       <p className="mt-1 text-xs text-neutral-400">
-        Solo aplica a pedidos por transferencia pendientes. Devuelve stock y cancela el pedido.
+        Aplica a pedidos pendientes por transferencia o tarjeta/Mercado Pago/Webpay.
+        Devuelve stock y cancela el pedido.
       </p>
 
       {err ? (

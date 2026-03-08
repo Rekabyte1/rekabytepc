@@ -7,6 +7,12 @@ function safeStr(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function appendWebhookNote(prev: string | null | undefined, msg: string) {
+  const line = `[${new Date().toISOString()}] ${msg}`;
+  if (!prev?.trim()) return line;
+  return `${prev}\n${line}`;
+}
+
 async function fetchMercadoPagoPayment(paymentId: string, accessToken: string) {
   const resp = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     method: "GET",
@@ -68,7 +74,12 @@ export async function POST(req: NextRequest) {
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: externalReference },
-        select: { id: true, status: true },
+        select: {
+          id: true,
+          status: true,
+          notes: true,
+          stockReleasedAt: true,
+        },
       });
 
       if (!order) return;
@@ -105,6 +116,52 @@ export async function POST(req: NextRequest) {
           where: { id: order.id },
           data: {
             status: "PAID",
+            notes: appendWebhookNote(
+              order.notes,
+              `Mercado Pago aprobó el pago (${transactionId || "sin transactionId"}).`
+            ),
+          },
+        });
+      }
+
+      if (mpStatus === "rejected" || mpStatus === "cancelled") {
+        const fullOrder = await tx.order.findUnique({
+          where: { id: order.id },
+          include: { items: true },
+        });
+
+        if (!fullOrder) return;
+
+        if (!fullOrder.stockReleasedAt) {
+          for (const item of fullOrder.items) {
+            const product = await tx.product.findUnique({
+              where: { id: item.productId },
+              select: { id: true, stock: true },
+            });
+
+            if (!product) continue;
+
+            const current = typeof product.stock === "number" ? product.stock : 0;
+
+            await tx.product.update({
+              where: { id: product.id },
+              data: {
+                stock: current + Number(item.quantity || 0),
+              },
+            });
+          }
+        }
+
+        await tx.order.update({
+          where: { id: order.id },
+          data: {
+            status: "CANCELLED",
+            cancelledAt: new Date(),
+            stockReleasedAt: fullOrder.stockReleasedAt ? fullOrder.stockReleasedAt : new Date(),
+            notes: appendWebhookNote(
+              fullOrder.notes,
+              `Mercado Pago devolvió estado ${mpStatus}. Pedido cancelado y stock devuelto automáticamente.`
+            ),
           },
         });
       }

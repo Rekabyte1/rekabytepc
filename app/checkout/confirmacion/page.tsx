@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
@@ -10,7 +10,6 @@ import { useCart, CLP } from "@/components/CartContext";
 import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 import { useSession } from "next-auth/react";
 
-type Stage = "review" | "upload";
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 type CheckoutDocumentUI = "boleta" | "factura";
 
@@ -18,6 +17,7 @@ const CHECKOUT_TOKEN_KEY = "rb_checkout_token_v1";
 
 function getOrCreateCheckoutToken(): string {
   if (typeof window === "undefined") return "";
+
   try {
     const existing = window.sessionStorage.getItem(CHECKOUT_TOKEN_KEY);
     if (existing && existing.trim()) return existing.trim();
@@ -83,10 +83,8 @@ export default function Paso4Confirmacion() {
 
   const { items, subtotalTransfer, subtotalCard, clear: clearCart } = useCart();
 
-  const [stage] = useState<Stage>("review");
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
-
   const [orderId, setOrderId] = useState<string>("");
   const [uiError, setUiError] = useState<string | null>(null);
   const [uiSuccess, setUiSuccess] = useState<string | null>(null);
@@ -148,22 +146,27 @@ export default function Paso4Confirmacion() {
 
   const missing = useMemo(() => {
     const miss: string[] = [];
+
     if (!customerName) miss.push("nombre");
     if (!customerEmail) miss.push("email");
+
     if (deliveryType === "shipping") {
       if (!envio?.direccion) miss.push("dirección");
       if (!envio?.ciudad) miss.push("ciudad");
       if (!envio?.region) miss.push("región");
     }
-    if (!created && !items?.length) miss.push("carrito");
+
+    if (!items?.length && !orderId) miss.push("carrito");
 
     if (documentType === "factura") {
       const razon = String(
         invoiceData?.razonSocial ?? invoiceData?.razon_social ?? invoiceData?.razon ?? ""
       ).trim();
+
       const rut = String(
         invoiceData?.rutEmpresa ?? invoiceData?.rut_empresa ?? invoiceData?.rut ?? ""
       ).trim();
+
       if (!razon) miss.push("razón social");
       if (!rut) miss.push("RUT empresa");
     }
@@ -177,17 +180,10 @@ export default function Paso4Confirmacion() {
     envio?.ciudad,
     envio?.region,
     items?.length,
-    created,
+    orderId,
     documentType,
     invoiceData,
   ]);
-
-  useEffect(() => {
-    if (stage === "upload" && !orderId) {
-      const id = "RB" + Date.now().toString().slice(-6);
-      setOrderId(id);
-    }
-  }, [stage, orderId]);
 
   function orderNumberNice(id: string) {
     const clean = String(id || "").trim();
@@ -195,8 +191,34 @@ export default function Paso4Confirmacion() {
     return "#" + clean.slice(-8).toUpperCase();
   }
 
+  async function createOrReuseMercadoPagoPreference(currentOrderId: string) {
+    const mpRes = await fetch("/api/mercadopago/create-preference", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: currentOrderId }),
+    });
+
+    const mpData: any = await mpRes.json().catch(() => ({}));
+
+    if (!mpRes.ok || !mpData?.ok || !mpData?.initPoint) {
+      throw new Error(mpData?.error ?? "No se pudo iniciar el pago con Mercado Pago.");
+    }
+
+    setOrderSuccessInSessionStorage({
+      orderId: currentOrderId,
+      paymentMethod,
+      deliveryType,
+    });
+
+    clearCheckoutToken();
+    clearCart();
+    setCreated(true);
+
+    window.location.href = String(mpData.initPoint);
+  }
+
   async function handleConfirmPedido() {
-    if (created || creating) return;
+    if (creating) return;
 
     setUiError(null);
     setUiSuccess(null);
@@ -214,6 +236,11 @@ export default function Paso4Confirmacion() {
     setCreating(true);
 
     try {
+      if (paymentMethod === "mercadopago" && orderId) {
+        await createOrReuseMercadoPagoPreference(orderId);
+        return;
+      }
+
       const checkoutToken = getOrCreateCheckoutToken();
 
       const payload = {
@@ -264,10 +291,18 @@ export default function Paso4Confirmacion() {
       }
 
       const realOrderId = String(checkoutData?.orderId ?? checkoutData?.order?.id ?? "");
-      const finalId = realOrderId || orderId;
+      const finalId = realOrderId || "";
+
+      if (!finalId) {
+        throw new Error("No se pudo obtener el ID del pedido.");
+      }
 
       setOrderId(finalId);
-      setCreated(true);
+
+      if (paymentMethod === "mercadopago") {
+        await createOrReuseMercadoPagoPreference(finalId);
+        return;
+      }
 
       setOrderSuccessInSessionStorage({
         orderId: finalId,
@@ -275,29 +310,9 @@ export default function Paso4Confirmacion() {
         deliveryType,
       });
 
-      if (paymentMethod === "mercadopago") {
-        const mpRes = await fetch("/api/mercadopago/create-preference", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: finalId }),
-        });
-
-        const mpData: any = await mpRes.json().catch(() => ({}));
-
-        if (!mpRes.ok || !mpData?.ok || !mpData?.initPoint) {
-          throw new Error(
-            mpData?.error ?? "No se pudo iniciar el pago con Mercado Pago."
-          );
-        }
-
-        clearCheckoutToken();
-        clearCart();
-        window.location.href = String(mpData.initPoint);
-        return;
-      }
-
       clearCheckoutToken();
       clearCart();
+      setCreated(true);
 
       setUiSuccess(`Pedido creado correctamente (${orderNumberNice(finalId)}). Redirigiendo...`);
 
@@ -306,11 +321,37 @@ export default function Paso4Confirmacion() {
       router.replace(`/checkout/success?orderId=${encodeURIComponent(finalId)}&pm=${pm}&dt=${dt}`);
     } catch (err: any) {
       console.error("Error confirmando pedido:", err);
-      setUiError(err?.message ?? "Ocurrió un error al crear el pedido. Intenta nuevamente.");
+
+      if (paymentMethod === "mercadopago" && orderId) {
+        setUiError(
+          `${err?.message ?? "No se pudo iniciar el pago con Mercado Pago."} Puedes reintentar con el mismo pedido ${orderNumberNice(orderId)} sin duplicarlo.`
+        );
+      } else {
+        setUiError(err?.message ?? "Ocurrió un error al crear el pedido. Intenta nuevamente.");
+      }
     } finally {
       setCreating(false);
     }
   }
+
+  const primaryButtonLabel = useMemo(() => {
+    if (creating) {
+      if (paymentMethod === "mercadopago") return "Redirigiendo a Mercado Pago...";
+      return "Confirmando...";
+    }
+
+    if (created) {
+      if (paymentMethod === "mercadopago") return "Redirigiendo...";
+      return "Pedido creado";
+    }
+
+    if (paymentMethod === "mercadopago" && orderId) {
+      return "Reintentar Mercado Pago";
+    }
+
+    if (paymentMethod === "mercadopago") return "Ir a Mercado Pago";
+    return "Confirmar pedido";
+  }, [creating, created, paymentMethod, orderId]);
 
   return (
     <main className="rb-container checkout-step">
@@ -432,9 +473,15 @@ export default function Paso4Confirmacion() {
             <div className="cs-callout-title">Antes de confirmar</div>
             <p className="cs-callout-text">
               {paymentMethod === "mercadopago"
-                ? "Confirma para crear el pedido e ir a Mercado Pago."
+                ? "Confirma para crear o reutilizar el pedido e ir a Mercado Pago."
                 : "Confirma para crear el pedido. Verás el resultado en una pantalla final con instrucciones."}
             </p>
+
+            {orderId ? (
+              <p className="cs-note" style={{ marginTop: 8 }}>
+                Pedido actual: <span className="cs-strong">{orderNumberNice(orderId)}</span>
+              </p>
+            ) : null}
 
             {missing.length ? (
               <p className="cs-missing">
@@ -449,15 +496,7 @@ export default function Paso4Confirmacion() {
                 onClick={handleConfirmPedido}
                 disabled={missing.length > 0 || creating || created || paymentMethod === "webpay"}
               >
-                {created
-                  ? "Pedido creado"
-                  : creating
-                  ? paymentMethod === "mercadopago"
-                    ? "Redirigiendo a Mercado Pago..."
-                    : "Confirmando..."
-                  : paymentMethod === "mercadopago"
-                  ? "Ir a Mercado Pago"
-                  : "Confirmar pedido"}
+                {primaryButtonLabel}
               </button>
 
               <Link href="/" className="rb-btn rb-btn--ghost">
