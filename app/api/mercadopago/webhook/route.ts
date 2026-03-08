@@ -31,6 +31,12 @@ async function fetchMercadoPagoPayment(paymentId: string, accessToken: string) {
   return data;
 }
 
+function mapPaymentStatus(mpStatus: string): "CONFIRMED" | "PENDING" | "FAILED" {
+  if (mpStatus === "approved") return "CONFIRMED";
+  if (mpStatus === "pending" || mpStatus === "in_process") return "PENDING";
+  return "FAILED";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
@@ -62,7 +68,10 @@ export async function POST(req: NextRequest) {
 
     const paymentData = await fetchMercadoPagoPayment(paymentId, accessToken);
 
-    const externalReference = safeStr(paymentData?.external_reference);
+    const externalReference =
+      safeStr(paymentData?.external_reference) ||
+      safeStr(paymentData?.metadata?.order_id);
+
     if (!externalReference) {
       return NextResponse.json({ ok: true, ignored: true }, { status: 200 });
     }
@@ -70,70 +79,87 @@ export async function POST(req: NextRequest) {
     const mpStatus = safeStr(paymentData?.status).toLowerCase();
     const transactionId = safeStr(paymentData?.id);
     const amount = Number(paymentData?.transaction_amount || 0);
+    const paymentStatus = mapPaymentStatus(mpStatus);
 
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: externalReference },
-        select: {
-          id: true,
-          status: true,
-          notes: true,
-          stockReleasedAt: true,
+        include: {
+          items: true,
+          payment: true,
         },
       });
 
       if (!order) return;
 
+      // 1) Guardar / actualizar payment de forma idempotente
       await tx.payment.upsert({
         where: { orderId: order.id },
         update: {
           method: "CARD",
           amount,
-          transactionId,
-          status:
-            mpStatus === "approved"
-              ? "CONFIRMED"
-              : mpStatus === "pending" || mpStatus === "in_process"
-              ? "PENDING"
-              : "FAILED",
+          transactionId: transactionId || order.payment?.transactionId || null,
+          status: paymentStatus,
         },
         create: {
           orderId: order.id,
           method: "CARD",
           amount,
-          transactionId,
-          status:
-            mpStatus === "approved"
-              ? "CONFIRMED"
-              : mpStatus === "pending" || mpStatus === "in_process"
-              ? "PENDING"
-              : "FAILED",
+          transactionId: transactionId || null,
+          status: paymentStatus,
         },
       });
 
+      // 2) Pago aprobado -> pedido pagado automáticamente
       if (mpStatus === "approved") {
-        await tx.order.update({
-          where: { id: order.id },
-          data: {
-            status: "PAID",
-            notes: appendWebhookNote(
-              order.notes,
-              `Mercado Pago aprobó el pago (${transactionId || "sin transactionId"}).`
-            ),
-          },
-        });
+        // Si ya está pagado, no sobrescribimos notas innecesariamente
+        if (order.status !== "PAID") {
+          await tx.order.update({
+            where: { id: order.id },
+            data: {
+              status: "PAID",
+              notes: appendWebhookNote(
+                order.notes,
+                `Mercado Pago aprobó el pago (${transactionId || "sin transactionId"}).`
+              ),
+            },
+          });
+        }
+
+        return;
       }
 
-      if (mpStatus === "rejected" || mpStatus === "cancelled") {
-        const fullOrder = await tx.order.findUnique({
-          where: { id: order.id },
-          include: { items: true },
-        });
+      // 3) Pago pendiente / en proceso -> mantener pendiente
+      if (mpStatus === "pending" || mpStatus === "in_process") {
+        if (order.status !== "PENDING_PAYMENT") {
+          await tx.order.update({
+            where: { id: order.id },
+            data: {
+              status: "PENDING_PAYMENT",
+              notes: appendWebhookNote(
+                order.notes,
+                `Mercado Pago reportó pago en proceso (${mpStatus}).`
+              ),
+            },
+          });
+        }
 
-        if (!fullOrder) return;
+        return;
+      }
 
-        if (!fullOrder.stockReleasedAt) {
-          for (const item of fullOrder.items) {
+      // 4) Pago rechazado / cancelado -> cancelar y devolver stock una sola vez
+      if (
+        mpStatus === "rejected" ||
+        mpStatus === "cancelled" ||
+        mpStatus === "refunded" ||
+        mpStatus === "charged_back"
+      ) {
+        // Si ya estaba liberado, no volver a sumar stock
+        if (!order.stockReleasedAt) {
+          for (const item of order.items) {
+            const qty = Number(item.quantity || 0);
+            if (qty <= 0) continue;
+
             const product = await tx.product.findUnique({
               where: { id: item.productId },
               select: { id: true, stock: true },
@@ -146,7 +172,7 @@ export async function POST(req: NextRequest) {
             await tx.product.update({
               where: { id: product.id },
               data: {
-                stock: current + Number(item.quantity || 0),
+                stock: current + qty,
               },
             });
           }
@@ -156,15 +182,28 @@ export async function POST(req: NextRequest) {
           where: { id: order.id },
           data: {
             status: "CANCELLED",
-            cancelledAt: new Date(),
-            stockReleasedAt: fullOrder.stockReleasedAt ? fullOrder.stockReleasedAt : new Date(),
+            cancelledAt: order.cancelledAt ?? new Date(),
+            stockReleasedAt: order.stockReleasedAt ?? new Date(),
             notes: appendWebhookNote(
-              fullOrder.notes,
-              `Mercado Pago devolvió estado ${mpStatus}. Pedido cancelado y stock devuelto automáticamente.`
+              order.notes,
+              `Mercado Pago devolvió estado ${mpStatus}. Pedido cancelado${order.stockReleasedAt ? "" : " y stock devuelto automáticamente"}.`
             ),
           },
         });
+
+        return;
       }
+
+      // 5) Otros estados no destructivos: solo dejar registro
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          notes: appendWebhookNote(
+            order.notes,
+            `Mercado Pago informó estado no manejado explícitamente: ${mpStatus}.`
+          ),
+        },
+      });
     });
 
     return NextResponse.json({ ok: true }, { status: 200 });
