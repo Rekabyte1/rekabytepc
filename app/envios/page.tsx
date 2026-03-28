@@ -19,7 +19,7 @@ export default function EnviosPage() {
           <ul className="list-disc space-y-2 pl-5 text-neutral-300">
             <li>Vendemos en Santiago y despachamos a todo Chile.</li>
             <li>
-              Trabajamos exclusivamente con{" "}
+              Trabajamos con{" "}
               <span className="font-semibold text-white">Chilexpress</span>.
             </li>
           </ul>
@@ -51,8 +51,7 @@ export default function EnviosPage() {
           <ul className="list-disc space-y-2 pl-5 text-neutral-300">
             <li>
               El <span className="font-semibold text-white">envío se paga aparte</span>.
-              El costo se informa/coordina una vez procesado el pedido, según destino y
-              tamaño/peso del paquete.
+              El costo puede variar según destino y tamaño/peso del paquete.
             </li>
             <li>
               Una vez despachado, enviaremos{" "}
@@ -82,13 +81,13 @@ export default function EnviosPage() {
               <span className="font-semibold text-white">listos para entrega inmediata</span>.
             </li>
             <li>
-              Antes de entregar o despachar, podemos realizar control de calidad y pruebas
+              Antes de despachar, podemos realizar control de calidad y pruebas
               (embalaje, revisión final, estrés básico). Esto puede añadir{" "}
               <span className="font-semibold text-white">24–72 horas hábiles</span> antes
               del retiro/despacho.
             </li>
             <li>
-              Los plazos de transporte dependen de Chilexpress y del destino. En fechas de
+              Los plazos de transporte dependen de Chilexpress los tiempos estimados son de 2 a 4 días. En fechas de
               alta demanda puede haber demoras.
             </li>
           </ul>

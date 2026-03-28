@@ -33,6 +33,7 @@ type LiveProduct = {
   name?: string | null;
   title?: string | null;
   isActive?: boolean | null;
+  kind?: "PREBUILT_PC" | "UNIT_PRODUCT" | null;
 };
 
 // Cache simple en memoria para no pegarle a la API por cada re-render
@@ -63,17 +64,13 @@ async function fetchLive(slug: string): Promise<LiveProduct | null> {
 }
 
 export default function GameBuildCard({ build, gameTitle }: Props) {
-  // Carrusel: forzamos 3 imágenes
   const [idx, setIdx] = useState(0);
-
-  // Fallback cuando la URL existe en el array, pero el archivo NO existe (404)
   const [broken, setBroken] = useState<Record<number, boolean>>({});
 
   const images = useMemo(() => {
     const srcs = Array.isArray(build.images) ? build.images.filter(Boolean) : [];
     let arr = srcs.slice(0, 3);
 
-    // si no hay imágenes definidas => fallback
     if (arr.length === 0) arr = ["/pc1.jpg", "/pc1.jpg", "/pc1.jpg"];
     if (arr.length === 1) arr = [arr[0], arr[0], arr[0]];
     if (arr.length === 2) arr = [arr[0], arr[1], arr[1]];
@@ -84,7 +81,6 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
   const prev = () => setIdx((v) => (v - 1 + images.length) % images.length);
   const next = () => setIdx((v) => (v + 1) % images.length);
 
-  // ===== Live desde BD =====
   const [mounted, setMounted] = useState(false);
   const [live, setLive] = useState<LiveProduct | null>(null);
   const [loadingLive, setLoadingLive] = useState(false);
@@ -108,14 +104,12 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
     };
   }, [mounted, build.productSlug]);
 
-  // ===== Stock: BD primero, fallback a build.stock, si no 0 =====
   const stock =
     typeof live?.stock === "number" ? live.stock : (build as any)?.stock ?? 0;
 
   const isOut = (stock ?? 0) <= 0;
   const isLow = (stock ?? 0) > 0 && (stock ?? 0) <= 3;
 
-  // ===== Precios: BD primero, fallback a build.* (evita 0 en juegos) =====
   const priceTransfer =
     typeof live?.priceTransfer === "number" && live.priceTransfer > 0
       ? live.priceTransfer
@@ -126,17 +120,11 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
       ? live.priceCard
       : (build as any)?.priceCard ?? 0;
 
-  // Toggle specs
   const [open, setOpen] = useState(false);
 
-  // Carrito
   const { addItem, openCart } = useCart();
 
-  // cover: si BD trae imageUrl úsala; si no, usa imagen del carrusel con fallback por error
-  const cover =
-    live?.imageUrl ||
-    (broken[0] ? "/pc1.jpg" : images[0]) ||
-    "/pc1.jpg";
+  const cover = live?.imageUrl || (broken[0] ? "/pc1.jpg" : images[0]) || "/pc1.jpg";
 
   const handleAdd = () => {
     if ((stock ?? 0) <= 0) return;
@@ -144,17 +132,20 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
     addItem(
       {
         id: build.productSlug,
-        name: build.title,
+        slug: build.productSlug,
+        name: live?.name || build.title,
         image: cover,
         priceTransfer,
         priceCard,
+        stock,
+        kind: (live?.kind as "PREBUILT_PC" | "UNIT_PRODUCT" | undefined) ?? "PREBUILT_PC",
       },
       1
     );
+
     openCart();
   };
 
-  // Iconos por label
   const iconFor = useMemo(
     () => ({
       "Tarjeta de video": <FaBolt className="h-4 w-4" />,
@@ -168,13 +159,9 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
     []
   );
 
-  // URL SEO del modelo
   const href = `/modelos/${encodeURIComponent(build.productSlug)}`;
-
-  // (Opcional futuro) video bajo la config
   const videoUrl = (build as any)?.videoUrl as string | undefined;
 
-  // Helpers imagen (si alguna falla, cae a /pc1.jpg pero NO cambia tu layout)
   const srcAt = (i: number) => (broken[i] ? "/pc1.jpg" : images[i] || "/pc1.jpg");
 
   return (
@@ -182,13 +169,11 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
       data-build-card
       className="rb-model-card group overflow-hidden rounded-2xl border border-neutral-800/70 bg-neutral-950/55 shadow-[0_12px_44px_rgba(0,0,0,0.45)]"
     >
-      {/* Media */}
       <Link
         href={href}
         className="card-media relative block aspect-[16/10] w-full bg-neutral-950"
         aria-label={`Ver detalles de ${build.title}`}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={srcAt(idx)}
           alt={build.title}
@@ -197,10 +182,8 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           draggable={false}
         />
 
-        {/* Overlay visual (NO debe captar clicks) */}
         <div className="rb-card-media-overlay absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
-        {/* Stock pill */}
         <div className="absolute left-3 top-3 z-10">
           <div
             className={[
@@ -224,7 +207,6 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           </div>
         </div>
 
-        {/* Controles carrusel */}
         {images.length > 1 && (
           <>
             <button
@@ -267,9 +249,7 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
         )}
       </Link>
 
-      {/* Content */}
       <div className="card-pad p-5">
-        {/* Título (clickeable) */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs text-neutral-400"></div>
@@ -290,7 +270,6 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           </div>
         </div>
 
-        {/* Precios */}
         <div className="price-box mt-4 rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 text-neutral-300">
@@ -317,7 +296,6 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           </div>
         </div>
 
-        {/* CTA carrito */}
         <div className="mt-4">
           <button
             type="button"
@@ -334,7 +312,6 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           </button>
         </div>
 
-        {/* Specs */}
         {build.specs?.length ? (
           <div className="mt-4">
             <div className="mb-2 text-sm font-bold text-white">
@@ -377,7 +354,6 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
           </div>
         ) : null}
 
-        {/* Video (opcional, futuro) */}
         {videoUrl ? (
           <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-800 bg-black/30">
             <div className="px-4 py-3 text-sm font-bold text-white">

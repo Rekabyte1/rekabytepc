@@ -67,6 +67,10 @@ export async function POST(req: NextRequest) {
     const siteUrl = getSiteUrl(req);
     const isLocal = isLocalUrl(siteUrl);
 
+    const webhookUrl = isLocal
+      ? `${siteUrl}/api/mercadopago/webhook`
+      : "https://www.rekabyte.cl/api/mercadopago/webhook";
+
     const items = order.items.map((item) => ({
       id: item.productId,
       title: item.productName,
@@ -92,7 +96,7 @@ export async function POST(req: NextRequest) {
         email: order.contactEmail || undefined,
       },
       external_reference: order.id,
-      notification_url: `${siteUrl}/api/mercadopago/webhook`,
+      notification_url: webhookUrl,
       payment_methods: {
         excluded_payment_types: [
           { id: "ticket" },
@@ -117,6 +121,10 @@ export async function POST(req: NextRequest) {
       preferenceBody.auto_return = "approved";
       preferenceBody.binary_mode = true;
     }
+
+    console.log("[MP create-preference] siteUrl:", siteUrl);
+    console.log("[MP create-preference] webhookUrl:", webhookUrl);
+    console.log("[MP create-preference] external_reference:", order.id);
 
     const mpResp = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",

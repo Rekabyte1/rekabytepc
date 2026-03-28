@@ -64,8 +64,6 @@ export default function CarritoPage() {
                           <div className="cp-price-label">Otros medios</div>
                           <div className="cp-price-val">{CLP(it.priceCard)}</div>
                         </div>
-                      </div>
-
                       <div className="cp-controls">
                         <div className="cp-stepper">
                           <button
@@ -73,20 +71,33 @@ export default function CarritoPage() {
                             className="cp-stepper-btn"
                             onClick={() => setQty(it.id, it.quantity - 1)}
                             aria-label="Restar"
+                            disabled={it.quantity <= 1}
                           >
                             −
                           </button>
+
                           <div className="cp-stepper-val">{it.quantity}</div>
+
                           <button
                             type="button"
                             className="cp-stepper-btn"
                             onClick={() => setQty(it.id, it.quantity + 1)}
                             aria-label="Sumar"
+                            disabled={typeof it.stock === "number" ? it.quantity >= it.stock : false}
+                            title={
+                              typeof it.stock === "number" && it.quantity >= it.stock
+                                ? "Máximo disponible"
+                                : "Sumar"
+                            }
                           >
                             +
                           </button>
                         </div>
 
+  <button type="button" className="cp-remove" onClick={() => removeItem(it.id)}>
+    Eliminar
+  </button>
+</div>
                         <button type="button" className="cp-remove" onClick={() => removeItem(it.id)}>
                           Eliminar
                         </button>
@@ -418,6 +429,11 @@ export default function CarritoPage() {
         .cp-actions {
           margin-top: 14px;
         }
+
+        .cp-stepper-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
       `}</style>
     </main>
   );

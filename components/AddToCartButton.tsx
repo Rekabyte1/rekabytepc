@@ -2,19 +2,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "./CartContext";
 
 type AddToCartButtonProps = {
   /**
-   * IMPORTANTE:
-   * Aquí va el slug del producto en la BD (Product.slug),
-   * por ejemplo "oficina-8600g", "entrada-ryzen7-rtx5060", etc.
+   * Siempre usa el Product.slug real de la BD
    */
-  id: string; // ← slug, NO el id interno de Prisma
-  name: string;
-  // Precio que ya estás mostrando en la tarjeta (normalmente transferencia)
-  price: number;
+  slug: string;
+  name?: string;
   className?: string;
+  qty?: number;
+  mode?: "add" | "buy_now";
+  children?: React.ReactNode;
 };
 
 type ProductApiResponse = {
@@ -29,24 +29,25 @@ type ProductApiResponse = {
         priceTransfer: number;
         stock: number | null;
         imageUrl?: string | null;
+        kind?: "PREBUILT_PC" | "UNIT_PRODUCT";
       }
     | null;
   error?: string;
 };
 
 export default function AddToCartButton({
-  id,
+  slug,
   name,
-  price,
   className = "",
+  qty = 1,
+  mode = "add",
+  children,
 }: AddToCartButtonProps) {
-  const { addItem, openCart } = useCart();
+  const router = useRouter();
+  const { addItem, items, openCart } = useCart();
 
-  const [stock, setStock] = useState<number | null>(null);
+  const [product, setProduct] = useState<ProductApiResponse["product"]>(null);
   const [loading, setLoading] = useState(true);
-
-  // precio que realmente se usará en el carrito
-  const [currentPrice, setCurrentPrice] = useState(price);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,8 +56,7 @@ export default function AddToCartButton({
       try {
         setLoading(true);
 
-        // Llama a /api/products/[slug] para leer stock y precios reales
-        const res = await fetch(`/api/products/${id}`, { cache: "no-store" });
+        const res = await fetch(`/api/products/${slug}`, { cache: "no-store" });
 
         if (!res.ok) {
           console.error("Error leyendo /api/products/[slug]:", await res.text());
@@ -64,23 +64,12 @@ export default function AddToCartButton({
         }
 
         const data = (await res.json()) as ProductApiResponse;
-        const p = data.product;
-        if (!p) return;
 
         if (!cancelled) {
-          setStock(p.stock ?? 0);
-
-          // LÓGICA DE PRECIOS:
-          // 1) Por ahora asumimos que el precio que se cobra es el de transferencia.
-          // 2) Si no hay priceTransfer, usamos priceCard.
-          // 3) Si tampoco hay, usamos price base.
-          const backendPrice =
-            p.priceTransfer ?? p.priceCard ?? p.price ?? price;
-
-          setCurrentPrice(backendPrice);
+          setProduct(data.product ?? null);
         }
       } catch (e) {
-        console.error("Error al cargar producto", e);
+        console.error("Error al cargar producto para carrito", e);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -91,36 +80,76 @@ export default function AddToCartButton({
     return () => {
       cancelled = true;
     };
-  }, [id, price]);
+  }, [slug]);
 
-  const available = (stock ?? 0) > 0;
-  const disabled = loading || !available;
+  const stock = product?.stock ?? 0;
+  const available = stock > 0;
+  const disabled = loading || !product || !available;
 
-  function handleClick() {
+  function buildCartPayload() {
+    if (!product) return null;
+
+    return {
+      id: product.slug,
+      slug: product.slug,
+      name: product.name || name || product.slug,
+      image: product.imageUrl ?? undefined,
+      priceTransfer: product.priceTransfer ?? product.price ?? 0,
+      priceCard: product.priceCard ?? product.price ?? 0,
+      stock: product.stock ?? null,
+      kind: product.kind,
+    };
+  }
+
+  function handleAdd() {
     if (disabled) return;
 
-    addItem({
-      id, // usamos el SLUG como id en el carrito
-      name,
-      price: currentPrice,
-    });
+    const payload = buildCartPayload();
+    if (!payload) return;
+
+    addItem(payload, qty);
     openCart();
   }
 
-  let label: string;
+  function handleBuyNow() {
+    if (disabled) return;
+
+    const payload = buildCartPayload();
+    if (!payload) return;
+
+    const exists = items.some((it) => it.id === payload.id);
+
+    if (!exists) {
+      addItem(payload, qty);
+    }
+
+    router.push("/checkout/opciones");
+  }
+
+  function handleClick() {
+    if (mode === "buy_now") {
+      handleBuyNow();
+      return;
+    }
+
+    handleAdd();
+  }
+
+  let label = "Agregar al carrito";
+  if (mode === "buy_now") label = "Comprar ahora";
   if (loading) label = "Cargando...";
   else if (!available) label = "Agotado";
-  else label = "Agregar al carrito";
 
   return (
     <button
+      type="button"
       className={`rb-btn w-full ${className} ${
         disabled ? "opacity-60 cursor-not-allowed" : ""
       }`}
       disabled={disabled}
       onClick={handleClick}
     >
-      {label}
+      {children ?? label}
     </button>
   );
 }

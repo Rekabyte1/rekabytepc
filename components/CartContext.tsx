@@ -11,12 +11,22 @@ import {
 
 export type CartItem = {
   id: string;
+  slug: string;
   name: string;
   image?: string;
   priceTransfer: number;
   priceCard: number;
   quantity: number;
+  stock?: number | null;
+  kind?: "PREBUILT_PC" | "UNIT_PRODUCT";
 };
+
+type AddCartInput =
+  | Omit<CartItem, "quantity">
+  | (Omit<CartItem, "quantity" | "priceTransfer" | "priceCard" | "slug"> & {
+      slug?: string;
+      price: number;
+    });
 
 type CartContextType = {
   items: CartItem[];
@@ -24,14 +34,7 @@ type CartContextType = {
   isOpen: boolean;
   subtotalTransfer: number;
   subtotalCard: number;
-  addItem: (
-    item:
-      | Omit<CartItem, "quantity">
-      | (Omit<CartItem, "quantity" | "priceTransfer" | "priceCard"> & {
-          price: number;
-        }),
-    qty?: number
-  ) => void;
+  addItem: (item: AddCartInput, qty?: number) => void;
   setQty: (id: string, qty: number) => void;
   removeItem: (id: string) => void;
   clear: () => void;
@@ -44,21 +47,66 @@ const CartContext = createContext<CartContextType | null>(null);
 
 const STORAGE_KEY = "rekabyte_cart_v1";
 
+function clampQty(qty: number, stock?: number | null) {
+  const normalized = Math.max(1, qty);
+
+  if (typeof stock === "number") {
+    return Math.min(normalized, Math.max(1, stock));
+  }
+
+  return normalized;
+}
+
+function normalizeStoredItems(raw: unknown): CartItem[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item: any) => {
+      if (!item || typeof item !== "object") return null;
+
+      const id = String(item.id ?? item.slug ?? "");
+      if (!id) return null;
+
+      const quantity = Math.max(1, Number(item.quantity ?? 1));
+
+      return {
+        id,
+        slug: String(item.slug ?? id),
+        name: String(item.name ?? "Producto"),
+        image: item.image ? String(item.image) : undefined,
+        priceTransfer: Number(item.priceTransfer ?? item.price ?? 0),
+        priceCard: Number(item.priceCard ?? item.price ?? 0),
+        quantity,
+        stock:
+          item.stock == null || Number.isNaN(Number(item.stock))
+            ? null
+            : Number(item.stock),
+        kind:
+          item.kind === "PREBUILT_PC" || item.kind === "UNIT_PRODUCT"
+            ? item.kind
+            : undefined,
+      } satisfies CartItem;
+    })
+    .filter(Boolean) as CartItem[];
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Hidratar desde localStorage
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      const normalized = normalizeStoredItems(parsed);
+      setItems(normalized);
     } catch {
       // ignore
     }
   }, []);
 
-  // Persistir en localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -68,22 +116,48 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const addItem: CartContextType["addItem"] = (raw, qty = 1) => {
-    // Compatibilidad con items que solo traen `price`
-    const item =
+    const item: Omit<CartItem, "quantity"> =
       "price" in raw
-        ? { ...raw, priceTransfer: raw.price, priceCard: raw.price }
+        ? {
+            id: raw.id,
+            slug: raw.slug ?? raw.id,
+            name: raw.name,
+            image: raw.image,
+            priceTransfer: raw.price,
+            priceCard: raw.price,
+            stock: raw.stock ?? null,
+            kind: raw.kind,
+          }
         : raw;
 
     setItems((prev) => {
-      const i = prev.findIndex((p) => p.id === (item as any).id);
-      if (i >= 0) {
+      const existingIndex = prev.findIndex((p) => p.id === item.id);
+
+      if (existingIndex >= 0) {
         const copy = [...prev];
-        copy[i] = { ...copy[i], quantity: copy[i].quantity + qty };
+        const existing = copy[existingIndex];
+
+        const resolvedStock =
+          item.stock != null ? item.stock : existing.stock ?? null;
+
+        const nextQty = clampQty(existing.quantity + qty, resolvedStock);
+
+        copy[existingIndex] = {
+          ...existing,
+          ...item,
+          stock: resolvedStock,
+          quantity: nextQty,
+        };
+
         return copy;
       }
+
       return [
         ...prev,
-        { ...(item as Omit<CartItem, "quantity">), quantity: qty },
+        {
+          ...item,
+          quantity: clampQty(qty, item.stock),
+        },
       ];
     });
 
@@ -92,11 +166,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const setQty: CartContextType["setQty"] = (id, qty) =>
     setItems((prev) =>
-      prev
-        .map((p) =>
-          p.id === id ? { ...p, quantity: Math.max(1, qty) } : p
-        )
-        .filter((p) => p.quantity > 0)
+      prev.map((p) => {
+        if (p.id !== id) return p;
+
+        return {
+          ...p,
+          quantity: clampQty(qty, p.stock),
+        };
+      })
     );
 
   const removeItem = (id: string) =>
@@ -114,17 +191,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const subtotalTransfer = useMemo(
-    () =>
-      items.reduce(
-        (a, it) => a + it.priceTransfer * it.quantity,
-        0
-      ),
+    () => items.reduce((a, it) => a + it.priceTransfer * it.quantity, 0),
     [items]
   );
 
   const subtotalCard = useMemo(
-    () =>
-      items.reduce((a, it) => a + it.priceCard * it.quantity, 0),
+    () => items.reduce((a, it) => a + it.priceCard * it.quantity, 0),
     [items]
   );
 
@@ -143,11 +215,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     closeCart,
   };
 
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
-  );
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {

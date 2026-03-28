@@ -27,9 +27,7 @@ const COLS: Array<{
   },
   {
     title: "Memorias RAM",
-    links: [
-      { label: "Memoria RAM PC", href: "/componentes/ram/pc" },
-    ],
+    links: [{ label: "Memoria RAM PC", href: "/componentes/ram/pc" }],
   },
   {
     title: "Almacenamiento",
@@ -54,7 +52,6 @@ const COLS: Array<{
       { label: "Pasta Térmica", href: "/componentes/refrigeracion/pasta-termica" },
     ],
   },
-
   {
     title: "Fuente de Poder",
     links: [
@@ -109,9 +106,22 @@ export default function ComponentsMenu({ className }: Props) {
       onMouseEnter={openSoft}
       onMouseLeave={closeSoft}
     >
-      <button className="rb-pill" onClick={toggleMobile}>
-        Componentes
-      </button>
+      <div className="flex items-center gap-2">
+        <Link href="/componentes" className="rb-pill" onClick={onNavigate}>
+          Componentes
+        </Link>
+
+        {isMobile ? (
+          <button
+            type="button"
+            onClick={toggleMobile}
+            aria-label={open ? "Cerrar menú de componentes" : "Abrir menú de componentes"}
+            className="rb-pill"
+          >
+            {open ? "−" : "+"}
+          </button>
+        ) : null}
+      </div>
 
       {open ? (
         <div className="rb-mega-panel">
@@ -138,11 +148,11 @@ export default function ComponentsMenu({ className }: Props) {
               onClick={onNavigate}
               className="text-lime-300 font-extrabold text-sm hover:text-lime-200"
             >
-             
+              Ver todos los componentes
             </Link>
 
             <span className="text-xs text-neutral-500">
-              
+              Catálogo general sin filtrar
             </span>
           </div>
 

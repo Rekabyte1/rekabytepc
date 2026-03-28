@@ -8,11 +8,11 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
   lastName     String?
   rut          String?
-  email        String   @unique
+  email        String  @unique
   passwordHash String?
   phone        String?
 
@@ -46,16 +46,38 @@ model Address {
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  name          String
-  slug          String   @unique
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  // Compatibilidad hacia atrás
   description   String?
   price         Int
-  priceCard     Int      @default(0)
-  priceTransfer Int      @default(0)
+  priceCard     Int     @default(0)
+  priceTransfer Int     @default(0)
   imageUrl      String?
-  stock         Int?
-  isActive      Boolean  @default(true)
+
+  stock    Int?
+  isActive Boolean @default(true)
+
+  // Nuevos campos catálogo
+  kind        ProductKind     @default(PREBUILT_PC)
+  category    ProductCategory @default(PREBUILT_PC)
+  subcategory String?
+  brand       String?
+  sku         String?
+
+  shortDescription String?
+  specs            Json?
+  images           String[] @default([])
+
+  seoTitle           String?
+  seoDescription     String?
+  manufacturerPdfUrl String?
+
+  badge     String?
+  featured  Boolean @default(false)
+  sortOrder Int     @default(0)
 
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
@@ -64,11 +86,11 @@ model Product {
 }
 
 model Order {
-  id             String         @id @default(cuid())
-  userId         String?
-  contactEmail   String
-  contactName    String
-  contactPhone   String?
+  id           String  @id @default(cuid())
+  userId       String?
+  contactEmail String
+  contactName  String
+  contactPhone String?
 
   status         OrderStatus    @default(PENDING_PAYMENT)
   shippingMethod ShippingMethod
@@ -94,7 +116,7 @@ model Order {
   documentType DocumentType @default(BOLETA)
   invoiceData  Json?
 
-  user     User?      @relation(fields: [userId], references: [id])
+  user     User?       @relation(fields: [userId], references: [id])
   items    OrderItem[]
   payment  Payment?
   shipment Shipment?
@@ -142,6 +164,31 @@ model Shipment {
 
   address Address? @relation(fields: [addressId], references: [id])
   order   Order    @relation(fields: [orderId], references: [id])
+}
+
+enum ProductKind {
+  PREBUILT_PC
+  UNIT_PRODUCT
+}
+
+enum ProductCategory {
+  PREBUILT_PC
+  CPU
+  MOTHERBOARD
+  GPU
+  RAM
+  STORAGE
+  CASE
+  PSU
+  CPU_COOLER
+  CASE_FAN
+  THERMAL_PASTE
+  CABLE
+  MONITOR
+  PERIPHERAL
+  ACCESSORY
+  STREAMING
+  OTHER
 }
 
 enum DocumentType {

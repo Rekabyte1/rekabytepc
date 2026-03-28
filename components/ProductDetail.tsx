@@ -1,4 +1,7 @@
+// components/ProductDetail.tsx
 "use client";
+
+import AddToCartButton from "./AddToCartButton";
 import type { Product } from "./products";
 
 export default function ProductDetail({ product }: { product: Product }) {
@@ -6,7 +9,6 @@ export default function ProductDetail({ product }: { product: Product }) {
     <div className="rb-container">
       <div className="mx-auto mt-8 grid w-full max-w-6xl grid-cols-1 gap-8 md:grid-cols-2">
         <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={product.image}
             alt={product.name}
@@ -19,6 +21,7 @@ export default function ProductDetail({ product }: { product: Product }) {
           <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
             {product.name}
           </h1>
+
           <p className="mt-2 text-neutral-300">{product.shortDesc}</p>
 
           <div className="mt-4 text-2xl font-bold text-lime-400">
@@ -33,13 +36,15 @@ export default function ProductDetail({ product }: { product: Product }) {
             </ul>
           ) : null}
 
-          <div className="mt-6 flex gap-3">
-            <button className="rounded-xl bg-lime-500 px-5 py-3 font-semibold text-black hover:bg-lime-400">
-              Añadir al carrito
-            </button>
-            <button className="rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-200 hover:bg-neutral-800">
-              Consultar
-            </button>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <AddToCartButton slug={product.slug} name={product.name} />
+
+            <AddToCartButton
+              slug={product.slug}
+              name={product.name}
+              mode="buy_now"
+              className="!bg-lime-400 !text-black hover:!bg-lime-300"
+            />
           </div>
         </div>
       </div>
