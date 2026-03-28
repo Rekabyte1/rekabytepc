@@ -39,7 +39,7 @@ export const HOLD_GATEWAY_MS = 2 * 60 * 60 * 1000;   // 2h
 
 // Stock inicial: se construye a partir de data/products.ts
 const DEFAULT_TOTAL: Dict<number> = products.reduce((acc, p) => {
-  acc[p.slug] = p.stock;
+  acc[p.slug] = p.stock ?? 0;
   return acc;
 }, {} as Dict<number>);
 
