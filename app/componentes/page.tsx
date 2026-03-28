@@ -1,18 +1,27 @@
 // app/componentes/page.tsx
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 async function getComponents() {
-  const res = await fetch(
-    "http://localhost:3000/api/products?kind=UNIT_PRODUCT",
-    { cache: "no-store" }
-  );
-
-  if (!res.ok) return [];
-
-  const data = await res.json();
-  return Array.isArray(data.products) ? data.products : [];
+  return prisma.product.findMany({
+    where: {
+      isActive: true,
+      kind: "UNIT_PRODUCT",
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      imageUrl: true,
+      priceTransfer: true,
+      stock: true,
+      brand: true,
+      shortDescription: true,
+    },
+  });
 }
 
 export default async function ComponentesHomePage() {
@@ -62,7 +71,7 @@ export default async function ComponentesHomePage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {products.map((p: any) => (
+          {products.map((p) => (
             <Link
               key={p.id}
               href={`/producto/${p.slug}`}
@@ -74,18 +83,36 @@ export default async function ComponentesHomePage() {
                 className="w-full h-40 object-cover rounded-md mb-3"
               />
 
+              {p.brand ? (
+                <p className="text-xs font-bold uppercase tracking-wide text-neutral-400">
+                  {p.brand}
+                </p>
+              ) : null}
+
               <h2 className="font-bold text-white">{p.name}</h2>
 
-              <p className="text-sm text-neutral-400">
-                {p.priceTransfer?.toLocaleString("es-CL", {
-                  style: "currency",
-                  currency: "CLP",
-                })}
-              </p>
+              {p.shortDescription ? (
+                <p className="mt-2 text-sm text-neutral-400 line-clamp-2">
+                  {p.shortDescription}
+                </p>
+              ) : null}
 
-              {p.stock <= 0 && (
-                <p className="text-xs text-red-400 mt-1">Sin stock</p>
-              )}
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-extrabold text-lime-400">
+                  {p.priceTransfer?.toLocaleString("es-CL", {
+                    style: "currency",
+                    currency: "CLP",
+                  })}
+                </p>
+
+                {typeof p.stock === "number" && p.stock > 0 ? (
+                  <span className="text-xs font-bold text-lime-300">
+                    Stock: {p.stock}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-red-400">Sin stock</span>
+                )}
+              </div>
             </Link>
           ))}
         </div>
