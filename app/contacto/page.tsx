@@ -146,8 +146,8 @@ export default function ContactoPage() {
             <li className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
               <p className="text-sm text-neutral-400">Horario de atención</p>
               <ul className="mt-2 text-neutral-200 text-sm leading-6">
-                <li>Lunes a Viernes: 10:00 – 18:30</li>
-                <li>Sábados, domingos y festivos: Cerrado</li>
+                <li>Lunes a Viernes: Atención online durante el día</li>
+                <li>Sábado: 08:00–13:00 hrs. domingos y festivos: Cerrado</li>
               </ul>
             </li>
           </ul>

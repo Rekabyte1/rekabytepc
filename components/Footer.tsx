@@ -131,7 +131,11 @@ export default function Footer() {
             <ul className="mt-2 space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <FiClock className="h-4 w-4 text-neutral-400" />
-                Lunes a Viernes, 10:00–18:30 hrs.
+                Atención personalizada durante el día.
+                Coordinamos entregas y retiros según disponibilidad.
+                Retiros previa coordinación.
+                Sábado: 08:00–13:00 hrs.
+                San Miguel.
               </li>
               <li className="text-neutral-400">
                 Punto de retiro disponible.
