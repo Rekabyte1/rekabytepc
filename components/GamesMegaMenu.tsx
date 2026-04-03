@@ -4,6 +4,7 @@ import Link from "next/link";
 
 type Props = {
   onNavigate?: () => void;
+  mobile?: boolean;
 };
 
 const GAME_LINKS = [
@@ -12,29 +13,51 @@ const GAME_LINKS = [
   { label: "Minecraft", slug: "minecraft" },
 ];
 
-export default function GamesMegaMenu({ onNavigate }: Props) {
+export default function GamesMegaMenu({
+  onNavigate,
+  mobile = false,
+}: Props) {
   function handleClick() {
-    if (onNavigate) onNavigate();
+    onNavigate?.();
   }
 
   return (
-    <div className="rb-mega-panel">
-      <div className="rb-mega-grid">
-
+    <div className={mobile ? "rb-mobile-panel" : "rb-mega-panel"}>
+      <div className={mobile ? "rb-mobile-grid" : "rb-mega-grid"}>
         <div className="col">
           <h4>Gama de modelos</h4>
           <ul>
-            <li><Link href="/modelos" onClick={handleClick}>Todos los modelos</Link></li>
-            <li><Link href="/modelos/configurador" onClick={handleClick}>Configurador Pc</Link></li>
+            <li>
+              <Link href="/modelos" onClick={handleClick}>
+                Todos los modelos
+              </Link>
+            </li>
+            <li>
+              <Link href="/modelos/configurador" onClick={handleClick}>
+                Configurador PC
+              </Link>
+            </li>
           </ul>
         </div>
 
         <div className="col">
           <h4>Seleccionar por tareas</h4>
           <ul>
-            <li><Link href="/tareas/trabajar-y-estudiar" onClick={handleClick}>Trabajar y estudiar</Link></li>
-            <li><Link href="/tareas/streaming" onClick={handleClick}>Streaming</Link></li>
-            <li><Link href="/tareas/juegos-2k" onClick={handleClick}>Juegos en 2K</Link></li>
+            <li>
+              <Link href="/tareas/trabajar-y-estudiar" onClick={handleClick}>
+                Trabajar y estudiar
+              </Link>
+            </li>
+            <li>
+              <Link href="/tareas/streaming" onClick={handleClick}>
+                Streaming
+              </Link>
+            </li>
+            <li>
+              <Link href="/tareas/juegos-2k" onClick={handleClick}>
+                Juegos en 2K
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -48,31 +71,106 @@ export default function GamesMegaMenu({ onNavigate }: Props) {
                 </Link>
               </li>
             ))}
-            <li><Link href="/allgames" onClick={handleClick}>Ver todos los juegos</Link></li>
+            <li>
+              <Link href="/allgames" onClick={handleClick}>
+                Ver todos los juegos
+              </Link>
+            </li>
           </ul>
         </div>
 
         <div className="col">
           <h4>Seleccionar por procesador</h4>
           <ul>
-            <li><Link href="/procesador/intel" onClick={handleClick}>Intel</Link></li>
-            <li><Link href="/procesador/amd-ryzen" onClick={handleClick}>AMD Ryzen</Link></li>
+            <li>
+              <Link href="/procesador/intel" onClick={handleClick}>
+                Intel
+              </Link>
+            </li>
+            <li>
+              <Link href="/procesador/amd-ryzen" onClick={handleClick}>
+                AMD Ryzen
+              </Link>
+            </li>
           </ul>
         </div>
 
         <div className="col">
           <h4>Seleccionar por tarjeta de video</h4>
           <ul>
-            <li><Link href="/gpu/geforce-rtx-5060-ti" onClick={handleClick}>GeForce RTX 5060/Ti</Link></li>
-            <li><Link href="/gpu/geforce-rtx-5070-ti" onClick={handleClick}>GeForce RTX 5070/Ti</Link></li>
-            <li><Link href="/gpu/geforce-rtx-5080" onClick={handleClick}>GeForce RTX 5080</Link></li>
-            <li><Link href="/gpu/geforce-rtx-5090" onClick={handleClick}>GeForce RTX 5090</Link></li>
+            <li>
+              <Link href="/gpu/geforce-rtx-5060-ti" onClick={handleClick}>
+                GeForce RTX 5060/Ti
+              </Link>
+            </li>
+            <li>
+              <Link href="/gpu/geforce-rtx-5070-ti" onClick={handleClick}>
+                GeForce RTX 5070/Ti
+              </Link>
+            </li>
+            <li>
+              <Link href="/gpu/geforce-rtx-5080" onClick={handleClick}>
+                GeForce RTX 5080
+              </Link>
+            </li>
+            <li>
+              <Link href="/gpu/geforce-rtx-5090" onClick={handleClick}>
+                GeForce RTX 5090
+              </Link>
+            </li>
           </ul>
         </div>
-
       </div>
 
       <div className="rb-mega-accent" />
+
+      <style jsx>{`
+        .rb-mobile-panel {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: calc(100% + 8px);
+          z-index: 70;
+          background: #070707;
+          border: 1px solid #262626;
+          border-radius: 16px;
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+          max-height: min(68vh, 560px);
+          overflow: auto;
+        }
+
+        .rb-mobile-grid {
+          display: grid;
+          gap: 18px;
+          padding: 16px;
+        }
+
+        .col h4 {
+          color: #b6ff2e;
+          font-size: 14px;
+          font-weight: 900;
+          margin: 0 0 10px;
+        }
+
+        .col ul {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          display: grid;
+          gap: 10px;
+        }
+
+        .col :global(a) {
+          color: #f5f5f5;
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+        }
+
+        .col :global(a:hover) {
+          color: #b6ff2e;
+        }
+      `}</style>
     </div>
   );
 }
