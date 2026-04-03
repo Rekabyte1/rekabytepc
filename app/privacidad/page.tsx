@@ -79,7 +79,7 @@ export default function PrivacidadPage() {
           </p>
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              <span className="font-semibold text-white">Chilexpress:</span>{" "}
+              <span className="font-semibold text-white">Bluexpress:</span>{" "}
               datos mínimos para generar y transportar el envío (nombre, teléfono y dirección de entrega si aplica).
             </li>
             <li>

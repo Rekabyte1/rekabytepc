@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOrderCreatedEmail } from "@/lib/email";
-import { DocumentType } from "@prisma/client";
+import { DocumentType, ProductCategory, ProductKind } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +32,18 @@ type CheckoutPayload = {
   notes?: string;
 };
 
+type ShippingZone = "RM" | "NO_EXTREMA" | "EXTREMOS" | "UNKNOWN";
+type ComponentShippingSize = "SMALL" | "MEDIUM" | "LARGE" | "XL";
+
 function safeStr(v: unknown) {
   return String(v ?? "").trim();
+}
+
+function normalizeText(v: unknown) {
+  return safeStr(v)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function orderNumberNice(id: string) {
@@ -55,8 +65,6 @@ function normalizeDocumentType(doc?: CheckoutDocumentUI): DocumentType {
   return d === "factura" ? DocumentType.FACTURA : DocumentType.BOLETA;
 }
 
-type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
-
 function normalizeRegion(regionRaw: string) {
   return safeStr(regionRaw).toLowerCase();
 }
@@ -67,73 +75,216 @@ function zoneByRegion(regionRaw: string): ShippingZone {
 
   if (r.includes("metropolitana")) return "RM";
 
+  // Zonas extremas para tu lógica comercial
   if (
-    r.includes("arica") ||
-    r.includes("parinacota") ||
-    r.includes("tarapac") ||
-    r.includes("antofag") ||
-    r.includes("atacama") ||
-    r.includes("coquimbo")
-  ) {
-    return "NORTE";
-  }
-
-  if (
-    r.includes("valpara") ||
-    r.includes("o’higgins") ||
-    r.includes("ohiggins") ||
-    r.includes("libertador") ||
-    r.includes("maule") ||
-    r.includes("ñuble") ||
-    r.includes("nuble") ||
-    r.includes("biob") ||
-    r.includes("bío bío") ||
-    r.includes("bio bio")
-  ) {
-    return "CENTRO";
-  }
-
-  if (
-    r.includes("araucan") ||
-    r.includes("los r") ||
-    r.includes("ríos") ||
-    r.includes("rios") ||
-    r.includes("los l") ||
-    r.includes("lagos")
-  ) {
-    return "SUR";
-  }
-
-  if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
-
-  return "UNKNOWN";
-}
-
-function shippingCostByZone(zone: ShippingZone) {
-  switch (zone) {
-    case "RM":
-      return 6990;
-    case "CENTRO":
-      return 8990;
-    case "NORTE":
-      return 10990;
-    case "SUR":
-      return 10990;
-    case "EXTREMOS":
-      return 14990;
-    default:
-      return 11990;
-  }
-}
-
-function calculateShippingCost(
-  deliveryType: "pickup" | "shipping",
-  address?: CheckoutPayload["address"]
+  r.includes("arica") ||
+  r.includes("parinacota") ||
+  r.includes("tarapac") ||
+  r.includes("atacama") ||
+  r.includes("ays") ||
+  r.includes("magall")
 ) {
+  return "EXTREMOS";
+}
+
+  return "NO_EXTREMA";
+}
+
+function pcShippingPerUnit(zone: ShippingZone, unitSubtotalTransfer: number) {
+  if (zone === "EXTREMOS") return 20000;
+
+  if (zone === "RM") {
+    return unitSubtotalTransfer > 2_000_000 ? 12000 : 8000;
+  }
+
+  return unitSubtotalTransfer > 1_500_000 ? 15000 : 12000;
+}
+
+function componentShippingBySize(
+  zone: ShippingZone,
+  size: ComponentShippingSize
+) {
+  const table: Record<
+    ComponentShippingSize,
+    Record<"RM" | "NO_EXTREMA" | "EXTREMOS", number>
+  > = {
+    SMALL: { RM: 3990, NO_EXTREMA: 5990, EXTREMOS: 7990 },
+    MEDIUM: { RM: 4990, NO_EXTREMA: 7990, EXTREMOS: 9990 },
+    LARGE: { RM: 6990, NO_EXTREMA: 10990, EXTREMOS: 14990 },
+    XL: { RM: 8990, NO_EXTREMA: 13990, EXTREMOS: 17990 },
+  };
+
+  const normalizedZone = zone === "UNKNOWN" ? "NO_EXTREMA" : zone;
+  return table[size][normalizedZone];
+}
+
+function sizeRank(size: ComponentShippingSize) {
+  switch (size) {
+    case "SMALL":
+      return 1;
+    case "MEDIUM":
+      return 2;
+    case "LARGE":
+      return 3;
+    case "XL":
+      return 4;
+  }
+}
+
+function inferComponentShippingSize(product: {
+  category?: ProductCategory | null;
+  subcategory?: string | null;
+  name?: string | null;
+  slug?: string | null;
+}): ComponentShippingSize {
+  const category = product.category ?? null;
+  const sub = normalizeText(product.subcategory);
+  const name = normalizeText(product.name);
+  const slug = normalizeText(product.slug);
+
+  if (category === ProductCategory.MONITOR) return "XL";
+
+  if (category === ProductCategory.CASE) {
+    if (
+      sub.includes("micro") ||
+      sub.includes("mini") ||
+      sub.includes("itx") ||
+      sub.includes("matx")
+    ) {
+      return "LARGE";
+    }
+    return "XL";
+  }
+
+  if (category === ProductCategory.GPU || category === ProductCategory.MOTHERBOARD) {
+    return "LARGE";
+  }
+
+  if (
+    category === ProductCategory.PSU ||
+    category === ProductCategory.CPU_COOLER ||
+    category === ProductCategory.CASE_FAN
+  ) {
+    return "MEDIUM";
+  }
+
+  if (
+    category === ProductCategory.CPU ||
+    category === ProductCategory.RAM ||
+    category === ProductCategory.STORAGE ||
+    category === ProductCategory.THERMAL_PASTE ||
+    category === ProductCategory.CABLE
+  ) {
+    return "SMALL";
+  }
+
+  if (
+    name.includes("monitor") ||
+    slug.includes("monitor") ||
+    name.includes("ultrawide")
+  ) {
+    return "XL";
+  }
+
+  if (
+    name.includes("gabinete") ||
+    slug.includes("gabinete") ||
+    slug.includes("case")
+  ) {
+    if (
+      name.includes("mini itx") ||
+      name.includes("micro atx") ||
+      slug.includes("mini-itx") ||
+      slug.includes("micro-atx") ||
+      slug.includes("matx")
+    ) {
+      return "LARGE";
+    }
+    return "XL";
+  }
+
+  if (
+    name.includes("gpu") ||
+    slug.includes("gpu") ||
+    slug.includes("rtx") ||
+    slug.includes("rx-")
+  ) {
+    return "LARGE";
+  }
+
+  if (
+    name.includes("fuente") ||
+    slug.includes("psu") ||
+    name.includes("cooler") ||
+    name.includes("disipador") ||
+    name.includes("ventilador") ||
+    name.includes("teclado") ||
+    name.includes("audifono") ||
+    name.includes("headset") ||
+    name.includes("webcam") ||
+    name.includes("microfono") ||
+    name.includes("mousepad")
+  ) {
+    return "MEDIUM";
+  }
+
+  if (
+    name.includes("mouse") ||
+    name.includes("ram") ||
+    name.includes("ssd") ||
+    name.includes("nvme") ||
+    name.includes("pasta termica") ||
+    slug.includes("mouse") ||
+    slug.includes("ram") ||
+    slug.includes("ssd") ||
+    slug.includes("nvme")
+  ) {
+    return "SMALL";
+  }
+
+  return "MEDIUM";
+}
+
+function calculateShippingCost(params: {
+  deliveryType: "pickup" | "shipping";
+  address?: CheckoutPayload["address"];
+  itemsDetailed: Array<{
+    quantity: number;
+    kind?: ProductKind | null;
+    category?: ProductCategory | null;
+    subcategory?: string | null;
+    name?: string | null;
+    slug?: string | null;
+    priceTransfer?: number | null;
+    price?: number | null;
+  }>;
+}) {
+  const { deliveryType, address, itemsDetailed } = params;
+
   if (deliveryType === "pickup") return 0;
+
   const region = safeStr(address?.region);
   const zone = zoneByRegion(region);
-  return shippingCostByZone(zone);
+
+  const pcItems = itemsDetailed.filter((p) => p.kind === ProductKind.PREBUILT_PC);
+  if (pcItems.length > 0) {
+    return pcItems.reduce((acc, item) => {
+      const unitSubtotalTransfer = (item.priceTransfer ?? 0) || (item.price ?? 0);
+      const perUnit = pcShippingPerUnit(zone, unitSubtotalTransfer);
+      return acc + perUnit * item.quantity;
+    }, 0);
+  }
+
+  const componentUnits = itemsDetailed.reduce((acc, item) => acc + item.quantity, 0);
+  if (componentUnits <= 0) return 0;
+
+  const biggestSize = itemsDetailed.reduce<ComponentShippingSize>((max, item) => {
+    const current = inferComponentShippingSize(item);
+    return sizeRank(current) > sizeRank(max) ? current : max;
+  }, "SMALL");
+
+  const perUnit = componentShippingBySize(zone, biggestSize);
+  return perUnit * componentUnits;
 }
 
 async function trySendConfirmationEmailOnce(params: {
@@ -216,6 +367,8 @@ async function trySendConfirmationEmailOnce(params: {
 
 export async function POST(req: NextRequest) {
   try {
+    const ENABLE_MERCADOPAGO = process.env.ENABLE_MERCADOPAGO === "true";
+
     const session = await getServerSession(authOptions);
     const checkoutUserId = (session?.user as any)?.id as string | undefined;
 
@@ -244,7 +397,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!items.length) {
-      return NextResponse.json({ ok: false, error: "No hay productos en el carrito." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "No hay productos en el carrito." },
+        { status: 400 }
+      );
     }
 
     const customerName = safeStr(customer?.name);
@@ -252,7 +408,24 @@ export async function POST(req: NextRequest) {
     const customerPhone = safeStr(customer?.phone);
 
     if (!customerName || !customerEmail) {
-      return NextResponse.json({ ok: false, error: "Falta nombre o email del cliente." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Falta nombre o email del cliente." },
+        { status: 400 }
+      );
+    }
+
+    if (paymentMethod === "mercadopago" && !ENABLE_MERCADOPAGO) {
+      return NextResponse.json(
+        { ok: false, error: "Mercado Pago no está disponible por el momento." },
+        { status: 400 }
+      );
+    }
+
+    if (paymentMethod === "webpay") {
+      return NextResponse.json(
+        { ok: false, error: "Webpay aún no está disponible." },
+        { status: 400 }
+      );
     }
 
     if (deliveryType === "shipping") {
@@ -263,7 +436,10 @@ export async function POST(req: NextRequest) {
 
       if (!street || !region || (!city && !commune)) {
         return NextResponse.json(
-          { ok: false, error: "Falta dirección para despacho (calle, región y ciudad/comuna)." },
+          {
+            ok: false,
+            error: "Falta dirección para despacho (calle, región y ciudad/comuna).",
+          },
           { status: 400 }
         );
       }
@@ -275,7 +451,11 @@ export async function POST(req: NextRequest) {
       const rut = safeStr(inv?.rutEmpresa ?? inv?.rut_empresa ?? inv?.rut ?? "");
       if (!razon || !rut) {
         return NextResponse.json(
-          { ok: false, error: "Si seleccionas FACTURA, debes completar al menos Razón social y RUT empresa." },
+          {
+            ok: false,
+            error:
+              "Si seleccionas FACTURA, debes completar al menos Razón social y RUT empresa.",
+          },
           { status: 400 }
         );
       }
@@ -320,7 +500,9 @@ export async function POST(req: NextRequest) {
           order: existing,
           shipment: existing.shipment,
           idempotent: true,
-          paymentDueAt: existing.paymentDueAt ? new Date(existing.paymentDueAt).toISOString() : null,
+          paymentDueAt: existing.paymentDueAt
+            ? new Date(existing.paymentDueAt).toISOString()
+            : null,
         },
         { status: 200 }
       );
@@ -329,7 +511,10 @@ export async function POST(req: NextRequest) {
     const slugs = items.map((i) => safeStr(i.productSlug)).filter(Boolean);
 
     if (slugs.length !== items.length) {
-      return NextResponse.json({ ok: false, error: "Algún producto no tiene slug válido." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Algún producto no tiene slug válido." },
+        { status: 400 }
+      );
     }
 
     const products = await prisma.product.findMany({
@@ -342,11 +527,17 @@ export async function POST(req: NextRequest) {
         price: true,
         priceCard: true,
         priceTransfer: true,
+        kind: true,
+        category: true,
+        subcategory: true,
       },
     });
 
     if (products.length !== slugs.length) {
-      return NextResponse.json({ ok: false, error: "Algún producto no existe o fue eliminado." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Algún producto no existe o fue eliminado." },
+        { status: 400 }
+      );
     }
 
     const productMap = new Map(products.map((p) => [p.slug, p]));
@@ -358,7 +549,10 @@ export async function POST(req: NextRequest) {
       const product = productMap.get(slug);
 
       if (!product) {
-        return NextResponse.json({ ok: false, error: "Producto no encontrado." }, { status: 400 });
+        return NextResponse.json(
+          { ok: false, error: "Producto no encontrado." },
+          { status: 400 }
+        );
       }
 
       const quantity = Math.max(1, Number(item.quantity ?? 1));
@@ -377,7 +571,28 @@ export async function POST(req: NextRequest) {
       subtotal += unitPrice * quantity;
     }
 
-    const shippingCost = calculateShippingCost(deliveryType, address);
+    const itemsDetailed = items.map((item) => {
+      const slug = safeStr(item.productSlug);
+      const product = productMap.get(slug)!;
+
+      return {
+        quantity: Math.max(1, Number(item.quantity ?? 1)),
+        kind: product.kind,
+        category: product.category,
+        subcategory: product.subcategory,
+        name: product.name,
+        slug: product.slug,
+        priceTransfer: product.priceTransfer,
+        price: product.price,
+      };
+    });
+
+    const shippingCost = calculateShippingCost({
+      deliveryType,
+      address,
+      itemsDetailed,
+    });
+
     const total = subtotal + shippingCost;
 
     const created = await prisma.$transaction(async (tx) => {
@@ -455,7 +670,9 @@ export async function POST(req: NextRequest) {
           });
 
           if (updated.count !== 1) {
-            throw new Error(`Stock cambió mientras comprabas: ${product.name}. Intenta nuevamente.`);
+            throw new Error(
+              `Stock cambió mientras comprabas: ${product.name}. Intenta nuevamente.`
+            );
           }
         }
       }

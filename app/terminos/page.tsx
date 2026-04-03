@@ -87,7 +87,7 @@ export default function TerminosPage() {
           <h2 className="text-xl font-extrabold text-white">4. Envíos y retiros</h2>
           <p>
             Los despachos se realizan mediante{" "}
-            <span className="font-semibold text-white">Chilexpress</span> y el retiro
+            <span className="font-semibold text-white">Bluexpress</span> y el retiro
             se coordina una vez procesado el pedido. Revisa el detalle en{" "}
             <a href="/envios" className="text-lime-400 hover:underline">
               Envíos y retiros

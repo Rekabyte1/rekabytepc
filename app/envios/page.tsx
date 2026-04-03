@@ -2,7 +2,7 @@
 export const metadata = {
   title: "Envíos y retiros | RekaByte",
   description:
-    "Despachos a Santiago y todo Chile vía Chilexpress, retiro coordinado, plazos y condiciones de entrega en RekaByte.",
+    "Despachos a Santiago y todo Chile vía Bluexpress, retiro coordinado, plazos y condiciones de entrega en RekaByte.",
 };
 
 export default function EnviosPage() {
@@ -20,7 +20,7 @@ export default function EnviosPage() {
             <li>Vendemos en Santiago y despachamos a todo Chile.</li>
             <li>
               Trabajamos con{" "}
-              <span className="font-semibold text-white">Chilexpress</span>.
+              <span className="font-semibold text-white">Bluexpress</span>.
             </li>
           </ul>
         </section>
@@ -47,7 +47,7 @@ export default function EnviosPage() {
         </section>
 
         <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-          <h2 className="mb-2 text-xl font-bold text-white">Despachos por Chilexpress</h2>
+          <h2 className="mb-2 text-xl font-bold text-white">Despachos por Bluexpress</h2>
           <ul className="list-disc space-y-2 pl-5 text-neutral-300">
             <li>
               El <span className="font-semibold text-white">envío se paga aparte</span>.
@@ -87,7 +87,7 @@ export default function EnviosPage() {
               del retiro/despacho.
             </li>
             <li>
-              Los plazos de transporte dependen de Chilexpress los tiempos estimados son de 2 a 4 días. En fechas de
+              Los plazos de transporte dependen de Bluexpress los tiempos estimados son de 2 a 4 días. En fechas de
               alta demanda puede haber demoras.
             </li>
           </ul>

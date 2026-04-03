@@ -11,6 +11,9 @@ import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 type MetodoPago = "transferencia" | "mercadopago" | "webpay";
 type Documento = "boleta" | "factura";
 
+const ENABLE_MERCADOPAGO =
+  process.env.NEXT_PUBLIC_ENABLE_MERCADOPAGO === "true";
+
 export default function Paso3Pago() {
   useCheckoutGuard(3);
 
@@ -19,12 +22,20 @@ export default function Paso3Pago() {
   const { pago, setPago } = useCheckout();
 
   const initialMetodo = useMemo<MetodoPago>(() => {
+    if (pago?.metodo === "mercadopago" && !ENABLE_MERCADOPAGO) {
+      return "transferencia";
+    }
+    if (pago?.metodo === "webpay") {
+      return "transferencia";
+    }
     if (pago?.metodo) return pago.metodo as MetodoPago;
     return "transferencia";
   }, [pago?.metodo]);
 
   const [metodo, setMetodo] = useState<MetodoPago>(initialMetodo);
-  const [doc, setDoc] = useState<Documento>((pago?.documento as Documento) ?? "boleta");
+  const [doc, setDoc] = useState<Documento>(
+    (pago?.documento as Documento) ?? "boleta"
+  );
 
   const prices = useMemo(() => {
     return {
@@ -33,6 +44,39 @@ export default function Paso3Pago() {
       webpay: CLP(subtotalCard),
     } as const;
   }, [subtotalTransfer, subtotalCard]);
+
+  const paymentOptions = useMemo(
+    () =>
+      [
+        {
+          key: "transferencia" as const,
+          label: "Transferencia",
+          price: prices.transferencia,
+          disabled: false,
+          soon: false,
+          help: PAYMENT_HELP.transferencia,
+        },
+        {
+          key: "mercadopago" as const,
+          label: "Mercado Pago",
+          price: prices.mercadopago,
+          disabled: !ENABLE_MERCADOPAGO,
+          soon: !ENABLE_MERCADOPAGO,
+          help: ENABLE_MERCADOPAGO
+            ? PAYMENT_HELP.mercadopago
+            : "Muy pronto podrás pagar con débito o crédito mediante Mercado Pago.",
+        },
+        {
+          key: "webpay" as const,
+          label: "Webpay",
+          price: prices.webpay,
+          disabled: true,
+          soon: true,
+          help: "Muy pronto podrás pagar con débito o crédito mediante Webpay.",
+        },
+      ] as const,
+    [prices]
+  );
 
   return (
     <main className="rb-container checkout-step">
@@ -60,7 +104,10 @@ export default function Paso3Pago() {
               e.preventDefault();
               const fd = new FormData(e.currentTarget as HTMLFormElement);
 
-              if (metodo === "webpay") {
+              if (
+                metodo === "webpay" ||
+                (metodo === "mercadopago" && !ENABLE_MERCADOPAGO)
+              ) {
                 return;
               }
 
@@ -89,48 +136,40 @@ export default function Paso3Pago() {
               <div className="cs-block-title">Método de pago</div>
 
               <div className="cs-choice-grid">
-                {(
-                  [
-                    ["transferencia", "Transferencia", prices.transferencia],
-                    ["mercadopago", "Mercado Pago", prices.mercadopago],
-                    ["webpay", "Webpay", prices.webpay],
-                  ] as const
-                ).map(([key, label, price]) => {
-                  const disabled = key === "webpay";
+                {paymentOptions.map((option) => {
+                  const isSelected = metodo === option.key;
 
                   return (
                     <label
-                      key={key}
-                      className={`cs-choice ${metodo === key ? "is-selected" : ""} ${
-                        disabled ? "is-disabled" : ""
+                      key={option.key}
+                      className={`cs-choice ${isSelected ? "is-selected" : ""} ${
+                        option.disabled ? "is-disabled" : ""
                       }`}
                     >
                       <input
                         type="radio"
                         name="metodo"
-                        value={key}
-                        checked={metodo === key}
+                        value={option.key}
+                        checked={isSelected}
                         onChange={() => {
-                          if (disabled) return;
-                          setMetodo(key);
+                          if (option.disabled) return;
+                          setMetodo(option.key);
                         }}
-                        disabled={disabled}
+                        disabled={option.disabled}
                       />
 
                       <div className="cs-choice-body">
                         <div className="cs-choice-title-row">
-                          <div className="cs-choice-title">{label}</div>
-                          {disabled ? <span className="cs-badge-soon">Próximamente</span> : null}
+                          <div className="cs-choice-title">{option.label}</div>
+                          {option.soon ? (
+                            <span className="cs-badge-soon">Próximamente</span>
+                          ) : null}
                         </div>
 
-                        <div className="cs-choice-sub">
-                          {disabled
-                            ? "Muy pronto podrás pagar con débito o crédito mediante Webpay."
-                            : PAYMENT_HELP[key]}
-                        </div>
+                        <div className="cs-choice-sub">{option.help}</div>
                       </div>
 
-                      <div className="cs-price">{price}</div>
+                      <div className="cs-price">{option.price}</div>
                     </label>
                   );
                 })}
@@ -161,7 +200,7 @@ export default function Paso3Pago() {
                 Si necesitas factura, completa los datos tributarios y la dirección comercial.
               </p>
 
-              {metodo === "mercadopago" ? (
+              {metodo === "mercadopago" && ENABLE_MERCADOPAGO ? (
                 <div className="cs-note cs-note--mp">
                   Al continuar, serás redirigido a Mercado Pago para completar el pago.
                 </div>
@@ -277,10 +316,22 @@ export default function Paso3Pago() {
             </div>
 
             <div className="cs-actions">
-              <button type="button" onClick={() => router.back()} className="rb-btn rb-btn--ghost">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="rb-btn rb-btn--ghost"
+              >
                 Volver
               </button>
-              <button type="submit" className="rb-btn" disabled={metodo === "webpay"}>
+
+              <button
+                type="submit"
+                className="rb-btn"
+                disabled={
+                  metodo === "webpay" ||
+                  (metodo === "mercadopago" && !ENABLE_MERCADOPAGO)
+                }
+              >
                 Continuar
               </button>
             </div>

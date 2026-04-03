@@ -5,80 +5,204 @@ import { useCheckout } from "./CheckoutStore";
 
 type ShippingZone =
   | "RM"
-  | "CENTRO"
-  | "NORTE"
-  | "SUR"
+  | "NO_EXTREMA"
   | "EXTREMOS"
   | "UNKNOWN";
 
+type ComponentShippingSize = "SMALL" | "MEDIUM" | "LARGE" | "XL";
+
 function safeStr(v: unknown) {
-  return String(v ?? "").trim().toLowerCase();
+  return String(v ?? "").trim();
+}
+
+function normalizeText(v: unknown) {
+  return safeStr(v)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function zoneByRegion(regionRaw: string): ShippingZone {
-  const r = safeStr(regionRaw);
+  const r = normalizeText(regionRaw);
   if (!r) return "UNKNOWN";
 
   if (r.includes("metropolitana")) return "RM";
 
-  if (
-    r.includes("arica") ||
-    r.includes("parinacota") ||
-    r.includes("tarapac") ||
-    r.includes("antofag") ||
-    r.includes("atacama") ||
-    r.includes("coquimbo")
-  )
-    return "NORTE";
-
-  if (
-    r.includes("valpara") ||
-    r.includes("ohiggins") ||
-    r.includes("o’higgins") ||
-    r.includes("libertador") ||
-    r.includes("maule") ||
-    r.includes("ñuble") ||
-    r.includes("nuble") ||
-    r.includes("biob") ||
-    r.includes("bio bio")
-  )
-    return "CENTRO";
-
-  if (
-    r.includes("araucan") ||
-    r.includes("los r") ||
-    r.includes("rios") ||
-    r.includes("los l") ||
-    r.includes("lagos")
-  )
-    return "SUR";
-
-  if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
-
-  return "UNKNOWN";
+  // Zonas extremas para tu lógica comercial:
+  // Arica y Parinacota, Tarapacá, Aysén, Magallanes
+   if (
+  r.includes("arica") ||
+  r.includes("parinacota") ||
+  r.includes("tarapac") ||
+  r.includes("atacama") ||
+  r.includes("ays") ||
+  r.includes("magall")
+) {
+  return "EXTREMOS";
 }
 
-function shippingCostByZone(zone: ShippingZone) {
-  switch (zone) {
-    case "RM":
-      return 6990;
-    case "CENTRO":
-      return 8990;
-    case "NORTE":
-      return 10990;
-    case "SUR":
-      return 10990;
-    case "EXTREMOS":
-      return 14990;
-    default:
-      return 11990;
+  return "NO_EXTREMA";
+}
+
+function pcShippingPerUnit(zone: ShippingZone, unitSubtotalTransfer: number) {
+  if (zone === "EXTREMOS") return 20000;
+  return unitSubtotalTransfer > 1_500_000 ? 15000 : 12000;
+}
+
+function componentShippingBySize(zone: ShippingZone, size: ComponentShippingSize) {
+  const table: Record<ComponentShippingSize, Record<"RM" | "NO_EXTREMA" | "EXTREMOS", number>> = {
+    SMALL: {
+      RM: 3990,
+      NO_EXTREMA: 5990,
+      EXTREMOS: 7990,
+    },
+    MEDIUM: {
+      RM: 4990,
+      NO_EXTREMA: 7990,
+      EXTREMOS: 9990,
+    },
+    LARGE: {
+      RM: 6990,
+      NO_EXTREMA: 10990,
+      EXTREMOS: 14990,
+    },
+    XL: {
+      RM: 8990,
+      NO_EXTREMA: 13990,
+      EXTREMOS: 17990,
+    },
+  };
+
+  const normalizedZone =
+    zone === "UNKNOWN" ? "NO_EXTREMA" : zone;
+
+  return table[size][normalizedZone];
+}
+
+function sizeRank(size: ComponentShippingSize) {
+  switch (size) {
+    case "SMALL":
+      return 1;
+    case "MEDIUM":
+      return 2;
+    case "LARGE":
+      return 3;
+    case "XL":
+      return 4;
   }
 }
 
-function calculateShipping(deliveryType: string, region?: string) {
+function inferCartItemShippingSize(item: {
+  id?: string;
+  name?: string;
+}): ComponentShippingSize {
+  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
+
+  if (text.includes("monitor")) return "XL";
+
+  if (text.includes("gabinete") || text.includes("case")) {
+    if (
+      text.includes("mini itx") ||
+      text.includes("mini-itx") ||
+      text.includes("micro atx") ||
+      text.includes("micro-atx") ||
+      text.includes("matx")
+    ) {
+      return "LARGE";
+    }
+    return "XL";
+  }
+
+  if (
+    text.includes("rtx") ||
+    text.includes("radeon") ||
+    text.includes("rx ") ||
+    text.includes("rx-") ||
+    text.includes("gpu") ||
+    text.includes("tarjeta de video") ||
+    text.includes("placa madre") ||
+    text.includes("motherboard")
+  ) {
+    return "LARGE";
+  }
+
+  if (
+    text.includes("fuente") ||
+    text.includes("psu") ||
+    text.includes("cooler") ||
+    text.includes("disipador") ||
+    text.includes("ventilador") ||
+    text.includes("teclado") ||
+    text.includes("audifono") ||
+    text.includes("headset") ||
+    text.includes("webcam") ||
+    text.includes("microfono") ||
+    text.includes("mousepad")
+  ) {
+    return "MEDIUM";
+  }
+
+  if (
+    text.includes("mouse") ||
+    text.includes("ram") ||
+    text.includes("ssd") ||
+    text.includes("nvme") ||
+    text.includes("pasta termica") ||
+    text.includes("cpu") ||
+    text.includes("procesador")
+  ) {
+    return "SMALL";
+  }
+
+  return "MEDIUM";
+}
+
+function isPcItem(item: { id?: string; name?: string }) {
+  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
+
+  return (
+    text.includes("oficina-") ||
+    text.includes("entrada-") ||
+    text.includes("media-") ||
+    text.includes("ryzen") ||
+    text.includes("8600g") ||
+    text.includes("pc ")
+  );
+}
+
+function calculateShipping(params: {
+  deliveryType: string;
+  region?: string;
+  items: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    priceTransfer: number;
+  }>;
+}) {
+  const { deliveryType, region, items } = params;
   if (deliveryType !== "shipping") return 0;
+
   const zone = zoneByRegion(region ?? "");
-  return shippingCostByZone(zone);
+
+  const pcItems = items.filter((item) => isPcItem(item));
+  if (pcItems.length > 0) {
+    return pcItems.reduce((acc, item) => {
+      const perUnit = pcShippingPerUnit(zone, item.priceTransfer);
+      return acc + perUnit * item.quantity;
+    }, 0);
+  }
+
+  const componentUnits = items.reduce((acc, item) => acc + item.quantity, 0);
+  if (componentUnits <= 0) return 0;
+
+  const biggestSize = items.reduce<ComponentShippingSize>((max, item) => {
+    const current = inferCartItemShippingSize(item);
+    return sizeRank(current) > sizeRank(max) ? current : max;
+  }, "SMALL");
+
+  const unitShipping = componentShippingBySize(zone, biggestSize);
+  return unitShipping * componentUnits;
 }
 
 export default function CheckoutSummary() {
@@ -98,7 +222,16 @@ export default function CheckoutSummary() {
       ? "shipping"
       : "pickup";
 
-  const shipping = calculateShipping(deliveryType, envio?.region);
+  const shipping = calculateShipping({
+    deliveryType,
+    region: envio?.region,
+    items: items.map((it) => ({
+      id: it.id,
+      name: it.name,
+      quantity: it.quantity,
+      priceTransfer: it.priceTransfer,
+    })),
+  });
 
   const transferLine = {
     label: "Pago con transferencias",
@@ -113,8 +246,7 @@ export default function CheckoutSummary() {
   let lines: { label: string; value: number }[] = [];
 
   if (chosen === "transferencia") lines = [transferLine];
-  else if (chosen === "webpay" || chosen === "mercadopago")
-    lines = [cardLine];
+  else if (chosen === "webpay" || chosen === "mercadopago") lines = [cardLine];
   else lines = [transferLine, cardLine];
 
   const base =
@@ -136,28 +268,21 @@ export default function CheckoutSummary() {
   return (
     <aside>
       <h3 className="mb-3 text-lg font-bold text-white">
-        Resumen ({items.length}{" "}
-        {items.length === 1 ? "producto" : "productos"})
+        Resumen ({items.length} {items.length === 1 ? "producto" : "productos"})
       </h3>
 
       {items.length === 0 ? (
-        <p className="text-neutral-300">
-          No tienes productos en el carrito.
-        </p>
+        <p className="text-neutral-300">No tienes productos en el carrito.</p>
       ) : (
         <>
           <div className="divide-y divide-neutral-800">
             {items.map((it) => {
-              const lineTransfer =
-                it.priceTransfer * it.quantity;
-              const lineCard =
-                it.priceCard * it.quantity;
+              const lineTransfer = it.priceTransfer * it.quantity;
+              const lineCard = it.priceCard * it.quantity;
 
               return (
                 <div key={it.id} className="py-3">
                   <div className="grid grid-cols-[80px_minmax(0,1fr)] md:grid-cols-[100px_minmax(0,1fr)_auto] items-start gap-3 md:gap-4">
-
-                    {/* Imagen responsive */}
                     <div className="h-[80px] w-[80px] md:h-[100px] md:w-[100px] overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950">
                       {it.image ? (
                         <img
@@ -179,10 +304,7 @@ export default function CheckoutSummary() {
                       </div>
 
                       <div className="mt-1 text-xs text-neutral-400">
-                        Cantidad:{" "}
-                        <span className="text-neutral-200">
-                          {it.quantity}
-                        </span>
+                        Cantidad: <span className="text-neutral-200">{it.quantity}</span>
                       </div>
 
                       <div className="mt-3 grid gap-2">
@@ -233,9 +355,7 @@ export default function CheckoutSummary() {
                 key={l.label}
                 className="mb-1 flex items-center justify-between"
               >
-                <span className="text-neutral-300">
-                  {l.label}
-                </span>
+                <span className="text-neutral-300">{l.label}</span>
                 <span className="font-semibold text-neutral-200 tabular-nums">
                   {CLP(l.value)}
                 </span>
@@ -243,18 +363,14 @@ export default function CheckoutSummary() {
             ))}
 
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-neutral-500">
-                Envío
-              </span>
+              <span className="text-neutral-500">Envío</span>
               <span className="text-neutral-500 tabular-nums">
                 {shipping > 0 ? CLP(shipping) : "-"}
               </span>
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-neutral-800 pt-3">
-              <span className="font-bold text-neutral-200">
-                TOTAL
-              </span>
+              <span className="font-bold text-neutral-200">TOTAL</span>
               <span className="font-extrabold text-white tabular-nums">
                 {CLP(total)}
               </span>
@@ -262,8 +378,7 @@ export default function CheckoutSummary() {
 
             {!isTransfer && (
               <p className="mt-3 text-xs text-amber-300">
-                Por ahora solo está disponible la
-                confirmación por transferencia.
+                Por ahora solo está disponible la confirmación por transferencia.
               </p>
             )}
           </div>

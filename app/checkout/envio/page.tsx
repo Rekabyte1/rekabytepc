@@ -1,4 +1,3 @@
-// app/checkout/envio/page.tsx
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -7,9 +6,12 @@ import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
 import { useCheckout } from "@/components/CheckoutStore";
 import { useCheckoutGuard } from "@/components/useCheckoutGuard";
+import { useCart } from "@/components/CartContext";
 
 type TipoEnvioUI = "pickup" | "delivery";
-type CourierUI = "chilexpress";
+type CourierUI = "bluexpress";
+type ShippingZone = "RM" | "NO_EXTREMA" | "EXTREMOS" | "UNKNOWN";
+type ComponentShippingSize = "SMALL" | "MEDIUM" | "LARGE" | "XL";
 
 type Option = { value: string; label: string };
 
@@ -17,17 +19,12 @@ function safeStr(v: unknown) {
   return String(v ?? "").trim();
 }
 
-/* ============================================================
-   DATA: Regiones + Comunas (Chile)
-   - Ciudad la derivamos desde la comuna (práctico para ecommerce)
-   - Si más adelante quieres "ciudad real", lo conectamos a una fuente externa
-   ============================================================ */
-
-   /* ============================================================
-   SHIPPING LOGIC (ALINEADA CON BACKEND)
-   ============================================================ */
-
-type ShippingZone = "RM" | "CENTRO" | "NORTE" | "SUR" | "EXTREMOS" | "UNKNOWN";
+function normalizeText(v: unknown) {
+  return safeStr(v)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 function normalizeRegion(regionRaw: string) {
   return safeStr(regionRaw).toLowerCase();
@@ -39,67 +36,185 @@ function zoneByRegion(regionRaw: string): ShippingZone {
 
   if (r.includes("metropolitana")) return "RM";
 
-  if (
-    r.includes("arica") ||
-    r.includes("parinacota") ||
-    r.includes("tarapac") ||
-    r.includes("antofag") ||
-    r.includes("atacama") ||
-    r.includes("coquimbo")
-  ) return "NORTE";
-
-  if (
-    r.includes("valpara") ||
-    r.includes("ohiggins") ||
-    r.includes("o’higgins") ||
-    r.includes("libertador") ||
-    r.includes("maule") ||
-    r.includes("ñuble") ||
-    r.includes("nuble") ||
-    r.includes("biob") ||
-    r.includes("bio bio")
-  ) return "CENTRO";
-
-  if (
-    r.includes("araucan") ||
-    r.includes("los r") ||
-    r.includes("rios") ||
-    r.includes("los l") ||
-    r.includes("lagos")
-  ) return "SUR";
-
-  if (r.includes("ays") || r.includes("magall")) return "EXTREMOS";
-
-  return "UNKNOWN";
+  // Zonas extremas para tu lógica comercial
+   if (
+  r.includes("arica") ||
+  r.includes("parinacota") ||
+  r.includes("tarapac") ||
+  r.includes("atacama") ||
+  r.includes("ays") ||
+  r.includes("magall")
+) {
+  return "EXTREMOS";
 }
 
-function shippingCostByZone(zone: ShippingZone) {
-  switch (zone) {
-    case "RM":
-      return 6990;
-    case "CENTRO":
-      return 8990;
-    case "NORTE":
-      return 10990;
-    case "SUR":
-      return 10990;
-    case "EXTREMOS":
-      return 14990;
-    default:
-      return 11990;
+  return "NO_EXTREMA";
+}
+
+function pcShippingPerUnit(zone: ShippingZone, unitSubtotalTransfer: number) {
+  if (zone === "EXTREMOS") return 20000;
+
+  if (zone === "RM") {
+    return unitSubtotalTransfer > 2_000_000 ? 12000 : 8000;
+  }
+
+  return unitSubtotalTransfer > 1_500_000 ? 15000 : 12000;
+}
+
+function componentShippingBySize(
+  zone: ShippingZone,
+  size: ComponentShippingSize
+) {
+  const table: Record<
+    ComponentShippingSize,
+    Record<"RM" | "NO_EXTREMA" | "EXTREMOS", number>
+  > = {
+    SMALL: { RM: 3990, NO_EXTREMA: 5990, EXTREMOS: 7990 },
+    MEDIUM: { RM: 4990, NO_EXTREMA: 7990, EXTREMOS: 9990 },
+    LARGE: { RM: 6990, NO_EXTREMA: 10990, EXTREMOS: 14990 },
+    XL: { RM: 8990, NO_EXTREMA: 13990, EXTREMOS: 17990 },
+  };
+
+  const normalizedZone = zone === "UNKNOWN" ? "NO_EXTREMA" : zone;
+  return table[size][normalizedZone];
+}
+
+function sizeRank(size: ComponentShippingSize) {
+  switch (size) {
+    case "SMALL":
+      return 1;
+    case "MEDIUM":
+      return 2;
+    case "LARGE":
+      return 3;
+    case "XL":
+      return 4;
   }
 }
 
-function calculateShipping(region?: string) {
-  if (!region) return 0;
-  const zone = zoneByRegion(region);
-  return shippingCostByZone(zone);
+function inferCartItemShippingSize(item: {
+  id?: string;
+  name?: string;
+}): ComponentShippingSize {
+  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
+
+  if (text.includes("monitor")) return "XL";
+
+  if (text.includes("gabinete") || text.includes("case")) {
+    if (
+      text.includes("mini itx") ||
+      text.includes("mini-itx") ||
+      text.includes("micro atx") ||
+      text.includes("micro-atx") ||
+      text.includes("matx")
+    ) {
+      return "LARGE";
+    }
+    return "XL";
+  }
+
+  if (
+    text.includes("rtx") ||
+    text.includes("radeon") ||
+    text.includes("rx ") ||
+    text.includes("rx-") ||
+    text.includes("gpu") ||
+    text.includes("tarjeta de video") ||
+    text.includes("placa madre") ||
+    text.includes("motherboard")
+  ) {
+    return "LARGE";
+  }
+
+  if (
+    text.includes("fuente") ||
+    text.includes("psu") ||
+    text.includes("cooler") ||
+    text.includes("disipador") ||
+    text.includes("ventilador") ||
+    text.includes("teclado") ||
+    text.includes("audifono") ||
+    text.includes("headset") ||
+    text.includes("webcam") ||
+    text.includes("microfono") ||
+    text.includes("mousepad")
+  ) {
+    return "MEDIUM";
+  }
+
+  if (
+    text.includes("mouse") ||
+    text.includes("ram") ||
+    text.includes("ssd") ||
+    text.includes("nvme") ||
+    text.includes("pasta termica") ||
+    text.includes("cpu") ||
+    text.includes("procesador")
+  ) {
+    return "SMALL";
+  }
+
+  return "MEDIUM";
 }
 
+function isPcItem(item: { id?: string; name?: string }) {
+  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
+
+  return (
+    text.includes("oficina-") ||
+    text.includes("entrada-") ||
+    text.includes("media-") ||
+    text.includes("ryzen") ||
+    text.includes("8600g") ||
+    text.includes("pc ")
+  );
+}
+
+function calculateShipping(params: {
+  region?: string;
+  items: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    priceTransfer: number;
+  }>;
+}) {
+  const { region, items } = params;
+  if (!region) return 0;
+
+  const zone = zoneByRegion(region);
+
+  const pcItems = items.filter((item) => isPcItem(item));
+  if (pcItems.length > 0) {
+    return pcItems.reduce((acc, item) => {
+      const perUnit = pcShippingPerUnit(zone, item.priceTransfer);
+      return acc + perUnit * item.quantity;
+    }, 0);
+  }
+
+  const componentUnits = items.reduce((acc, item) => acc + item.quantity, 0);
+  if (componentUnits <= 0) return 0;
+
+  const biggestSize = items.reduce<ComponentShippingSize>((max, item) => {
+    const current = inferCartItemShippingSize(item);
+    return sizeRank(current) > sizeRank(max) ? current : max;
+  }, "SMALL");
+
+  const unitShipping = componentShippingBySize(zone, biggestSize);
+  return unitShipping * componentUnits;
+}
 
 const REGIONES_COMUNAS: Record<string, string[]> = {
   "Arica y Parinacota": ["Arica", "Camarones", "Putre", "General Lagos"],
-  Tarapacá: ["Iquique", "Alto Hospicio", "Pozo Almonte", "Camiña", "Colchane", "Huara", "Pica"],
+  Tarapacá: [
+    "Iquique",
+    "Alto Hospicio",
+    "Pozo Almonte",
+    "Camiña",
+    "Colchane",
+    "Huara",
+    "Pica",
+  ],
   Antofagasta: [
     "Antofagasta",
     "Mejillones",
@@ -111,8 +226,34 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Tocopilla",
     "María Elena",
   ],
-  Atacama: ["Copiapó", "Caldera", "Tierra Amarilla", "Chañaral", "Diego de Almagro", "Vallenar", "Freirina", "Huasco", "Alto del Carmen"],
-  Coquimbo: ["La Serena", "Coquimbo", "Andacollo", "La Higuera", "Paihuano", "Vicuña", "Illapel", "Canela", "Los Vilos", "Salamanca", "Ovalle", "Combarbalá", "Monte Patria", "Punitaqui", "Río Hurtado"],
+  Atacama: [
+    "Copiapó",
+    "Caldera",
+    "Tierra Amarilla",
+    "Chañaral",
+    "Diego de Almagro",
+    "Vallenar",
+    "Freirina",
+    "Huasco",
+    "Alto del Carmen",
+  ],
+  Coquimbo: [
+    "La Serena",
+    "Coquimbo",
+    "Andacollo",
+    "La Higuera",
+    "Paihuano",
+    "Vicuña",
+    "Illapel",
+    "Canela",
+    "Los Vilos",
+    "Salamanca",
+    "Ovalle",
+    "Combarbalá",
+    "Monte Patria",
+    "Punitaqui",
+    "Río Hurtado",
+  ],
   Valparaíso: [
     "Valparaíso",
     "Casablanca",
@@ -274,7 +415,29 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Chanco",
     "Pelluhue",
   ],
-  Ñuble: ["Chillán", "Bulnes", "Chillán Viejo", "Cobquecura", "Coelemu", "Coihueco", "El Carmen", "Ninhue", "Ñiquén", "Pemuco", "Pinto", "Portezuelo", "Quillón", "Quirihue", "Ránquil", "San Carlos", "San Fabián", "San Ignacio", "San Nicolás", "Treguaco", "Yungay"],
+  Ñuble: [
+    "Chillán",
+    "Bulnes",
+    "Chillán Viejo",
+    "Cobquecura",
+    "Coelemu",
+    "Coihueco",
+    "El Carmen",
+    "Ninhue",
+    "Ñiquén",
+    "Pemuco",
+    "Pinto",
+    "Portezuelo",
+    "Quillón",
+    "Quirihue",
+    "Ránquil",
+    "San Carlos",
+    "San Fabián",
+    "San Ignacio",
+    "San Nicolás",
+    "Treguaco",
+    "Yungay",
+  ],
   Biobío: [
     "Concepción",
     "Coronel",
@@ -344,7 +507,20 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Traiguén",
     "Victoria",
   ],
-  "Los Ríos": ["Valdivia", "Corral", "Lanco", "Los Lagos", "Máfil", "Mariquina", "Paillaco", "Panguipulli", "La Unión", "Futrono", "Lago Ranco", "Río Bueno"],
+  "Los Ríos": [
+    "Valdivia",
+    "Corral",
+    "Lanco",
+    "Los Lagos",
+    "Máfil",
+    "Mariquina",
+    "Paillaco",
+    "Panguipulli",
+    "La Unión",
+    "Futrono",
+    "Lago Ranco",
+    "Río Bueno",
+  ],
   "Los Lagos": [
     "Puerto Montt",
     "Calbuco",
@@ -377,16 +553,32 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Hualaihué",
     "Palena",
   ],
-  Aysén: ["Coyhaique", "Lago Verde", "Aysén", "Cisnes", "Guaitecas", "Cochrane", "O'Higgins", "Tortel", "Chile Chico", "Río Ibáñez"],
-  Magallanes: ["Punta Arenas", "Laguna Blanca", "Río Verde", "San Gregorio", "Cabo de Hornos", "Antártica", "Porvenir", "Primavera", "Timaukel", "Natales", "Torres del Paine"],
+  Aysén: [
+    "Coyhaique",
+    "Lago Verde",
+    "Aysén",
+    "Cisnes",
+    "Guaitecas",
+    "Cochrane",
+    "O'Higgins",
+    "Tortel",
+    "Chile Chico",
+    "Río Ibáñez",
+  ],
+  Magallanes: [
+    "Punta Arenas",
+    "Laguna Blanca",
+    "Río Verde",
+    "San Gregorio",
+    "Cabo de Hornos",
+    "Antártica",
+    "Porvenir",
+    "Primavera",
+    "Timaukel",
+    "Natales",
+    "Torres del Paine",
+  ],
 };
-
-function normalizeKey(s: string) {
-  return s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
 
 function uniqueSorted(arr: string[]) {
   const set = new Set(arr.map((x) => safeStr(x)).filter(Boolean));
@@ -396,13 +588,6 @@ function uniqueSorted(arr: string[]) {
 function toOptions(list: string[]): Option[] {
   return list.map((x) => ({ value: x, label: x }));
 }
-
-/* ============================================================
-   SearchSelect (sin libs)
-   - filtro por input
-   - teclado: ↑ ↓ Enter Esc
-   - "type to cycle": presionar letras cicla resultados por prefijo
-   ============================================================ */
 
 function SearchSelect(props: {
   name: string;
@@ -414,7 +599,8 @@ function SearchSelect(props: {
   required?: boolean;
   onChange: (next: string) => void;
 }) {
-  const { name, label, placeholder, value, options, disabled, required, onChange } = props;
+  const { name, label, placeholder, value, options, disabled, required, onChange } =
+    props;
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -422,14 +608,16 @@ function SearchSelect(props: {
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  // type-to-cycle
-  const lastKeyRef = useRef<{ key: string; t: number; idx: number }>({ key: "", t: 0, idx: 0 });
+  const lastKeyRef = useRef<{ key: string; t: number; idx: number }>({
+    key: "",
+    t: 0,
+    idx: 0,
+  });
 
   const filtered = useMemo(() => {
-    const q = normalizeKey(query);
+    const q = normalizeText(query);
     if (!q) return options;
-    return options.filter((o) => normalizeKey(o.label).includes(q));
+    return options.filter((o) => normalizeText(o.label).includes(q));
   }, [options, query]);
 
   const selectedLabel = useMemo(() => {
@@ -440,7 +628,6 @@ function SearchSelect(props: {
   useEffect(() => {
     if (!open) return;
     setActiveIdx(0);
-    // focus input del filtro al abrir
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open]);
@@ -463,7 +650,6 @@ function SearchSelect(props: {
   function handleKeyDown(e: React.KeyboardEvent) {
     if (disabled) return;
 
-    // Abrir con Enter/Espacio desde el botón
     if (!open && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       setOpen(true);
@@ -498,18 +684,16 @@ function SearchSelect(props: {
       return;
     }
 
-    // type-to-cycle: si el foco está en el wrapper/lista (o incluso en input vacío),
-    // y presiona una letra, ciclamos por prefijo
     const isLetter = /^[a-zA-ZñÑáéíóúÁÉÍÓÚ]$/.test(e.key);
     if (isLetter) {
       const now = Date.now();
-      const k = normalizeKey(e.key);
+      const k = normalizeText(e.key);
       const prev = lastKeyRef.current;
       const within = now - prev.t < 900 && prev.key === k;
 
       const candidates = filtered
         .map((o, idx) => ({ o, idx }))
-        .filter(({ o }) => normalizeKey(o.label).startsWith(k));
+        .filter(({ o }) => normalizeText(o.label).startsWith(k));
 
       if (candidates.length) {
         e.preventDefault();
@@ -522,9 +706,11 @@ function SearchSelect(props: {
 
   return (
     <div className="ss-wrap" ref={wrapRef}>
-      <label className="cs-label">{label}{required ? " *" : ""}</label>
+      <label className="cs-label">
+        {label}
+        {required ? " *" : ""}
+      </label>
 
-      {/* Hidden input para que FormData lo tome */}
       <input type="hidden" name={name} value={value} />
 
       <button
@@ -539,7 +725,9 @@ function SearchSelect(props: {
         <span className={`ss-value ${selectedLabel ? "" : "is-placeholder"}`}>
           {selectedLabel || placeholder}
         </span>
-        <span className="ss-caret" aria-hidden="true">▾</span>
+        <span className="ss-caret" aria-hidden="true">
+          ▾
+        </span>
       </button>
 
       {open ? (
@@ -565,7 +753,9 @@ function SearchSelect(props: {
                   <button
                     type="button"
                     key={opt.value}
-                    className={`ss-item ${active ? "is-active" : ""} ${selected ? "is-selected" : ""}`}
+                    className={`ss-item ${active ? "is-active" : ""} ${
+                      selected ? "is-selected" : ""
+                    }`}
                     onMouseEnter={() => setActiveIdx(idx)}
                     onClick={() => commitValue(opt.value)}
                   >
@@ -683,7 +873,7 @@ function SearchSelect(props: {
 
         .ss-item:hover,
         .ss-item.is-active {
-          background: rgba(182, 255, 46, 0.10);
+          background: rgba(182, 255, 46, 0.1);
           border-color: rgba(182, 255, 46, 0.18);
         }
 
@@ -707,6 +897,7 @@ export default function Paso2Envio() {
 
   const router = useRouter();
   const { envio, setEnvio } = useCheckout();
+  const { items } = useCart();
 
   const initialTipo = useMemo<TipoEnvioUI>(() => {
     if (!envio) return "pickup";
@@ -714,15 +905,12 @@ export default function Paso2Envio() {
   }, [envio]);
 
   const [tipo, setTipo] = useState<TipoEnvioUI>(initialTipo);
-
-  // Campos controlados (para selects)
   const [direccion, setDireccion] = useState<string>(safeStr((envio as any)?.direccion));
   const [region, setRegion] = useState<string>(safeStr((envio as any)?.region));
   const [comuna, setComuna] = useState<string>(safeStr((envio as any)?.comuna));
   const [ciudad, setCiudad] = useState<string>(safeStr((envio as any)?.ciudad));
 
-  // courier fijo
-  const courier: CourierUI = "chilexpress";
+  const courier: CourierUI = "bluexpress";
 
   const regionesOptions = useMemo<Option[]>(() => {
     return toOptions(uniqueSorted(Object.keys(REGIONES_COMUNAS)));
@@ -733,16 +921,11 @@ export default function Paso2Envio() {
     return toOptions(uniqueSorted(list));
   }, [region]);
 
-  // Ciudad: por ahora lo hacemos equivalente a Comuna (práctico y consistente),
-  // pero se mantiene como select separado como pediste.
   const ciudadesOptions = useMemo<Option[]>(() => {
-    // Si hay región, usamos comunas de esa región como "ciudades" disponibles
-    // (en Chile, para despacho normalmente basta comuna).
     const list = region ? REGIONES_COMUNAS[region] ?? [] : [];
     return toOptions(uniqueSorted(list));
   }, [region]);
 
-  // Cascada: si cambias región, limpiamos ciudad/comuna si ya no aplican
   useEffect(() => {
     if (!region) {
       if (comuna) setComuna("");
@@ -755,16 +938,30 @@ export default function Paso2Envio() {
     if (ciudad && !allowed.has(ciudad)) setCiudad("");
   }, [region]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Si cambias comuna y ciudad está vacía (o quedó fuera), sincronizamos ciudad=comuna
   useEffect(() => {
     if (!comuna) return;
     if (!ciudad) setCiudad(comuna);
   }, [comuna]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const estimatedShipping = useMemo(() => {
+    if (tipo !== "delivery") return 0;
+
+    return calculateShipping({
+      region,
+      items: items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        priceTransfer: item.priceTransfer,
+      })),
+    });
+  }, [tipo, region, items]);
+
   const canContinueDelivery = useMemo(() => {
     if (tipo !== "delivery") return true;
-    // requisitos mínimos
-    return Boolean(safeStr(direccion) && safeStr(region) && safeStr(comuna) && safeStr(ciudad));
+    return Boolean(
+      safeStr(direccion) && safeStr(region) && safeStr(comuna) && safeStr(ciudad)
+    );
   }, [tipo, direccion, region, comuna, ciudad]);
 
   return (
@@ -776,13 +973,14 @@ export default function Paso2Envio() {
       </div>
 
       <div className="cs-grid">
-        {/* IZQUIERDA */}
         <section className="cs-card">
           <div className="cs-head">
             <div className="cs-accent" />
             <div>
               <h2 className="cs-card-title">Paso 2: Entrega o retiro</h2>
-              <p className="cs-card-sub">Elige retiro en tienda sin costo o despacho a domicilio.</p>
+              <p className="cs-card-sub">
+                Elige retiro en tienda sin costo o despacho a domicilio.
+              </p>
             </div>
           </div>
 
@@ -797,27 +995,21 @@ export default function Paso2Envio() {
                 return;
               }
 
-              // delivery
               if (!canContinueDelivery) return;
-
-            const costo = calculateShipping(region);
-
 
               setEnvio({
                 tipo: "delivery",
-                costoEnvio: costo,
+                costoEnvio: estimatedShipping,
                 courier,
                 direccion: safeStr(direccion),
                 region: safeStr(region),
                 comuna: safeStr(comuna),
-                // guardamos ciudad también, aunque tu store no lo tipa hoy
                 ciudad: safeStr(ciudad),
               } as any);
 
               router.push("/checkout/pago");
             }}
           >
-            {/* Opciones */}
             <div className="cs-choice-grid">
               <label className={`cs-choice ${tipo === "pickup" ? "is-selected" : ""}`}>
                 <input
@@ -829,7 +1021,7 @@ export default function Paso2Envio() {
                 />
                 <div className="cs-choice-body">
                   <div className="cs-choice-title">Punto de retiro (gratis)</div>
-                  <div className="cs-choice-sub">A pasos de metro Lo vial, San Miguel</div>
+                  <div className="cs-choice-sub">A pasos de metro Lo Vial, San Miguel</div>
                 </div>
                 <div className="cs-pill">Gratis</div>
               </label>
@@ -844,13 +1036,14 @@ export default function Paso2Envio() {
                 />
                 <div className="cs-choice-body">
                   <div className="cs-choice-title">Despacho a domicilio</div>
-                  <div className="cs-choice-sub">Costo calculado según courier.</div>
+                  <div className="cs-choice-sub">
+                    Envío por Bluexpress con tarifa según tipo de producto y zona.
+                  </div>
                 </div>
                 <div className="cs-pill cs-pill--muted">Envío</div>
               </label>
             </div>
 
-            {/* Dirección (solo si tipo=delivery) */}
             <div className={`cs-block ${tipo === "delivery" ? "" : "is-hidden"}`}>
               <div className="cs-block-title">Dirección de entrega</div>
 
@@ -895,7 +1088,6 @@ export default function Paso2Envio() {
                     required
                     onChange={(v) => {
                       setCiudad(v);
-                      // si la comuna está vacía, ayuda a completar
                       if (!comuna) setComuna(v);
                     }}
                   />
@@ -912,7 +1104,6 @@ export default function Paso2Envio() {
                     required
                     onChange={(v) => {
                       setComuna(v);
-                      // sincroniza ciudad si no está definida o quedó distinta
                       if (!ciudad) setCiudad(v);
                     }}
                   />
@@ -922,8 +1113,8 @@ export default function Paso2Envio() {
               <div className="cs-two">
                 <div className="cs-field">
                   <label className="cs-label">Courier</label>
-                  <select name="courier" value="chilexpress" className="cs-select" disabled>
-                    <option value="chilexpress">Chilexpress</option>
+                  <select name="courier" value="bluexpress" className="cs-select" disabled>
+                    <option value="bluexpress">Bluexpress</option>
                   </select>
                 </div>
 
@@ -933,10 +1124,10 @@ export default function Paso2Envio() {
                     className="cs-input"
                     value={
                       tipo === "delivery"
-                        ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(
-                        calculateShipping(region)
-
-                          )
+                        ? new Intl.NumberFormat("es-CL", {
+                            style: "currency",
+                            currency: "CLP",
+                          }).format(estimatedShipping)
                         : "$0"
                     }
                     disabled
@@ -946,17 +1137,23 @@ export default function Paso2Envio() {
               </div>
 
               {!canContinueDelivery && tipo === "delivery" ? (
-                <p className="cs-warn">Completa dirección, región, ciudad y comuna para continuar.</p>
+                <p className="cs-warn">
+                  Completa dirección, región, ciudad y comuna para continuar.
+                </p>
               ) : null}
 
               <p className="cs-help">
-                Selecciona región y luego ciudad/comuna con búsqueda rápida. También puedes navegar por letra: al presionar
-                una letra repetidas veces, se recorre entre las coincidencias.
+                Bluexpress se calcula según zona y tipo real de producto. El backend
+                siempre valida el monto final antes de crear el pedido.
               </p>
             </div>
 
             <div className="cs-actions">
-              <button type="button" onClick={() => router.back()} className="rb-btn rb-btn--ghost">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="rb-btn rb-btn--ghost"
+              >
                 Volver
               </button>
 
@@ -972,7 +1169,6 @@ export default function Paso2Envio() {
           </form>
         </section>
 
-        {/* DERECHA */}
         <aside className="cs-summary">
           <CheckoutSummary />
         </aside>

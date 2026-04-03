@@ -26,7 +26,7 @@ export type Envio =
       direccion: string;
       region: string;
       comuna: string;
-      courier: "chilexpress" | "bluexpress";
+      courier: "bluexpress" | "bluexpress";
     };
 
 export type Pago = {
@@ -178,7 +178,7 @@ export function useCheckout() {
 }
 
 // Helpers “mock” para costo de envío por courier (ajústalo si quieres)
-export function calcularEnvio(courier: "chilexpress" | "bluexpress") {
+export function calcularEnvio(courier: "bluexpress" | "bluexpress") {
   return courier === "bluexpress" ? 14000 : 8200;
 }
 
