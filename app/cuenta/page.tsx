@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { FaLock, FaRegUser } from "react-icons/fa";
+import { FaLock, FaRegUser, FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function CuentaPage() {
   const router = useRouter();
@@ -11,11 +11,11 @@ export default function CuentaPage() {
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass] = useState("");
+  const [showLoginPass, setShowLoginPass] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loginErr, setLoginErr] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Si ya hay sesión → manda al panel (sin que el usuario vea el form)
   useEffect(() => {
     if (status === "authenticated") {
       router.replace("/cuenta/panel");
@@ -44,7 +44,6 @@ export default function CuentaPage() {
     router.refresh();
   };
 
-  // Mientras NextAuth resuelve la sesión
   if (status === "loading") {
     return (
       <main className="rb-container py-10">
@@ -70,7 +69,6 @@ export default function CuentaPage() {
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {/* ACCEDER */}
           <section className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_260px_at_20%_0%,rgba(182,255,46,.10),transparent_55%)]" />
 
@@ -110,15 +108,27 @@ export default function CuentaPage() {
                 <label className="block text-sm text-neutral-300 mb-1" htmlFor="login-pass">
                   Contraseña
                 </label>
-                <input
-                  id="login-pass"
-                  type="password"
-                  value={loginPass}
-                  onChange={(e) => setLoginPass(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-2xl border border-neutral-800 bg-black/25 px-3 py-2.5 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400/70 focus:ring-2 focus:ring-lime-400/15"
-                  required
-                />
+
+                <div className="relative">
+                  <input
+                    id="login-pass"
+                    type={showLoginPass ? "text" : "password"}
+                    value={loginPass}
+                    onChange={(e) => setLoginPass(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-2xl border border-neutral-800 bg-black/25 px-3 py-2.5 pr-11 text-neutral-100 placeholder-neutral-500 outline-none focus:border-lime-400/70 focus:ring-2 focus:ring-lime-400/15"
+                    required
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPass((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-lime-300"
+                    aria-label={showLoginPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showLoginPass ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-3">
@@ -163,7 +173,6 @@ export default function CuentaPage() {
             </form>
           </section>
 
-          {/* CREAR CUENTA */}
           <section className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/55 shadow-[0_18px_55px_rgba(0,0,0,.55)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_260px_at_80%_0%,rgba(182,255,46,.08),transparent_55%)]" />
 
@@ -210,10 +219,12 @@ export default function CuentaPage() {
 
         <div className="mt-6 text-center text-sm text-neutral-400">
           ¿Necesitas ayuda? Escríbenos a{" "}
-          <a href="mailto:contacto@rekabyte.cl" className="text-lime-400 hover:text-lime-300">
+          <a
+            href="mailto:contacto@rekabyte.cl"
+            className="text-lime-400 hover:text-lime-300"
+          >
             contacto@rekabyte.cl
           </a>
-          .
         </div>
       </div>
     </main>

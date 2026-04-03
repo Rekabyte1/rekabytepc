@@ -140,26 +140,36 @@ export default function ComponentsMenu({
         Componentes
       </button>
 
-      {showPanel ? (
-        <div className={isMobile ? "rb-mobile-panel" : "rb-mega-panel"}>
-          <div className={isMobile ? "rb-mobile-grid" : "rb-mega-grid"}>
-            {COLS.map((c) => (
-              <div key={c.title} className="col">
-                <h4>{c.title}</h4>
-                <ul>
-                  {c.links.map((l) => (
-                    <li key={l.href}>
-                      <Link href={l.href} onClick={handleNavigate}>
-                        {l.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+{showPanel ? (
+  <div className={isMobile ? "rb-mobile-panel" : "rb-mega-panel"}>
+    <div className={isMobile ? "rb-mobile-grid" : "rb-mega-grid"}>
+      {COLS.map((c) => (
+        <div key={c.title} className="col">
+          <h4>{c.title}</h4>
+          <ul>
+            {c.links.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} onClick={handleNavigate}>
+                  {l.label}
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
+        </div>
+      ))}
+    </div>
 
-          <div className="rb-mega-accent" />
+    <div className="rb-mega-footer">
+      <Link
+        href="/componentes"
+        onClick={handleNavigate}
+        className="rb-mega-all-btn"
+      >
+        Ver todos los componentes
+      </Link>
+    </div>
+
+    <div className="rb-mega-accent" />
 
           <style jsx>{`
             .rb-mobile-panel {
