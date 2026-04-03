@@ -321,7 +321,7 @@ export default function ModelClient({ build, gameTitle, gameSlug }: Props) {
       <section className="rb-card rb-section rb-mb">
         <h2 className="rb-h2">Video del armado</h2>
         <p className="rb-p">
-          video, aquí quedará incrustado para aumentar confianza y conversión.
+          video, aquí quedará el video del armado.
         </p>
 
         {videoUrl ? (
