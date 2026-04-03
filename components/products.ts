@@ -33,3 +33,4 @@ export const PRODUCTS: Product[] = [
     specs: ["GeForce RTX 4070 Super", "Ryzen 9", "32GB DDR5", "SSD NVMe 2TB"],
   },
 ];
+

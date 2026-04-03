@@ -29,7 +29,7 @@ const OFICINA = {
     { label: "Gabinete", value: "Micro-ATX" },
   ],
 };
-
+ 
 const ENTRADA = {
   productSlug: "entrada-ryzen7-rtx5060",
   title: "ENTRADA – Ryzen 7 + RTX 5060",

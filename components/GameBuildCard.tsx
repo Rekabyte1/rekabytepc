@@ -366,3 +366,4 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
     </article>
   );
 }
+

@@ -45,7 +45,7 @@ const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
     { label: "Unidad SSD", value: "NVMe 1 TB" },
     { label: "Fuente de poder", value: "650W 80+ Bronze" },
     { label: "Gabinete", value: "Micro-ATX" },
-  ],
+  ], 
 };
 
 const BASE_ENTRADA_R7_5060: Omit<Build, "fpsInfo"> = {

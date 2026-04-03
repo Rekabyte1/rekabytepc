@@ -10,39 +10,49 @@ function orderNumberNice(id: string) {
   return "#" + clean.slice(-8).toUpperCase();
 }
 
-function CopyButton({ value }: { value: string }) {
+function CopyAllTransferButton({ value }: { value: string }) {
   const [copied, setCopied] = React.useState(false);
 
   return (
     <button
       type="button"
-      className={`cs-copy ${copied ? "is-copied" : ""}`}
+      className={`cs-copy-all ${copied ? "is-copied" : ""}`}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);
           setCopied(true);
-          window.setTimeout(() => setCopied(false), 1200);
+          window.setTimeout(() => setCopied(false), 1400);
         } catch {}
       }}
-      aria-label="Copiar"
-      title="Copiar"
+      aria-label="Copiar datos para la transferencia"
+      title="Copiar datos para la transferencia"
     >
-      {copied ? "Copiado" : "Copiar"}
+      {copied ? "Datos copiados" : "Copiar datos para la transferencia"}
       <style jsx>{`
-        .cs-copy {
-          border: 1px solid #2a2a2a;
-          background: rgba(20, 20, 20, 0.55);
-          color: #e5e7eb;
-          font-weight: 900;
-          font-size: 12px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          cursor: pointer;
-          white-space: nowrap;
-        }
-        .cs-copy.is-copied {
-          border-color: rgba(182, 255, 46, 0.6);
+        .cs-copy-all {
+          margin-top: 12px;
+          width: 100%;
+          min-height: 44px;
+          border-radius: 12px;
+          border: 1px solid rgba(182, 255, 46, 0.3);
+          background: rgba(182, 255, 46, 0.08);
           color: #b6ff2e;
+          font-weight: 900;
+          font-size: 13px;
+          cursor: pointer;
+          transition: background 0.15s ease, border-color 0.15s ease,
+            color 0.15s ease;
+        }
+
+        .cs-copy-all:hover {
+          background: rgba(182, 255, 46, 0.16);
+          border-color: rgba(182, 255, 46, 0.55);
+        }
+
+        .cs-copy-all.is-copied {
+          background: rgba(182, 255, 46, 0.18);
+          border-color: rgba(182, 255, 46, 0.75);
+          color: #d9ff8b;
         }
       `}</style>
     </button>
@@ -69,6 +79,16 @@ export default function SuccessClient() {
 
   const niceId = useMemo(() => orderNumberNice(orderId), [orderId]);
 
+  const transferData = useMemo(
+    () => `Titular: Reka SpA
+RUT: 20.420.860-0
+Banco: Santander
+Tipo de cuenta: Cuenta corriente
+Número de cuenta: XXXXXXXX
+Correo: contacto@rekabyte.cl`,
+    []
+  );
+
   const ui = useMemo(() => {
     if (isTransfer) {
       return {
@@ -87,7 +107,11 @@ export default function SuccessClient() {
         };
       }
 
-      if (status === "pending" || collectionStatus === "pending" || collectionStatus === "in_process") {
+      if (
+        status === "pending" ||
+        collectionStatus === "pending" ||
+        collectionStatus === "in_process"
+      ) {
         return {
           headline: "Pedido creado — Pago en proceso",
           sub: "Tu pedido fue creado correctamente. Estamos esperando la confirmación final de Mercado Pago.",
@@ -95,7 +119,11 @@ export default function SuccessClient() {
         };
       }
 
-      if (status === "failure" || collectionStatus === "rejected" || collectionStatus === "cancelled") {
+      if (
+        status === "failure" ||
+        collectionStatus === "rejected" ||
+        collectionStatus === "cancelled"
+      ) {
         return {
           headline: "Pago no completado",
           sub: "No se pudo confirmar el pago. Puedes intentarlo nuevamente desde tu cuenta o revisar tus compras.",
@@ -168,56 +196,47 @@ export default function SuccessClient() {
           <div className="cs-panel">
             <div className="cs-panel-title">Datos para transferir</div>
 
-            <div className="cs-row">
-              <div>
-                <div className="cs-key">Titular</div>
-                <div className="cs-val">Reka SPA</div>
-              </div>
-              <CopyButton value="Reka SPA" />
+            <div className="cs-transfer-box">
+              <pre>{transferData}</pre>
             </div>
 
-            <div className="cs-row">
-              <div>
-                <div className="cs-key">RUT</div>
-                <div className="cs-val">20.420.860-0</div>
-              </div>
-              <CopyButton value="20.420.860-0" />
-            </div>
-
-            <div className="cs-row">
-              <div>
-                <div className="cs-key">Correo</div>
-                <div className="cs-val">contacto@rekabyte.cl</div>
-              </div>
-              <CopyButton value="contacto@rekabyte.cl" />
-            </div>
+            <CopyAllTransferButton value={transferData} />
 
             <div className="cs-note">
-              Envía el comprobante respondiendo el correo de confirmación o a{" "}
+              Tienes <span className="cs-strong">2 horas</span> para completar la transferencia.
+              <br />
+              Por restriccion bancaría, puedes realizar un abono del máximo permitido por tu banco, con esto, tu pedido quedará reservado.
+              Envía el comprobante junto a tu número de pedido de la parte superior, respondiendo el correo de confirmación o a{" "}
               <span className="cs-strong">contacto@rekabyte.cl</span>.
             </div>
           </div>
         )}
 
-        {isMercadoPago && (status === "pending" || collectionStatus === "pending" || collectionStatus === "in_process") && (
-          <div className="cs-panel">
-            <div className="cs-panel-title">Pago en revisión</div>
-            <div className="cs-note">
-              Mercado Pago todavía no confirma el resultado final. Apenas se acredite, el pedido debería pasar a{" "}
-              <span className="cs-strong">pagado</span> automáticamente en el panel administrador.
+        {isMercadoPago &&
+          (status === "pending" ||
+            collectionStatus === "pending" ||
+            collectionStatus === "in_process") && (
+            <div className="cs-panel">
+              <div className="cs-panel-title">Pago en revisión</div>
+              <div className="cs-note">
+                Mercado Pago todavía no confirma el resultado final. Apenas se acredite, el pedido debería pasar a{" "}
+                <span className="cs-strong">pagado</span> automáticamente en el panel administrador.
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {isMercadoPago && (status === "failure" || collectionStatus === "rejected" || collectionStatus === "cancelled") && (
-          <div className="cs-panel cs-panel-error">
-            <div className="cs-panel-title">Pago no confirmado</div>
-            <div className="cs-note">
-              El pago no fue acreditado. Si el pedido quedó pendiente o cancelado, puedes volver a intentarlo desde{" "}
-              <span className="cs-strong">Mis compras</span>.
+        {isMercadoPago &&
+          (status === "failure" ||
+            collectionStatus === "rejected" ||
+            collectionStatus === "cancelled") && (
+            <div className="cs-panel cs-panel-error">
+              <div className="cs-panel-title">Pago no confirmado</div>
+              <div className="cs-note">
+                El pago no fue acreditado. Si el pedido quedó pendiente o cancelado, puedes volver a intentarlo desde{" "}
+                <span className="cs-strong">Mis compras</span>.
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         <div className="cs-actions">
           <Link href="/cuenta/panel?tab=compras" className="rb-btn">
@@ -344,29 +363,21 @@ export default function SuccessClient() {
           margin-bottom: 10px;
         }
 
-        .cs-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
+        .cs-transfer-box {
           border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(20, 20, 20, 0.35);
+          background: rgba(20, 20, 20, 0.4);
           border-radius: 12px;
-          padding: 10px;
+          padding: 12px;
           margin-top: 10px;
         }
 
-        .cs-key {
-          color: #a3a3a3;
+        .cs-transfer-box pre {
+          margin: 0;
           font-size: 12px;
-          font-weight: 900;
-        }
-
-        .cs-val {
-          color: #fff;
-          font-size: 13px;
-          font-weight: 900;
-          margin-top: 2px;
+          line-height: 1.65;
+          color: #e5e7eb;
+          font-weight: 700;
+          white-space: pre-wrap;
           word-break: break-word;
         }
 
@@ -374,7 +385,7 @@ export default function SuccessClient() {
           margin-top: 10px;
           color: #c4c4c4;
           font-size: 12px;
-          line-height: 1.5;
+          line-height: 1.55;
         }
 
         .cs-strong {

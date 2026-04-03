@@ -81,7 +81,15 @@ export default function Paso1Datos() {
     };
   }, [isAuthed, session?.user?.email]);
 
-  const dv = (datos ?? profilePrefill) as Partial<Customer> | null;
+  const dv = useMemo<Partial<Customer>>(() => {
+  return {
+    nombre: (datos?.nombre || profilePrefill?.nombre || "").trim(),
+    apellido: (datos?.apellido || profilePrefill?.apellido || "").trim(),
+    rut: (datos?.rut || profilePrefill?.rut || "").trim(),
+    email: (datos?.email || profilePrefill?.email || session?.user?.email || "").trim(),
+    telefono: (datos?.telefono || profilePrefill?.telefono || "").trim(),
+  };
+}, [datos, profilePrefill, session?.user?.email]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
