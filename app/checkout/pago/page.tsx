@@ -11,8 +11,7 @@ import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 type MetodoPago = "transferencia" | "mercadopago" | "webpay";
 type Documento = "boleta" | "factura";
 
-const ENABLE_MERCADOPAGO =
-  process.env.NEXT_PUBLIC_ENABLE_MERCADOPAGO === "true";
+const ENABLE_MERCADOPAGO = true;
 
 export default function Paso3Pago() {
   useCheckoutGuard(3);

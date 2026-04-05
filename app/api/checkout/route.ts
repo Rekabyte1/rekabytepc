@@ -367,7 +367,7 @@ async function trySendConfirmationEmailOnce(params: {
 
 export async function POST(req: NextRequest) {
   try {
-    const ENABLE_MERCADOPAGO = process.env.ENABLE_MERCADOPAGO === "true";
+    const ENABLE_MERCADOPAGO = true;
 
     const session = await getServerSession(authOptions);
     const checkoutUserId = (session?.user as any)?.id as string | undefined;
@@ -414,12 +414,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (paymentMethod === "mercadopago" && !ENABLE_MERCADOPAGO) {
-      return NextResponse.json(
-        { ok: false, error: "Mercado Pago no está disponible por el momento." },
-        { status: 400 }
-      );
-    }
 
     if (paymentMethod === "webpay") {
       return NextResponse.json(

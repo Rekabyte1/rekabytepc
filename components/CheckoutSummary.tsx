@@ -378,7 +378,7 @@ export default function CheckoutSummary() {
 
             {!isTransfer && (
               <p className="mt-3 text-xs text-amber-300">
-                Por ahora solo está disponible la confirmación por transferencia.
+                Por ahora solo está disponible la confirmación por transferencia y Mercado pago.
               </p>
             )}
           </div>

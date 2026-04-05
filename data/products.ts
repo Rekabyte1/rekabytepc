@@ -219,7 +219,7 @@ export const products: SeedProduct[] = [
       "/products/antec-vcx20m-rgb-elite/3.jpg",
       "/products/antec-vcx20m-rgb-elite/4.jpg",
     ],
-    stock: 2,
+    stock: 0,
     isActive: true,
     featured: true,
     badge: "-13%",

@@ -186,7 +186,7 @@ export const PAYMENT_HELP = {
   transferencia:
     "Transferencia o depósito bancario. Recibirás los datos al confirmar tu compra.",
   mercadopago:
-    "Paga con débito o crédito a través de Mercado Pago. Hasta 3–6 cuotas sin interés (según promoción).",
+    "Paga con débito o crédito a través de Mercado Pago.",
   webpay: "Paga con débito o crédito mediante Webpay.",
 } as const;
 
