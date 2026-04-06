@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 
 type ProductImageGalleryProps = {
@@ -12,7 +12,7 @@ export default function ProductImageGallery({
   images,
   productName,
 }: ProductImageGalleryProps) {
-  const safeImages = images.filter(Boolean);
+  const safeImages = useMemo(() => images.filter(Boolean), [images]);
   const [selectedImage, setSelectedImage] = useState(safeImages[0] ?? "");
 
   if (!safeImages.length) {
@@ -24,7 +24,8 @@ export default function ProductImageGallery({
   }
 
   return (
-    <>
+    <div className="w-full">
+      {/* Imagen principal */}
       <div className="relative mb-4 aspect-square overflow-hidden rounded-2xl border border-neutral-800 bg-black/30">
         <Image
           src={selectedImage}
@@ -37,35 +38,41 @@ export default function ProductImageGallery({
 
       {safeImages.length > 1 && (
         <>
-          {/* Mobile: fila horizontal tipo equipos armados */}
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 md:hidden">
-            {safeImages.map((img, idx) => {
-              const isActive = img === selectedImage;
+          {/* MOBILE: fila horizontal */}
+          <div className="md:hidden">
+            <div className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {safeImages.map((img, idx) => {
+                const isActive = img === selectedImage;
 
-              return (
-                <button
-                  key={`${img}-${idx}`}
-                  type="button"
-                  onClick={() => setSelectedImage(img)}
-                  className={`relative h-24 w-24 min-w-[96px] overflow-hidden rounded-xl border bg-black/30 transition ${
-                    isActive
-                      ? "border-lime-400 ring-1 ring-lime-400"
-                      : "border-neutral-800 hover:border-neutral-600"
-                  }`}
-                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
-                >
-                  <Image
-                    src={img}
-                    alt={`${productName} ${idx + 1}`}
-                    fill
-                    className="object-contain"
-                  />
-                </button>
-              );
-            })}
+                return (
+                  <div
+                    key={`${img}-${idx}`}
+                    className="shrink-0"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImage(img)}
+                      aria-label={`Ver imagen ${idx + 1} de ${productName}`}
+                      className={`relative h-24 w-24 overflow-hidden rounded-xl border bg-black/30 transition ${
+                        isActive
+                          ? "border-lime-400 ring-1 ring-lime-400"
+                          : "border-neutral-800 hover:border-neutral-600"
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${productName} ${idx + 1}`}
+                        fill
+                        className="object-contain"
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Desktop: grilla */}
+          {/* DESKTOP: grilla */}
           <div className="hidden grid-cols-4 gap-3 md:grid">
             {safeImages.slice(0, 8).map((img, idx) => {
               const isActive = img === selectedImage;
@@ -75,12 +82,12 @@ export default function ProductImageGallery({
                   key={`${img}-${idx}`}
                   type="button"
                   onClick={() => setSelectedImage(img)}
+                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
                   className={`relative aspect-square overflow-hidden rounded-xl border bg-black/30 transition ${
                     isActive
                       ? "border-lime-400 ring-1 ring-lime-400"
                       : "border-neutral-800 hover:border-neutral-600"
                   }`}
-                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
                 >
                   <Image
                     src={img}
@@ -94,6 +101,6 @@ export default function ProductImageGallery({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
