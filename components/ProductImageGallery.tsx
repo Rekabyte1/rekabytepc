@@ -36,32 +36,63 @@ export default function ProductImageGallery({
       </div>
 
       {safeImages.length > 1 && (
-        <div className="grid grid-cols-4 gap-3">
-          {safeImages.slice(0, 8).map((img, idx) => {
-            const isActive = img === selectedImage;
+        <>
+          {/* Mobile: fila horizontal tipo equipos armados */}
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 md:hidden">
+            {safeImages.map((img, idx) => {
+              const isActive = img === selectedImage;
 
-            return (
-              <button
-                key={`${img}-${idx}`}
-                type="button"
-                onClick={() => setSelectedImage(img)}
-                className={`relative aspect-square overflow-hidden rounded-xl border bg-black/30 transition ${
-                  isActive
-                    ? "border-lime-400 ring-1 ring-lime-400"
-                    : "border-neutral-800 hover:border-neutral-600"
-                }`}
-                aria-label={`Ver imagen ${idx + 1} de ${productName}`}
-              >
-                <Image
-                  src={img}
-                  alt={`${productName} ${idx + 1}`}
-                  fill
-                  className="object-contain"
-                />
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={`${img}-${idx}`}
+                  type="button"
+                  onClick={() => setSelectedImage(img)}
+                  className={`relative h-24 w-24 min-w-[96px] overflow-hidden rounded-xl border bg-black/30 transition ${
+                    isActive
+                      ? "border-lime-400 ring-1 ring-lime-400"
+                      : "border-neutral-800 hover:border-neutral-600"
+                  }`}
+                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
+                >
+                  <Image
+                    src={img}
+                    alt={`${productName} ${idx + 1}`}
+                    fill
+                    className="object-contain"
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Desktop: grilla */}
+          <div className="hidden grid-cols-4 gap-3 md:grid">
+            {safeImages.slice(0, 8).map((img, idx) => {
+              const isActive = img === selectedImage;
+
+              return (
+                <button
+                  key={`${img}-${idx}`}
+                  type="button"
+                  onClick={() => setSelectedImage(img)}
+                  className={`relative aspect-square overflow-hidden rounded-xl border bg-black/30 transition ${
+                    isActive
+                      ? "border-lime-400 ring-1 ring-lime-400"
+                      : "border-neutral-800 hover:border-neutral-600"
+                  }`}
+                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
+                >
+                  <Image
+                    src={img}
+                    alt={`${productName} ${idx + 1}`}
+                    fill
+                    className="object-contain"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );
