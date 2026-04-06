@@ -1,13 +1,18 @@
 import type { GameDef } from "./games";
-import { GAMES as BASE_GAMES } from "./games";
+import { BUILD_R5_5600GT, GAMES as BASE_GAMES } from "./games";
 
 /**
- * Importante:
- * - priceTransfer/priceCard/stock aquí quedan como placeholder (0).
- * - La UI (GameBuildCard) los reemplaza por los valores reales desde la BD
- *   usando el productSlug.
+ * IMPORTANTE:
+ * - Este archivo agrega juegos adicionales.
+ * - Los builds de ejemplo se mantienen comentados.
+ * - BUILD_R5_5600GT se importa desde ./games para mantener una sola fuente.
  */
 
+/* ============================================================
+   BUILDS EJEMPLO (COMENTADOS - NO ACTIVOS)
+   ============================================================ */
+
+/*
 const OFICINA = {
   productSlug: "oficina-8600g",
   title: "OFICINA – 8600G",
@@ -29,7 +34,7 @@ const OFICINA = {
     { label: "Gabinete", value: "Micro-ATX" },
   ],
 };
- 
+
 const ENTRADA = {
   productSlug: "entrada-ryzen7-rtx5060",
   title: "ENTRADA – Ryzen 7 + RTX 5060",
@@ -73,6 +78,11 @@ const MEDIA = {
     { label: "Gabinete", value: "ATX airflow" },
   ],
 };
+*/
+
+/* ============================================================
+   JUEGOS EXTRA
+   ============================================================ */
 
 export const EXTRA_GAMES: GameDef[] = [
   {
@@ -82,8 +92,10 @@ export const EXTRA_GAMES: GameDef[] = [
     banner: "/banners/valorant.jpg",
     builds: {
       "1080p": [
-        { ...ENTRADA, fpsInfo: "350 FPS • Config. Competitiva, FullHD" },
-        { ...MEDIA, fpsInfo: "500 FPS • Config. Baja, FullHD" },
+        {
+          ...BUILD_R5_5600GT,
+          fpsInfo: "Valorant: 150-250 FPS",
+        },
       ],
       "1440p": [],
     },
@@ -95,8 +107,10 @@ export const EXTRA_GAMES: GameDef[] = [
     banner: "/banners/roblox.jpg",
     builds: {
       "1080p": [
-        { ...OFICINA, fpsInfo: "160 FPS • FullHD" },
-        { ...ENTRADA, fpsInfo: "240 FPS • FullHD" },
+        {
+          ...BUILD_R5_5600GT,
+          fpsInfo: "Roblox: rendimiento alto y estable",
+        },
       ],
       "1440p": [],
     },
@@ -107,12 +121,9 @@ export const EXTRA_GAMES: GameDef[] = [
     blurb: "144 Hz + entrada precisa: ideal para rankear.",
     banner: "/banners/rocketleague.jpg",
     builds: {
-      "1080p": [
-        { ...ENTRADA, fpsInfo: "230 FPS • 144 Hz, FullHD" },
-        { ...MEDIA, fpsInfo: "300 FPS • 240 Hz, FullHD" },
-      ],
-      "1440p": [],
-    },
+     "1080p": [],
+     "1440p": [],
+},
   },
   {
     slug: "fortnite",
@@ -121,9 +132,10 @@ export const EXTRA_GAMES: GameDef[] = [
     banner: "/banners/fortnite.jpg",
     builds: {
       "1080p": [
-        { ...OFICINA, fpsInfo: "120 FPS • Bajo/Medio, FullHD" },
-        { ...ENTRADA, fpsInfo: "180 FPS • Alto, FullHD" },
-        { ...MEDIA, fpsInfo: "240 FPS • Muy Alto, FullHD" },
+        {
+          ...BUILD_R5_5600GT,
+          fpsInfo: "Fortnite: 70-120 FPS (modo rendimiento)",
+        },
       ],
       "1440p": [],
     },
@@ -135,20 +147,27 @@ export const EXTRA_GAMES: GameDef[] = [
       "Equipos preparados para campañas exigentes como Cyberpunk, RDR2, Starfield y más.",
     banner: "/banners/aaa.jpg",
     builds: {
-      "1080p": [
-        { ...ENTRADA, fpsInfo: "80 FPS • Alto, FullHD" },
-        { ...MEDIA, fpsInfo: "120 FPS • Ultra, FullHD" },
-      ],
-      "1440p": [],
-    },
+     "1080p": [],
+     "1440p": [],
+},
   },
 ];
 
+/* ============================================================
+   MERGE DE JUEGOS
+   ============================================================ */
+
 export const GAMES_ALL: GameDef[] = (() => {
-  const map = new Map(BASE_GAMES.map((g) => [g.slug, g]));
-  for (const g of EXTRA_GAMES) if (!map.has(g.slug)) map.set(g.slug, g);
+  const map = new Map(BASE_GAMES.map((g) => [g.slug, g] as const));
+  for (const g of EXTRA_GAMES) {
+    if (!map.has(g.slug)) map.set(g.slug, g);
+  }
   return Array.from(map.values());
 })();
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
 
 export function getGameBySlug(slug: string): GameDef | undefined {
   return GAMES_ALL.find((g) => g.slug === slug);

@@ -64,6 +64,59 @@ export type SeedProduct = {
 };
 
 export const products: SeedProduct[] = [
+  // =========================================================
+  // BUILD REAL PUBLICADO
+  // =========================================================
+  {
+    slug: "pc-gamer-ryzen-5-5600gt",
+    name: "PC Gamer Ryzen 5 5600GT",
+    title: "PC Gamer Ryzen 5 5600 GT 6 núcleos + 16GB RAM + 1 TB SSD",
+    kind: "PREBUILT_PC",
+    category: "PREBUILT_PC",
+    subcategory: "GAMER_ENTRADA_APU",
+    brand: "RekaByte",
+    sku: "PC-R5-5600GT-A520-1TB",
+    shortDescription:
+      "PC armado con Ryzen 5 5600GT, 16GB DDR4 RGB, SSD NVMe 1TB, fuente 650W PG5 Gold y gabinete ANTEC VCX20M RGB ELITE.",
+    description:
+      "Configuración real de entrada pensada para trabajo, estudio, uso diario y gaming liviano/esports con gráficos integrados Radeon. Incluye Ryzen 5 5600GT, 16GB DDR4 en dual channel, SSD NVMe Kingston NV3 de 1TB, fuente 650W PG5 Gold y gabinete ANTEC VCX20M RGB ELITE con 5 ventiladores incluidos. Mientras se arma la unidad final, la publicación puede usar imagen referencial y luego actualizarse con fotos reales del equipo terminado.",
+    // Ajusta estos 3 valores si tu precio final cambia
+    price: 750000,
+    priceCard: 750000,
+    priceTransfer: 750000,
+    imageUrl: "/builds/oficina.jpg",
+    images: ["/builds/oficina.jpg", "/builds/oficina2.jpg", "/builds/oficina3.jpg"],
+    stock: 1,
+    isActive: true,
+    featured: true,
+    badge: "Nuevo",
+    sortOrder: 5,
+    specs: {
+      "Tarjeta de video": "Integrada Radeon Graphics",
+      CPU: "AMD Ryzen 5 5600GT / 65W / AM4",
+      "Placa madre": "Gigabyte A520M K V2",
+      RAM: "2x8GB DDR4 3200MT/s XPG Spectrix RGB Black",
+      "Unidad SSD": "Kingston NV3 1TB NVMe PCIe 4.0",
+      "Fuente de poder": "650W PG5 Gold",
+      Gabinete: "ANTEC VCX20M RGB ELITE - 5 ventiladores incluidos",
+    },
+    seoTitle: "PC Gamer Ryzen 5 5600GT + 16GB RAM + 1 TB SSD | RekaByte",
+    seoDescription:
+      "PC armado con Ryzen 5 5600GT, 16GB DDR4, SSD NVMe 1TB y gabinete ANTEC VCX20M RGB ELITE. Disponible en RekaByte.",
+    gpu: "integrada-radeon",
+    cpu: "amd-ryzen-5-5600gt",
+    motherboard: "gigabyte-a520m-k-v2",
+    ram: "16gb-ddr4",
+    cabinet: "antec-vcx20m-rgb-elite",
+    cabinetImage: "/builds/pc-gamer-ryzen-5-5600gt.jpg",
+    games: ["minecraft", "valorant", "fortnite", "counter-strike-2"],
+    tasks: ["trabajar-estudiar", "juegos"],
+  },
+
+  // =========================================================
+  // EJEMPLOS DE BUILD (OCULTOS)
+  // Se mantienen en código y BD como referencia, pero no públicos
+  // =========================================================
   {
     slug: "oficina-8600g",
     name: "OFICINA – 8600G",
@@ -83,9 +136,9 @@ export const products: SeedProduct[] = [
     imageUrl: "/builds/oficina.jpg",
     images: ["/builds/oficina.jpg", "/builds/oficina2.jpg", "/builds/oficina3.jpg"],
     stock: 0,
-    isActive: true,
-    featured: true,
-    badge: "Modelo",
+    isActive: false,
+    featured: false,
+    badge: "Ejemplo",
     sortOrder: 10,
     specs: {
       "Tarjeta de video": "Integrada (RDNA3)",
@@ -127,9 +180,9 @@ export const products: SeedProduct[] = [
     imageUrl: "/builds/entrada.jpg",
     images: ["/builds/entrada.jpg", "/builds/entrada.jpg", "/builds/entrada.jpg"],
     stock: 0,
-    isActive: true,
-    featured: true,
-    badge: "Entrada",
+    isActive: false,
+    featured: false,
+    badge: "Ejemplo",
     sortOrder: 20,
     specs: {
       "Tarjeta de video": "GeForce RTX 5060",
@@ -171,9 +224,9 @@ export const products: SeedProduct[] = [
     imageUrl: "/builds/media.jpg",
     images: ["/builds/media.jpg", "/builds/media.jpg", "/builds/media.jpg"],
     stock: 0,
-    isActive: true,
-    featured: true,
-    badge: "Media",
+    isActive: false,
+    featured: false,
+    badge: "Ejemplo",
     sortOrder: 30,
     specs: {
       "Tarjeta de video": "Radeon RX 9060 XT",
@@ -196,6 +249,10 @@ export const products: SeedProduct[] = [
     games: ["counter-strike-2", "call-of-duty-warzone", "minecraft", "fortnite"],
     tasks: ["juegos", "streaming", "juegos-2k"],
   },
+
+  // =========================================================
+  // PRODUCTOS UNITARIOS REALES
+  // =========================================================
   {
     slug: "gabinete-antec-vcx20m-rgb-elite-5-ventiladores-incluidos",
     name: "Gabinete ANTEC VCX20M RGB ELITE - 5 VENTILADORES INCLUIDOS",
@@ -232,15 +289,16 @@ export const products: SeedProduct[] = [
       Materiales: "Steel",
       "Compatibilidad placa madre": "Micro-ATX, ITX",
       "Panel lateral": "Tempered Glass Side Panel",
-      "Bahías 3.5 / 2.5": '2 / 1',
-      'Bahías 2.5': "1",
+      "Bahías 3.5 / 2.5": "2 / 1",
+      "Bahías 2.5": "1",
       "Slots de expansión": "4",
       "Ventiladores superiores": "2 x 120mm / 2 x 140mm",
       "Ventiladores sobre shroud PSU": "2 x 120mm",
       "Ventilador trasero": "1 x 120mm",
       "Ventiladores incluidos":
         "2 x 120mm RGB top + 2 x 120mm RGB reverse on PSU shroud + 1 x 120mm RGB rear",
-      "Puertos frontales": "Power, LED On/Off, 2 x USB 3.0, Headphone/Mic Combo Jack",
+      "Puertos frontales":
+        "Power, LED On/Off, 2 x USB 3.0, Headphone/Mic Combo Jack",
       "Largo máximo GPU": "≤ 330mm",
       "Altura máxima cooler CPU": "≤ 164mm",
       "Largo máximo PSU": "≤ 185mm (incluye cable)",
@@ -250,5 +308,89 @@ export const products: SeedProduct[] = [
     seoTitle: "Gabinete ANTEC VCX20M RGB ELITE | RekaByte",
     seoDescription:
       "Gabinete ANTEC VCX20M RGB ELITE con 5 ventiladores incluidos, panel de vidrio templado y soporte Micro-ATX / ITX.",
+      
   },
+  {
+  slug: "fuente-gigabyte-650w-ice-silver",
+  name: "Fuente Gigabyte 650W ICE Silver",
+  title: "Fuente de Poder Gigabyte 650W ICE Silver",
+  kind: "UNIT_PRODUCT",
+  category: "PSU",
+  subcategory: "ATX",
+  brand: "Gigabyte",
+  sku: "PSU-GB-650W-ICE-SILVER",
+  shortDescription:
+    "Fuente de poder 650W certificación Silver, eficiente y confiable para equipos gaming y workstation.",
+  description:
+    "La fuente Gigabyte 650W ICE Silver ofrece eficiencia energética con certificación 80 Plus Silver, ideal para configuraciones gaming y de trabajo. Diseño confiable, estable y preparada para builds modernas.",
+  price: 0,
+  priceCard: 0,
+  priceTransfer: 0,
+  imageUrl: "/products/fuente-gigabyte-650w-ice-silver/1.jpg",
+  images: [
+    "/products/fuente-gigabyte-650w-ice-silver/1.jpg",
+    "/products/fuente-gigabyte-650w-ice-silver/2.jpg",
+    "/products/fuente-gigabyte-650w-ice-silver/3.jpg",
+    "/products/fuente-gigabyte-650w-ice-silver/4.jpg",
+    "/products/fuente-gigabyte-650w-ice-silver/5.jpg",
+    "/products/fuente-gigabyte-650w-ice-silver/6.jpg",
+  ],
+  stock: 1,
+  isActive: true,
+  featured: false,
+  badge: null,
+  sortOrder: 120,
+  
+  specs: {
+    Potencia: "650W",
+    Certificación: "80 Plus Silver",
+    Formato: "ATX",
+    Marca: "Gigabyte",
+  },
+  manufacturerPdfUrl:"https://www.gigabyte.com/Motherboard/B850M-EAGLE-WIFI6E-rev-10",
+  seoTitle: "Fuente Gigabyte 650W ICE Silver | RekaByte",
+  seoDescription:
+    "Fuente de poder Gigabyte 650W ICE Silver disponible en RekaByte.",
+},
+{
+  slug: "placa-madre-gigabyte-b850m-eagle-wifi6e",
+  name: "Gigabyte B850M EAGLE WIFI6E",
+  title: "Placa Madre Gigabyte B850M EAGLE WIFI6E",
+  kind: "UNIT_PRODUCT",
+  category: "MOTHERBOARD",
+  subcategory: "Micro-ATX",
+  brand: "Gigabyte",
+  sku: "MB-GB-B850M-WF6E",
+  shortDescription:
+    "Placa madre AM5 con soporte DDR5 y conectividad WIFI 6E para builds modernas.",
+  description:
+    "La Gigabyte B850M EAGLE WIFI6E es una placa madre moderna con socket AM5, soporte para memorias DDR5 y conectividad inalámbrica WIFI 6E. Ideal para builds actuales con alto rendimiento y conectividad avanzada.",
+  price: 0,
+  priceCard: 0,
+  priceTransfer: 0,
+  imageUrl: "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/1.jpg",
+  images: [
+    "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/1.jpg",
+    "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/2.jpg",
+    "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/3.jpg",
+    "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/4.jpg",
+  ],
+  stock: 1,
+  isActive: true,
+  featured: false,
+  badge: null,
+  sortOrder: 130,
+  specs: {
+    Socket: "AM5",
+    Chipset: "B850",
+    Formato: "Micro-ATX",
+    Memoria: "DDR5",
+    Conectividad: "WIFI 6E",
+  },
+  manufacturerPdfUrl: null,
+  seoTitle: "Gigabyte B850M EAGLE WIFI6E | RekaByte",
+  seoDescription:
+    "Placa madre Gigabyte B850M EAGLE WIFI6E disponible en RekaByte.",
+},
+
 ];

@@ -12,17 +12,16 @@ export const metadata: Metadata = {
 type Item = { key: string; build: Build; gameTitle: string };
 
 /**
- * Lista blanca de configuraciones REALES por productSlug.
+ * Lista blanca de configuraciones PUBLICAS por productSlug.
+ * Deja aquí solo los PCs reales que sí quieres mostrar en /modelos.
  */
 const ALLOWED_SLUGS = new Set<string>([
-  "oficina-8600g",
-  "entrada-ryzen7-rtx5060",
-  "media-ryzen9-rx9060xt",
+  "pc-gamer-ryzen-5-5600gt",
 ]);
 
-/** Reúne SOLO las builds reales (sin duplicados), conservando el título del juego. */
+/** Reúne SOLO las builds permitidas (sin duplicados), conservando el título del juego. */
 function collectRealBuilds(): Item[] {
-  const picked = new Map<string, Item>(); // dedupe por productSlug
+  const picked = new Map<string, Item>();
 
   (GAMES_ALL as GameDef[]).forEach((g) => {
     (["1080p", "1440p"] as const).forEach((res) => {
@@ -46,59 +45,63 @@ function collectRealBuilds(): Item[] {
 }
 
 export default async function ModelosPage() {
-  // 1) Tomamos las builds “reales” (por slug) desde tus data files
   const items = collectRealBuilds();
-
-  // 2) Buscamos esos slugs en la BD y armamos un map
   const slugs = items.map((x) => x.build.productSlug).filter(Boolean) as string[];
 
-  const dbProducts = await prisma.product.findMany({
-    where: { slug: { in: slugs } },
-    select: {
-      slug: true,
-      price: true,
-      priceTransfer: true,
-      priceCard: true,
-      stock: true,
-      isActive: true,
-      imageUrl: true,
-    },
-  });
+  const dbProducts = slugs.length
+    ? await prisma.product.findMany({
+        where: {
+          slug: { in: slugs },
+          kind: "PREBUILT_PC",
+          isActive: true,
+        },
+        select: {
+          slug: true,
+          price: true,
+          priceTransfer: true,
+          priceCard: true,
+          stock: true,
+          isActive: true,
+          imageUrl: true,
+        },
+      })
+    : [];
 
   const dbMap = new Map(dbProducts.map((p) => [p.slug, p]));
 
-  // 3) “Pisamos” precios/stock del build con lo que viene de BD
   const merged: Item[] = items
     .map((row) => {
       const slug = row.build.productSlug;
       const db = slug ? dbMap.get(slug) : null;
 
-      // si no existe en BD o está inactivo, igual lo mostramos pero con lo que venga del build
-      if (!db || db.isActive === false) return row;
+      // Si no existe en BD o está inactivo, no lo mostramos
+      if (!db || db.isActive === false) return null;
 
-      const priceTransfer = db.priceTransfer ?? db.price ?? (row.build as any).priceTransfer ?? 0;
-      const priceCard = db.priceCard ?? db.price ?? (row.build as any).priceCard ?? 0;
+      const priceTransfer =
+        db.priceTransfer ?? db.price ?? (row.build as any).priceTransfer ?? 0;
+      const priceCard =
+        db.priceCard ?? db.price ?? (row.build as any).priceCard ?? 0;
 
-      // Para que el card pueda mostrar “agotado” si lo usas
       const stock = db.stock ?? null;
       const inStock = stock == null ? true : stock > 0;
 
-      // Ojo: no mutamos el objeto original
       const build = {
         ...row.build,
         priceTransfer,
         priceCard,
-        // algunos de tus componentes usan stock / inStock, otros no.
-        // esto no rompe nada aunque no lo lean.
         stock,
         inStock,
-        // si quieres que la imagen venga desde BD en vez del data file:
         image: db.imageUrl ?? (row.build as any).image,
       } as any as Build;
 
       return { ...row, build };
     })
-    .sort((a, b) => ((a.build as any).priceTransfer ?? 0) - ((b.build as any).priceTransfer ?? 0));
+    .filter((row): row is Item => row !== null)
+    .sort(
+      (a, b) =>
+        ((a.build as any).priceTransfer ?? 0) -
+        ((b.build as any).priceTransfer ?? 0)
+    );
 
   return (
     <main className="rb-container" data-models-page="1">

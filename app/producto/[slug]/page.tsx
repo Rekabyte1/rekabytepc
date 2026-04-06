@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ProductDetail from "@/components/ProductDetail";
+import ProductImageGallery from "@/components/ProductImageGallery";
 import { PRODUCTS } from "@/components/products";
 import AddToCartButton from "@/components/AddToCartButton";
 
@@ -55,41 +55,7 @@ export default async function ProductPage({ params }: PageProps) {
 
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-4 md:p-5">
-            {images.length > 0 ? (
-              <>
-                <div className="relative mb-4 aspect-square overflow-hidden rounded-2xl border border-neutral-800 bg-black/30">
-                  <Image
-                    src={images[0]}
-                    alt={dbProduct.name}
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-
-                {images.length > 1 && (
-                  <div className="grid grid-cols-4 gap-3">
-                    {images.slice(0, 4).map((img, idx) => (
-                      <div
-                        key={`${img}-${idx}`}
-                        className="relative aspect-square overflow-hidden rounded-xl border border-neutral-800 bg-black/30"
-                      >
-                        <Image
-                          src={img}
-                          alt={`${dbProduct.name} ${idx + 1}`}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex aspect-square items-center justify-center rounded-2xl border border-neutral-800 bg-black/30 text-neutral-500">
-                Sin imagen
-              </div>
-            )}
+            <ProductImageGallery images={images} productName={dbProduct.name} />
           </section>
 
           <aside className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5 md:p-6">
@@ -107,7 +73,7 @@ export default async function ProductPage({ params }: PageProps) {
               ) : null}
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-extrabold text-white">
+            <h1 className="text-2xl font-extrabold text-white md:text-4xl">
               {dbProduct.name}
             </h1>
 
@@ -159,7 +125,7 @@ export default async function ProductPage({ params }: PageProps) {
 
         <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/55 p-6">
           <h2 className="text-xl font-extrabold text-white">Descripción</h2>
-          <p className="mt-4 text-sm md:text-base leading-relaxed text-neutral-300">
+          <p className="mt-4 text-sm leading-relaxed text-neutral-300 md:text-base">
             {dbProduct.description || dbProduct.shortDescription || "Sin descripción."}
           </p>
         </section>

@@ -9,11 +9,11 @@ export type Spec = {
 
 export type Build = {
   title: string;
-  images: string[]; // 3 imágenes por config
-  priceTransfer: number; // placeholder (BD lo reemplaza en UI)
-  priceCard: number; // placeholder (BD lo reemplaza en UI)
-  productSlug: string; // clave BD
-  stock: number; // placeholder (BD lo reemplaza en UI)
+  images: string[];
+  priceTransfer: number;
+  priceCard: number;
+  productSlug: string;
+  stock: number;
   specs: Spec[];
   fpsInfo?: string;
 };
@@ -27,9 +27,12 @@ export type GameDef = {
 };
 
 /* ============================================================
-   BASE BUILDS (UI) – specs/imagenes reales, precio/stock placeholder
+   BASE BUILDS (EJEMPLOS - NO ACTIVOS)
    ============================================================ */
 
+// ⚠️ EJEMPLOS DE BUILDS (NO SE USAN EN LA WEB ACTUALMENTE)
+
+/*
 const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
   title: "OFICINA – 8600G",
   images: ["/builds/oficina.jpg", "/builds/oficina2.jpg", "/builds/oficina3.jpg"],
@@ -45,7 +48,7 @@ const BASE_OFICINA_8600G: Omit<Build, "fpsInfo"> = {
     { label: "Unidad SSD", value: "NVMe 1 TB" },
     { label: "Fuente de poder", value: "650W 80+ Bronze" },
     { label: "Gabinete", value: "Micro-ATX" },
-  ], 
+  ],
 };
 
 const BASE_ENTRADA_R7_5060: Omit<Build, "fpsInfo"> = {
@@ -83,10 +86,35 @@ const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
     { label: "Gabinete", value: "ATX airflow" },
   ],
 };
-
+*/
 
 /* ============================================================
-   JUEGOS BASE
+   BUILD REAL ACTIVO
+   ============================================================ */
+
+export const BUILD_R5_5600GT: Build = {
+  title: "PC Gamer Ryzen 5 5600 GT 6 núcleos + 16GB RAM + 1 TB SSD",
+  images: ["/builds/oficina.jpg", "/builds/oficina2.jpg", "/builds/oficina3.jpg"],
+  priceTransfer: 750000,
+  priceCard: 750000,
+  productSlug: "pc-gamer-ryzen-5-5600gt",
+  stock: 1,
+  specs: [
+    { label: "Tarjeta de video", value: "Integrada Radeon Graphics Vega 7" },
+    { label: "CPU", value: "AMD Ryzen 5 5600GT" },
+    { label: "Placa madre", value: "Gigabyte A520M K V2" },
+    { label: "RAM", value: "A-DATA XPG Spectrix D35G 16GB DDR4 (2x8) 3200MT/s" },
+    { label: "Unidad SSD", value: "Kingston NV3 1 TB (SNV3S/1000G)" },
+    { label: "Fuente de poder", value: "Gigabyte 650W PG5 Gold" },
+    {
+      label: "Gabinete",
+      value: "ANTEC VCX20M RGB ELITE (5 ventiladores)",
+    },
+  ],
+};
+
+/* ============================================================
+   JUEGOS ACTIVOS
    ============================================================ */
 
 export const GAMES: GameDef[] = [
@@ -98,12 +126,12 @@ export const GAMES: GameDef[] = [
     banner: "/banners/cs2.hero.jpg",
     builds: {
       "1080p": [
-        { ...BASE_ENTRADA_R7_5060, fpsInfo: "300 FPS • Config. Alta, FullHD" },
-        { ...BASE_MEDIA_R9_9060XT, fpsInfo: "400 FPS • Config. Competitiva, FullHD" },
+        {
+          ...BUILD_R5_5600GT,
+          fpsInfo: "CS2: 120-200 FPS (gráficos competitivos)",
+        },
       ],
-      "1440p": [
-        // Próximamente
-      ],
+      "1440p": [],
     },
   },
 
@@ -114,14 +142,9 @@ export const GAMES: GameDef[] = [
       "Rendimiento estable y gráficos de alto nivel para competir en Verdansk y Rebirth.",
     banner: "/banners/callofduty.jpg",
     builds: {
-      "1080p": [
-        { ...BASE_ENTRADA_R7_5060, fpsInfo: "160 FPS • Calidad Alta, FullHD" },
-        { ...BASE_MEDIA_R9_9060XT, fpsInfo: "200 FPS • Calidad Muy Alta, FullHD" },
-      ],
-      "1440p": [
-        // Próximamente
-      ],
-    },
+     "1080p": [],
+     "1440p": [],
+},
   },
 
   {
@@ -130,14 +153,8 @@ export const GAMES: GameDef[] = [
     blurb: "Desde vanilla hasta modpacks pesados, shaders y Ray Tracing.",
     banner: "/banners/maincra.jpg",
     builds: {
-      "1080p": [
-        { ...BASE_OFICINA_8600G, fpsInfo: "220 FPS • Vanilla, FullHD" },
-        { ...BASE_ENTRADA_R7_5060, fpsInfo: "180 FPS • Modpacks, FullHD" },
-        { ...BASE_MEDIA_R9_9060XT, fpsInfo: "160 FPS • Shaders/RT, FullHD" },
-      ],
-      "1440p": [
-        // Próximamente
-      ],
+     "1080p": [],
+     "1440p": [],
+},
     },
-  },
 ];
