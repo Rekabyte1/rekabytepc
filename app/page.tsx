@@ -262,7 +262,7 @@ export default async function Home() {
                 Componentes disponibles
               </p>
               <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
-                Stock real para entrega inmediata
+                Recién agregados 
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300 md:text-base">
                 Componentes disponibles para despacho o retiro, enfocándonos en disponibilidad real y presentación clara.

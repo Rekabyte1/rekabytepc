@@ -68,7 +68,7 @@ export const products: SeedProduct[] = [
   // BUILD REAL PUBLICADO
   // =========================================================
   {
-    slug: "pc-gamer-ryzen-5-5600gt",
+    slug: "pc-gamer-ryzen-5-5600gt-16GB-ddr4-ssd-1tb",
     name: "PC Gamer Ryzen 5 5600GT",
     title: "PC Gamer Ryzen 5 5600 GT 6 núcleos + 16GB RAM + 1 TB SSD",
     kind: "PREBUILT_PC",
@@ -335,9 +335,9 @@ export const products: SeedProduct[] = [
     "/products/fuente-gigabyte-650w-ice-silver/5.jpg",
     "/products/fuente-gigabyte-650w-ice-silver/6.jpg",
   ],
-  stock: 1,
+  stock: 0,
   isActive: true,
-  featured: false,
+  featured: true,
   badge: null,
   sortOrder: 120,
   
@@ -365,7 +365,7 @@ export const products: SeedProduct[] = [
     "Placa madre AM5 con soporte DDR5 y conectividad WIFI 6E para builds modernas.",
   description:
     "La Gigabyte B850M EAGLE WIFI6E es una placa madre moderna con socket AM5, soporte para memorias DDR5 y conectividad inalámbrica WIFI 6E. Ideal para builds actuales con alto rendimiento y conectividad avanzada.",
-  price: 0,
+  price: 999909,
   priceCard: 0,
   priceTransfer: 0,
   imageUrl: "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/1.jpg",
@@ -375,9 +375,9 @@ export const products: SeedProduct[] = [
     "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/3.jpg",
     "/products/placa-madre-gigabyte-b850m-eagle-wifi6e/4.jpg",
   ],
-  stock: 1,
+  stock: 0,
   isActive: true,
-  featured: false,
+  featured: true,
   badge: null,
   sortOrder: 130,
   specs: {

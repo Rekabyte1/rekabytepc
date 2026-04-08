@@ -16,7 +16,7 @@ type Item = { key: string; build: Build; gameTitle: string };
  * Deja aquí solo los PCs reales que sí quieres mostrar en /modelos.
  */
 const ALLOWED_SLUGS = new Set<string>([
-  "pc-gamer-ryzen-5-5600gt",
+  "pc-gamer-ryzen-5-5600gt-16GB-ddr4-ssd-1tb",
 ]);
 
 /** Reúne SOLO las builds permitidas (sin duplicados), conservando el título del juego. */
