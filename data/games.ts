@@ -94,7 +94,7 @@ const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
 
 export const BUILD_R5_5600GT: Build = {
   title: "PC Gamer Ryzen 5 5600 GT 6 núcleos + 16GB RAM + 1 TB SSD",
-  images: ["/builds/oficina.jpg", "/builds/oficina2.jpg", "/builds/oficina3.jpg"],
+  images: ["/builds/antec.jpg", "/builds/", "/builds/"],
   priceTransfer: 750000,
   priceCard: 750000,
   productSlug: "pc-gamer-ryzen-5-5600gt",
