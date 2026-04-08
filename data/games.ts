@@ -97,7 +97,7 @@ export const BUILD_R5_5600GT: Build = {
   images: ["/builds/antec.jpg", "/builds/", "/builds/"],
   priceTransfer: 750000,
   priceCard: 750000,
-  productSlug: "pc-gamer-ryzen-5-5600gt",
+  productSlug: "pc-gamer-ryzen-5-5600gt-16GB-ddr4-ssd-1tb",
   stock: 1,
   specs: [
     { label: "Tarjeta de video", value: "Integrada Radeon Graphics Vega 7" },
