@@ -94,7 +94,7 @@ export const EXTRA_GAMES: GameDef[] = [
       "1080p": [
         {
           ...BUILD_R5_5600GT,
-          fpsInfo: "Valorant: 150-250 FPS",
+          fpsInfo: "Valorant: 100-140 FPS",
         },
       ],
       "1440p": [],
@@ -134,7 +134,7 @@ export const EXTRA_GAMES: GameDef[] = [
       "1080p": [
         {
           ...BUILD_R5_5600GT,
-          fpsInfo: "Fortnite: 70-120 FPS (modo rendimiento)",
+          fpsInfo: "Fortnite: 50-70 FPS (modo rendimiento)",
         },
       ],
       "1440p": [],
