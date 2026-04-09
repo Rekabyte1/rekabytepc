@@ -300,8 +300,11 @@ export default function ModelClient({ build, gameTitle, gameSlug }: Props) {
         <h2 className="rb-h2">Descripción</h2>
         <p className="rb-p">
           {title} es una configuración pensada para {gameTitle ?? "tu uso"}.
-          Incluye componentes seleccionados para estabilidad, temperaturas y una experiencia sólida.
-          {" "}agregar una descripción larga por build para SEO (ideal: 120–200 palabras).
+          Este PC Gamer RekaByte con procesador Ryzen 5 5600GT está diseñado para ofrecer un rendimiento sólido y estable en juegos competitivos y uso diario.
+          {" "}Es una excelente opción para quienes buscan un equipo equilibrado en Chile, capaz de correr títulos como Counter-Strike 2, Valorant, Fortnite y otros juegos populares en 1080p con muy buen desempeño.
+
+La configuración incluye 16GB de memoria RAM en doble canal, lo que permite una experiencia fluida tanto en gaming como en multitarea, junto a un SSD NVMe de 1TB que asegura tiempos de carga rápidos y una respuesta ágil del sistema.
+Además está preparado para que le puedas agregar una tarjeta de video, ya que cuenta con una fuente de poder de 650W Plus Gold.
         </p>
       </section>
 
