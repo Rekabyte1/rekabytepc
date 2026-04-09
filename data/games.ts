@@ -16,6 +16,7 @@ export type Build = {
   stock: number;
   specs: Spec[];
   fpsInfo?: string;
+  videoUrl?: string;
 };
 
 export type GameDef = {
@@ -95,6 +96,7 @@ const BASE_MEDIA_R9_9060XT: Omit<Build, "fpsInfo"> = {
 export const BUILD_R5_5600GT: Build = {
   title: "PC Gamer Ryzen 5 5600 GT 6 núcleos + 16GB RAM + 1 TB SSD",
   images: ["/builds/Antec1.jpg", "/builds/Antec2.jpg", "/builds/Antec3.jpg"],
+  videoUrl: "/videos/pc-5600gt.mp4",
   priceTransfer: 750000,
   priceCard: 750000,
   productSlug: "pc-gamer-ryzen-5-5600gt-16GB-ddr4-ssd-1tb",
@@ -106,6 +108,7 @@ export const BUILD_R5_5600GT: Build = {
     { label: "RAM", value: "A-DATA XPG Spectrix D35G 16GB DDR4 (2x8) 3200MT/s" },
     { label: "Unidad SSD", value: "Kingston NV3 1 TB (SNV3S/1000G)" },
     { label: "Fuente de poder", value: "Gigabyte 650W PG5 Gold" },
+    { label: "Windows", value: "Windows 11 pro sin activación" },
     {
       label: "Gabinete",
       value: "ANTEC VCX20M RGB ELITE (5 ventiladores)",
@@ -142,9 +145,9 @@ export const GAMES: GameDef[] = [
       "Rendimiento estable y gráficos de alto nivel para competir en Verdansk y Rebirth.",
     banner: "/banners/callofduty.jpg",
     builds: {
-     "1080p": [],
-     "1440p": [],
-},
+      "1080p": [],
+      "1440p": [],
+    },
   },
 
   {
@@ -153,8 +156,8 @@ export const GAMES: GameDef[] = [
     blurb: "Desde vanilla hasta modpacks pesados, shaders y Ray Tracing.",
     banner: "/banners/maincra.jpg",
     builds: {
-     "1080p": [],
-     "1440p": [],
-},
+      "1080p": [],
+      "1440p": [],
     },
+  },
 ];
