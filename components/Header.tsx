@@ -13,7 +13,7 @@ import GamingStreamingMenu from "./GamingStreamingMenu";
 import {
   FaEnvelope,
   FaMapMarkerAlt,
-  FaPhoneAlt,
+  FaWhatsapp,
   FaUser,
   FaShoppingCart,
   FaSearch,
@@ -113,7 +113,7 @@ export default function Header() {
             </div>
 
             <div className="pill">
-              <FaPhoneAlt className="text-green-400" /> +56 9 1234 5678
+              <FaWhatsapp className="text-green-400" /> +56 9 7593 9292
             </div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function Header() {
                 <FaUser /> <span>Mi cuenta</span>
               </Link>
               <Link href="/contacto" className="rb-action">
-                <FaPhoneAlt /> <span>Contacto</span>
+                <FaWhatsapp /> <span>Contacto</span>
               </Link>
               <button onClick={toggleCart} className="rb-action" type="button">
                 <FaShoppingCart /> <span>Carrito</span> <CartCount />

@@ -80,11 +80,11 @@ export default function SuccessClient() {
   const niceId = useMemo(() => orderNumberNice(orderId), [orderId]);
 
   const transferData = useMemo(
-    () => `Titular: Reka SpA
-RUT: 20.420.860-0
+    () => `Titular: REKABYTE SPA
+RUT: 78.356.436-K
 Banco: Santander
 Tipo de cuenta: Cuenta corriente
-Número de cuenta: XXXXXXXX
+Número de cuenta: 0-000-3742916-3
 Correo: contacto@rekabyte.cl`,
     []
   );
