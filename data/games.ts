@@ -131,7 +131,7 @@ export const GAMES: GameDef[] = [
       "1080p": [
         {
           ...BUILD_R5_5600GT,
-          fpsInfo: "CS2: 120-200 FPS (gráficos competitivos)",
+          fpsInfo: "CS2: 60-100 FPS (gráficos competitivos)",
         },
       ],
       "1440p": [],

@@ -125,12 +125,20 @@ export default async function Home() {
                   Retiro previa coordinación a pasos de metro Lo Vial, San miguel y despachos nacionales.
                 </div>
               </div>
+                   <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
+                <div className="text-sm font-black text-white">Lanzamiento oficial en pruebas</div>
+                <div className="mt-1 text-xs leading-5 text-neutral-400">
+                 Si detectas algún error o problema, te agradeceríamos que nos lo informes para poder solucionarlo a la brevedad.
+                </div>
+              </div>
 
               <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
                 <div className="text-sm font-black text-white">Soporte cercano</div>
                 <div className="mt-1 text-xs leading-5 text-neutral-400">
                   Atención directa para compra, seguimiento y postventa.
                 </div>
+
+                
               </div>
             </div>
           </div>

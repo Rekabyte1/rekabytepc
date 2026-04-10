@@ -138,7 +138,7 @@ export default function Footer() {
                 San Miguel.
               </li>
               <li className="text-neutral-400">
-                Punto de retiro disponible.
+                Punto de retiro disponible con previa coordinación.
               </li>
             </ul>
           </div>
