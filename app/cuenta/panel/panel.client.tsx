@@ -802,8 +802,8 @@ return (
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Nombre" value={pName} onChange={setPName} placeholder="Ej: Emilio" />
-                <Field label="Apellido" value={pLastName} onChange={setPLastName} placeholder="Ej: Recabarren" />
+                <Field label="Nombre" value={pName} onChange={setPName} placeholder="Ej: Juan" />
+                <Field label="Apellido" value={pLastName} onChange={setPLastName} placeholder="Ej: Mellado" />
                 <Field label="Teléfono" value={pPhone} onChange={setPPhone} placeholder="Ej: +56 9 1234 5678" />
                 <Field label="RUT" value={pRut} onChange={setPRut} placeholder="Ej: 12.345.678-9" />
               </div>

@@ -250,7 +250,7 @@ export default function Paso3Pago() {
                         className="cs-input"
                         defaultValue={pago?.factura?.telefono ?? ""}
                         disabled={doc !== "factura"}
-                        placeholder="+56 9 1234 5678"
+                        placeholder="+56 9 7593 9292"
                       />
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export default function Paso3Pago() {
                         className="cs-input"
                         defaultValue={pago?.factura?.calle ?? ""}
                         disabled={doc !== "factura"}
-                        placeholder="Real Audiencia"
+                        placeholder="proviedncia"
                       />
                     </div>
                     <div className="cs-field">

@@ -113,7 +113,7 @@ export default function ContactoPage() {
                 <p className="text-sm text-neutral-400">Teléfono / WhatsApp</p>
                 <div className="flex flex-wrap items-center gap-3">
                   <a
-                    href="tel:+56912345678"
+                    href="tel:+56 9 7593 9292"
                     className="font-medium text-white hover:text-lime-300"
                   >
                     +56 9 7593 9292

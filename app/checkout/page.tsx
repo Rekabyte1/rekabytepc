@@ -199,7 +199,7 @@ export default function Paso1Datos() {
                   required
                   defaultValue={dv?.telefono ?? ""}
                   className="cs-input"
-                  placeholder="+56 9 1234 5678"
+                  placeholder="+56 9 7593 9292"
                   autoComplete="tel"
                 />
               </div>
