@@ -14,7 +14,7 @@ const CATALOG = [
   { slug: "roblox",               title: "Roblox",                 image: "/games/roblox.jpg" },
   { slug: "rocket-league",        title: "Rocket League",          image: "/games/rocketleague.jpg" },
   { slug: "fortnite",             title: "Fortnite",               image: "/games/fortnite.jpg" },
-  { slug: "triple-a",             title: "Juegos triple A",        image: "/games/triple-a.jpg" },
+  { slug: "triple-a",             title: "Juegos triple A",        image: "/games/AAA.jpg" },
 ];
 
 function Thumb({ src, alt }: { src: string; alt: string }) {

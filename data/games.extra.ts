@@ -143,9 +143,8 @@ export const EXTRA_GAMES: GameDef[] = [
   {
     slug: "triple-a",
     title: "Juegos triple A",
-    blurb:
-      "Equipos preparados para campañas exigentes como Cyberpunk, RDR2, Starfield y más.",
-    banner: "/banners/aaa.jpg",
+    blurb:"Equipos preparados para campañas exigentes como Cyberpunk, RDR2, Starfield y más.",
+    banner: "/banners/AAA.jpg",
     builds: {
      "1080p": [],
      "1440p": [],
