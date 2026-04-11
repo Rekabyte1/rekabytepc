@@ -120,7 +120,7 @@ export default function ContactoPage() {
                   </a>
 
                   <a
-                    href="https://wa.me/56912345678"
+                    href="https://wa.me/56975939292"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-neutral-900 px-3 py-1 text-lime-400 hover:bg-neutral-900/70"

@@ -261,7 +261,7 @@ export const products: SeedProduct[] = [
     category: "CASE",
     subcategory: "MICRO_ATX_MINI_ITX",
     brand: "ANTEC",
-    sku: "GAB1",
+    sku: "CASE-ANT-VCX20M-RGB",
     shortDescription:
       "Gabinete Mini Tower con panel lateral de vidrio templado y 5 ventiladores RGB incluidos.",
     description:
@@ -274,7 +274,6 @@ export const products: SeedProduct[] = [
       "/products/antec-vcx20m-rgb-elite/1.jpg",
       "/products/antec-vcx20m-rgb-elite/2.jpg",
       "/products/antec-vcx20m-rgb-elite/3.jpg",
-      "/products/antec-vcx20m-rgb-elite/4.jpg",
     ],
     stock: 0,
     isActive: true,
