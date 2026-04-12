@@ -1055,7 +1055,7 @@ export default function Paso2Envio() {
                     className="cs-input"
                     value={direccion}
                     onChange={(e) => setDireccion(e.target.value)}
-                    placeholder="Ej: Los Copihues 571"
+                    placeholder="Ej: Providencia 432"
                     disabled={tipo !== "delivery"}
                   />
                 </div>

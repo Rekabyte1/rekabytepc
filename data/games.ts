@@ -106,6 +106,7 @@ export const BUILD_R5_5600GT: Build = {
     { label: "CPU", value: "AMD Ryzen 5 5600GT" },
     { label: "Placa madre", value: "Gigabyte A520M K V2" },
     { label: "RAM", value: "A-DATA XPG Spectrix D35G 16GB DDR4 (2x8) 3200MT/s" },
+    { label: "Cooler", value: "AMD Cooler Stock" },
     { label: "Unidad SSD", value: "Kingston NV3 1 TB (SNV3S/1000G)" },
     { label: "Fuente de poder", value: "Gigabyte 650W PG5 Gold" },
     { label: "Windows", value: "Windows 11 pro sin activación" },
