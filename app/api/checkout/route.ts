@@ -77,15 +77,15 @@ function zoneByRegion(regionRaw: string): ShippingZone {
 
   // Zonas extremas para tu lógica comercial
   if (
-  r.includes("arica") ||
-  r.includes("parinacota") ||
-  r.includes("tarapac") ||
-  r.includes("atacama") ||
-  r.includes("ays") ||
-  r.includes("magall")
-) {
-  return "EXTREMOS";
-}
+    r.includes("arica") ||
+    r.includes("parinacota") ||
+    r.includes("tarapac") ||
+    r.includes("atacama") ||
+    r.includes("ays") ||
+    r.includes("magall")
+  ) {
+    return "EXTREMOS";
+  }
 
   return "NO_EXTREMA";
 }
@@ -156,7 +156,10 @@ function inferComponentShippingSize(product: {
     return "XL";
   }
 
-  if (category === ProductCategory.GPU || category === ProductCategory.MOTHERBOARD) {
+  if (
+    category === ProductCategory.GPU ||
+    category === ProductCategory.MOTHERBOARD
+  ) {
     return "LARGE";
   }
 
@@ -266,25 +269,56 @@ function calculateShippingCost(params: {
   const region = safeStr(address?.region);
   const zone = zoneByRegion(region);
 
-  const pcItems = itemsDetailed.filter((p) => p.kind === ProductKind.PREBUILT_PC);
-  if (pcItems.length > 0) {
-    return pcItems.reduce((acc, item) => {
-      const unitSubtotalTransfer = (item.priceTransfer ?? 0) || (item.price ?? 0);
+  let totalShipping = 0;
+  let hasGroupedComponents = false;
+
+  for (const item of itemsDetailed) {
+    const quantity = Math.max(1, Number(item.quantity ?? 1));
+
+    // PC armado: cobra por unidad
+    if (item.kind === ProductKind.PREBUILT_PC) {
+      const unitSubtotalTransfer =
+        (item.priceTransfer ?? 0) || (item.price ?? 0);
       const perUnit = pcShippingPerUnit(zone, unitSubtotalTransfer);
-      return acc + perUnit * item.quantity;
-    }, 0);
+      totalShipping += perUnit * quantity;
+      continue;
+    }
+
+    // Gabinete: cobra por unidad
+    if (item.category === ProductCategory.CASE) {
+      const caseSize = inferComponentShippingSize(item);
+      const perUnit = componentShippingBySize(zone, caseSize);
+      totalShipping += perUnit * quantity;
+      continue;
+    }
+
+    // Todo lo demás: se agrupa y cobra una sola vez
+    if (quantity > 0) {
+      hasGroupedComponents = true;
+    }
   }
 
-  const componentUnits = itemsDetailed.reduce((acc, item) => acc + item.quantity, 0);
-  if (componentUnits <= 0) return 0;
+  // Si existe al menos un producto que no sea PC ni gabinete,
+  // se cobra un solo envío agrupado usando el tamaño más grande de ese grupo.
+  if (hasGroupedComponents) {
+    const groupedItems = itemsDetailed.filter(
+      (item) =>
+        item.kind !== ProductKind.PREBUILT_PC &&
+        item.category !== ProductCategory.CASE
+    );
 
-  const biggestSize = itemsDetailed.reduce<ComponentShippingSize>((max, item) => {
-    const current = inferComponentShippingSize(item);
-    return sizeRank(current) > sizeRank(max) ? current : max;
-  }, "SMALL");
+    const biggestGroupedSize = groupedItems.reduce<ComponentShippingSize>(
+      (max, item) => {
+        const current = inferComponentShippingSize(item);
+        return sizeRank(current) > sizeRank(max) ? current : max;
+      },
+      "SMALL"
+    );
 
-  const perUnit = componentShippingBySize(zone, biggestSize);
-  return perUnit * componentUnits;
+    totalShipping += componentShippingBySize(zone, biggestGroupedSize);
+  }
+
+  return totalShipping;
 }
 
 async function trySendConfirmationEmailOnce(params: {
@@ -332,7 +366,11 @@ async function trySendConfirmationEmailOnce(params: {
   }
 
   if (fresh.confirmationEmailSentAt) {
-    return { ok: true as const, skipped: true as const, reason: "already_sent" as const };
+    return {
+      ok: true as const,
+      skipped: true as const,
+      reason: "already_sent" as const,
+    };
   }
 
   const sendRes = await sendOrderCreatedEmail({
@@ -345,7 +383,9 @@ async function trySendConfirmationEmailOnce(params: {
     subtotal: fresh.subtotal,
     shippingCost: fresh.shippingCost,
     createdAtISO: new Date(fresh.createdAt).toISOString(),
-    paymentDueAtISO: fresh.paymentDueAt ? new Date(fresh.paymentDueAt).toISOString() : null,
+    paymentDueAtISO: fresh.paymentDueAt
+      ? new Date(fresh.paymentDueAt).toISOString()
+      : null,
     items: params.items.map((it) => ({
       name: it.productName,
       qty: it.quantity,
@@ -413,7 +453,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
 
     if (paymentMethod === "webpay") {
       return NextResponse.json(
@@ -634,7 +673,8 @@ export async function POST(req: NextRequest) {
           checkoutToken,
           paymentDueAt,
           documentType,
-          invoiceData: documentType === DocumentType.FACTURA ? (invoiceDataRaw as any) : null,
+          invoiceData:
+            documentType === DocumentType.FACTURA ? (invoiceDataRaw as any) : null,
         },
       });
 

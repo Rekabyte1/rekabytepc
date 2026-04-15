@@ -37,16 +37,16 @@ function zoneByRegion(regionRaw: string): ShippingZone {
   if (r.includes("metropolitana")) return "RM";
 
   // Zonas extremas para tu lógica comercial
-   if (
-  r.includes("arica") ||
-  r.includes("parinacota") ||
-  r.includes("tarapac") ||
-  r.includes("atacama") ||
-  r.includes("ays") ||
-  r.includes("magall")
-) {
-  return "EXTREMOS";
-}
+  if (
+    r.includes("arica") ||
+    r.includes("parinacota") ||
+    r.includes("tarapac") ||
+    r.includes("atacama") ||
+    r.includes("ays") ||
+    r.includes("magall")
+  ) {
+    return "EXTREMOS";
+  }
 
   return "NO_EXTREMA";
 }
@@ -184,24 +184,57 @@ function calculateShipping(params: {
 
   const zone = zoneByRegion(region);
 
-  const pcItems = items.filter((item) => isPcItem(item));
-  if (pcItems.length > 0) {
-    return pcItems.reduce((acc, item) => {
+  let totalShipping = 0;
+  const groupedItems: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    priceTransfer: number;
+  }> = [];
+
+  for (const item of items) {
+    const quantity = Math.max(1, Number(item.quantity ?? 1));
+    const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
+
+    const isPc = isPcItem(item);
+    const isCase = text.includes("gabinete") || text.includes("case");
+
+    // 1) PC armado → cobra por unidad
+    if (isPc) {
       const perUnit = pcShippingPerUnit(zone, item.priceTransfer);
-      return acc + perUnit * item.quantity;
-    }, 0);
+      totalShipping += perUnit * quantity;
+      continue;
+    }
+
+    // 2) Gabinete → cobra por unidad
+    if (isCase) {
+      const size = inferCartItemShippingSize(item);
+      const perUnit = componentShippingBySize(zone, size);
+      totalShipping += perUnit * quantity;
+      continue;
+    }
+
+    // 3) Todo lo demás → se agrupa y cobra una sola vez
+    if (quantity > 0) {
+      groupedItems.push(item);
+    }
   }
 
-  const componentUnits = items.reduce((acc, item) => acc + item.quantity, 0);
-  if (componentUnits <= 0) return 0;
+  // 4) Si existe al menos un producto pequeño/normal,
+  // se cobra un solo envío agrupado usando el mayor tamaño del grupo
+  if (groupedItems.length > 0) {
+    const biggestSize = groupedItems.reduce<ComponentShippingSize>(
+      (max, item) => {
+        const current = inferCartItemShippingSize(item);
+        return sizeRank(current) > sizeRank(max) ? current : max;
+      },
+      "SMALL"
+    );
 
-  const biggestSize = items.reduce<ComponentShippingSize>((max, item) => {
-    const current = inferCartItemShippingSize(item);
-    return sizeRank(current) > sizeRank(max) ? current : max;
-  }, "SMALL");
+    totalShipping += componentShippingBySize(zone, biggestSize);
+  }
 
-  const unitShipping = componentShippingBySize(zone, biggestSize);
-  return unitShipping * componentUnits;
+  return totalShipping;
 }
 
 const REGIONES_COMUNAS: Record<string, string[]> = {

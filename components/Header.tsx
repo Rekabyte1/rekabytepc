@@ -157,28 +157,6 @@ export default function Header() {
 
         <nav className="rb-nav">
           <div className="rb-container rb-nav-row rb-nav-mobile-grid">
-            <div
-              className="rb-mega-wrap rb-mega-wrap-mobile"
-              onMouseEnter={openMenuSoft}
-              onMouseLeave={closeMenuSoft}
-            >
-              <button
-                className={`rb-pill ${mobileOpen === "armados" ? "is-open" : ""}`}
-                onClick={toggleMenuMobile}
-                type="button"
-              >
-                Computadores Armados
-              </button>
-
-              {isMobile ? (
-                mobileOpen === "armados" ? (
-                  <GamesMegaMenu mobile onNavigate={closeAllMenus} />
-                ) : null
-              ) : menuOpen ? (
-                <GamesMegaMenu onNavigate={closeAllMenus} />
-              ) : null}
-            </div>
-
             <ComponentsMenu
               isMobile={isMobile}
               mobileOpen={mobileOpen === "componentes"}
@@ -198,6 +176,28 @@ export default function Header() {
               }
               onNavigate={closeAllMenus}
             />
+
+            <div
+              className="rb-mega-wrap rb-mega-wrap-mobile"
+              onMouseEnter={openMenuSoft}
+              onMouseLeave={closeMenuSoft}
+            >
+              <button
+                className={`rb-pill ${mobileOpen === "armados" ? "is-open" : ""}`}
+                onClick={toggleMenuMobile}
+                type="button"
+              >
+                Setup y Periféricos
+              </button>
+
+              {isMobile ? (
+                mobileOpen === "armados" ? (
+                  <GamesMegaMenu mobile onNavigate={closeAllMenus} />
+                ) : null
+              ) : menuOpen ? (
+                <GamesMegaMenu onNavigate={closeAllMenus} />
+              ) : null}
+            </div>
           </div>
         </nav>
 

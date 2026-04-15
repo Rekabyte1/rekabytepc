@@ -25,23 +25,18 @@ export default function GamesMegaMenu({
     <div className={mobile ? "rb-mobile-panel" : "rb-mega-panel"}>
       <div className={mobile ? "rb-mobile-grid" : "rb-mega-grid"}>
         <div className="col">
-          <h4>Gama de modelos</h4>
+          <h4>Equipos y Setup</h4>
           <ul>
             <li>
               <Link href="/modelos" onClick={handleClick}>
-                Todos los modelos
-              </Link>
-            </li>
-            <li>
-              <Link href="/modelos/configurador" onClick={handleClick}>
-                Configurador PC
+                Ver colección completa
               </Link>
             </li>
           </ul>
         </div>
 
         <div className="col">
-          <h4>Seleccionar por tareas</h4>
+          <h4>Explorar por uso</h4>
           <ul>
             <li>
               <Link href="/tareas/trabajar-y-estudiar" onClick={handleClick}>
@@ -62,7 +57,7 @@ export default function GamesMegaMenu({
         </div>
 
         <div className="col">
-          <h4>Seleccionar por juego</h4>
+          <h4>Explorar por juego</h4>
           <ul>
             {GAME_LINKS.map((g) => (
               <li key={g.slug}>
@@ -80,7 +75,7 @@ export default function GamesMegaMenu({
         </div>
 
         <div className="col">
-          <h4>Seleccionar por procesador</h4>
+          <h4>Plataforma</h4>
           <ul>
             <li>
               <Link href="/procesador/intel" onClick={handleClick}>
@@ -96,7 +91,7 @@ export default function GamesMegaMenu({
         </div>
 
         <div className="col">
-          <h4>Seleccionar por tarjeta de video</h4>
+          <h4>Rendimiento gráfico</h4>
           <ul>
             <li>
               <Link href="/gpu/geforce-rtx-5060-ti" onClick={handleClick}>
