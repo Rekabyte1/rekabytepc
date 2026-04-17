@@ -391,5 +391,175 @@ export const products: SeedProduct[] = [
   seoDescription:
     "Placa madre Gigabyte B850M EAGLE WIFI6E disponible en RekaByte.",
 },
-
+{
+  slug: "mouse-fantech-x17-blake-space-edition",
+  name: "Mouse Fantech X17 Blake Space Edition",
+  title: "Mouse Fantech X17 Blake Space Edition",
+  kind: "UNIT_PRODUCT",
+  category: "PERIPHERAL",
+  subcategory: "MOUSE",
+  brand: "Fantech",
+  sku: "X17BLAKESPE",
+  shortDescription:
+    "Mouse gamer RGB con sensor Pixart 3325, 7 botones programables y hasta 10.000 DPI.",
+  description:
+    "El Fantech X17 Blake Space Edition es un mouse gamer diseñado para precisión y comodidad. Integra sensor Pixart 3325, iluminación RGB Chroma, 7 botones macro programables, memoria interna y polling rate de 1000Hz para una respuesta rápida en juegos competitivos.",
+  price: 13640,
+  priceCard: 13640,
+  priceTransfer: 12990,
+  imageUrl: "/products/mouse-fantech-x17-blake-space-edition/1.jpg",
+  images: [
+    "/products/mouse-fantech-x17-blake-space-edition/1.jpg",
+    "/products/mouse-fantech-x17-blake-space-edition/2.jpg",
+    "/products/mouse-fantech-x17-blake-space-edition/3.jpg",
+  ],
+  stock: 5,
+  isActive: true,
+  featured: false,
+  badge: null,
+  sortOrder: 140,
+  specs: {
+    Sensor: "Pixart 3325",
+    DPI: "10.000",
+    Botones: "7 botones macro",
+    Iluminación: "RGB Chroma",
+    Memoria: "On Board Memory",
+    IPS: "100",
+    Polling: "1000 Hz",
+  },
+  manufacturerPdfUrl:
+    "https://quantumimport.cl/ficha-tecnica-mouse-gamer-fantech-x17-blake-rgb-precision-y-poder-en-tus-manos/",
+  seoTitle: "Mouse Fantech X17 Blake Space Edition | RekaByte",
+  seoDescription:
+    "Mouse gamer Fantech X17 Blake Space Edition con RGB, sensor Pixart 3325 y 10.000 DPI disponible en RekaByte.",
+},
+{
+  slug: "teclado-mecanico-fantech-atom-x83-mk612-ame-white-switch-taro",
+  name: "Teclado mecánico Fantech ATOM X83 MK612 AME White (Switch Taro)",
+  title: "Teclado mecánico Fantech ATOM X83 MK612 AME White (Switch Taro)",
+  kind: "UNIT_PRODUCT",
+  category: "PERIPHERAL",
+  subcategory: "KEYBOARD",
+  brand: "Fantech",
+  sku: "MK612-AME-WHITE-STaro",
+  shortDescription:
+    "Teclado mecánico 75% hotswappable con RGB, switch Taro y conexión USB-C desmontable.",
+  description:
+    "El Fantech ATOM X83 MK612 AME White es un teclado mecánico 75% orientado a usuarios que buscan estética, personalización y buen tacto. Incluye switch Taro, sistema hotswappable 3 pines, full anti-ghosting, 11 modos RGB más panel lateral RGB, funciones para Windows y Mac y cable USB-C desmontable.",
+  price: 41990,
+  priceCard: 41990,
+  priceTransfer: 39990,
+  imageUrl:
+    "/products/teclado-mecanico-fantech-atom-x83-mk612-ame-white-switch-taro/1.jpg",
+  images: [
+    "/products/teclado-mecanico-fantech-atom-x83-mk612-ame-white-switch-taro/1.jpg",
+    "/products/teclado-mecanico-fantech-atom-x83-mk612-ame-white-switch-taro/2.jpg",
+    "/products/teclado-mecanico-fantech-atom-x83-mk612-ame-white-switch-taro/3.jpg",
+  ],
+  stock: 5,
+  isActive: true,
+  featured: true,
+  badge: "Nuevo",
+  sortOrder: 150,
+  specs: {
+    Layout: "75%",
+    Color: "White AME Edition",
+    Switch: "Taro",
+    Hotswappable: "Sí, 3 pin",
+    AntiGhosting: "Full anti-ghosting",
+    RGB: "11 modos RGB + panel lateral RGB",
+    Compatibilidad: "Windows y Mac",
+    Conexión: "USB-C desmontable",
+    Personalización: "Software de personalización",
+  },
+  manufacturerPdfUrl:
+    "https://quantumimport.cl/antech-atom-x83-mk612-ame-edition-teclado-mecanico-75/",
+  seoTitle:
+    "Teclado mecánico Fantech ATOM X83 MK612 AME White (Switch Taro) | RekaByte",
+  seoDescription:
+    "Teclado mecánico Fantech ATOM X83 MK612 White con switch Taro, RGB y sistema hotswappable disponible en RekaByte.",
+},
+{
+  slug: "audifonos-fantech-hg16-sniper-ii-rgb-black",
+  name: "Audífonos Fantech HG16 Sniper II RGB Black",
+  title: "Audífonos Fantech HG16 Sniper II RGB Black",
+  kind: "UNIT_PRODUCT",
+  category: "PERIPHERAL",
+  subcategory: "HEADSET",
+  brand: "Fantech",
+  sku: "HG16S",
+  shortDescription:
+    "Audífonos gamer con sonido virtual 7.1, RGB, cancelación de ruido y conexión USB.",
+  description:
+    "Los Fantech HG16 Sniper II RGB Black ofrecen una experiencia gamer inmersiva gracias a su sonido virtual 7.1, iluminación RGB y micrófono con cancelación de ruido. Son una opción sólida para juegos, streaming casual y uso diario en PC.",
+  price: 20990,
+  priceCard: 20990,
+  priceTransfer: 19990,
+  imageUrl: "/products/audifonos-fantech-hg16-sniper-ii-rgb-black/1.jpg",
+  images: [
+    "/products/audifonos-fantech-hg16-sniper-ii-rgb-black/1.jpg",
+    "/products/audifonos-fantech-hg16-sniper-ii-rgb-black/2.jpg",
+    "/products/audifonos-fantech-hg16-sniper-ii-rgb-black/3.jpg",
+    
+  ],
+  stock: 5,
+  isActive: true,
+  featured: false,
+  badge: null,
+  sortOrder: 160,
+  specs: {
+    Sonido: "7.1 Virtual USB",
+    Iluminación: "RGB",
+    Micrófono: "Con cancelación de ruido",
+    Controles: "Control de volumen",
+    Conectividad: "USB",
+  },
+  manufacturerPdfUrl:
+    "https://quantumimport.cl/ficha-tecnica-fantech-hg16-sniper-sonido-envolvente-7-1-y-estilo-gamer-con-iluminacion-rgb/",
+  seoTitle: "Audífonos Fantech HG16 Sniper II RGB Black | RekaByte",
+  seoDescription:
+    "Audífonos gamer Fantech HG16 Sniper II RGB Black con sonido 7.1 virtual y cancelación de ruido disponibles en RekaByte.",
+},
+{
+  slug: "parlantes-fantech-gs205-hellscream-rgb-black",
+  name: "Parlantes Fantech GS205 HellScream RGB Black",
+  title: "Parlantes Fantech GS205 HellScream RGB Black",
+  kind: "UNIT_PRODUCT",
+  category: "PERIPHERAL",
+  subcategory: "SPEAKER",
+  brand: "Fantech",
+  sku: "GS205-BK",
+  shortDescription:
+    "Parlantes estéreo 2.0 con iluminación RGB, control de volumen y conexión 3.5 mm + USB.",
+  description:
+    "Los Fantech GS205 HellScream RGB Black son parlantes 2.0 pensados para setups gamer y uso diario. Ofrecen sonido estéreo, iluminación RGB tipo rainbow, control de volumen y conexión por jack 3.5 mm para audio más USB para alimentación.",
+  price: 13640,
+  priceCard: 13640,
+  priceTransfer: 12990,
+  imageUrl: "/products/parlantes-fantech-gs205-hellscream-rgb-black/1.jpg",
+  images: [
+    "/products/parlantes-fantech-gs205-hellscream-rgb-black/1.jpg",
+    "/products/parlantes-fantech-gs205-hellscream-rgb-black/2.jpg",
+    "/products/parlantes-fantech-gs205-hellscream-rgb-black/3.jpg",
+  ],
+  stock: 5,
+  isActive: true,
+  featured: false,
+  badge: null,
+  sortOrder: 170,
+  specs: {
+    Sonido: "Estéreo 2.0",
+    Conectividad: "Jack 3.5 mm + USB",
+    Potencia: "3W x 2 (6W RMS)",
+    Frecuencia: "150 Hz – 15 kHz",
+    Iluminación: "RGB dinámica rainbow",
+    Cable: "1.2 m",
+    Control: "Control de volumen",
+  },
+  manufacturerPdfUrl:
+    "https://quantumimport.cl/ficha-tecnica-fantech-gs205-hellscream-sonido-explosivo-y-estilo-rgb-para-tu-setup-gamer/",
+  seoTitle: "Parlantes Fantech GS205 HellScream RGB Black | RekaByte",
+  seoDescription:
+    "Parlantes Fantech GS205 HellScream RGB Black con sonido estéreo 2.0 e iluminación RGB disponibles en RekaByte.",
+},
 ];

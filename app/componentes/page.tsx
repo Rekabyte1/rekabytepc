@@ -9,6 +9,21 @@ async function getComponents() {
     where: {
       isActive: true,
       kind: "UNIT_PRODUCT",
+      category: {
+        in: [
+          "CPU",
+          "MOTHERBOARD",
+          "GPU",
+          "RAM",
+          "STORAGE",
+          "CASE",
+          "PSU",
+          "CPU_COOLER",
+          "CASE_FAN",
+          "THERMAL_PASTE",
+          "CABLE",
+        ],
+      },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: {
@@ -29,7 +44,7 @@ export default async function ComponentesHomePage() {
 
   return (
     <main className="rb-container mx-auto max-w-6xl px-4 py-10 text-neutral-100">
-      <h1 className="text-2xl md:text-3xl font-extrabold mb-6">
+      <h1 className="mb-6 text-2xl font-extrabold md:text-3xl">
         Componentes
       </h1>
 
@@ -39,13 +54,13 @@ export default async function ComponentesHomePage() {
             CATEGORÍA
           </p>
 
-          <h1 className="mt-2 text-2xl md:text-3xl font-extrabold text-white">
+          <h1 className="mt-2 text-2xl font-extrabold text-white md:text-3xl">
             Componentes
           </h1>
 
-          <p className="mt-3 text-sm md:text-base text-neutral-300 leading-relaxed">
-            Esta sección está en preparación. Por ahora aún no hay stock publicado,
-            pero pronto iremos agregando productos por categoría.
+          <p className="mt-3 text-sm leading-relaxed text-neutral-300 md:text-base">
+            Esta sección está en preparación. Por ahora aún no hay stock
+            publicado, pero pronto iremos agregando productos por categoría.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -75,12 +90,12 @@ export default async function ComponentesHomePage() {
             <Link
               key={p.id}
               href={`/producto/${p.slug}`}
-              className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 hover:border-lime-400 transition"
+              className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 transition hover:border-lime-400"
             >
               <img
                 src={p.imageUrl || "/placeholder.jpg"}
                 alt={p.name}
-                className="w-full h-40 object-cover rounded-md mb-3"
+                className="mb-3 h-40 w-full rounded-md object-cover"
               />
 
               {p.brand ? (
@@ -92,7 +107,7 @@ export default async function ComponentesHomePage() {
               <h2 className="font-bold text-white">{p.name}</h2>
 
               {p.shortDescription ? (
-                <p className="mt-2 text-sm text-neutral-400 line-clamp-2">
+                <p className="mt-2 line-clamp-2 text-sm text-neutral-400">
                   {p.shortDescription}
                 </p>
               ) : null}
@@ -110,7 +125,9 @@ export default async function ComponentesHomePage() {
                     Stock: {p.stock}
                   </span>
                 ) : (
-                  <span className="text-xs font-bold text-red-400">Sin stock</span>
+                  <span className="text-xs font-bold text-red-400">
+                    Sin stock
+                  </span>
                 )}
               </div>
             </Link>

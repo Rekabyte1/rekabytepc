@@ -139,6 +139,16 @@ export default function GamingStreamingMenu({
             ))}
           </div>
 
+          <div className="rb-mega-footer">
+            <Link
+              href="/gaming-streaming/perifericos"
+              onClick={handleNavigate}
+              className="rb-view-all"
+            >
+              Ver todos los periféricos
+            </Link>
+          </div>
+
           <div className="rb-mega-accent" />
 
           <style jsx>{`
@@ -186,6 +196,28 @@ export default function GamingStreamingMenu({
 
             .col :global(a:hover) {
               color: #b6ff2e;
+            }
+
+            .rb-mega-footer {
+              padding: 0 16px 12px;
+            }
+
+            .rb-view-all {
+              display: inline-block;
+              color: #b6ff2e;
+              font-size: 14px;
+              font-weight: 900;
+              text-decoration: none;
+            }
+
+            .rb-view-all:hover {
+              color: #d9ff7a;
+            }
+
+            @media (min-width: 1024px) {
+              .rb-mega-footer {
+                padding: 0 20px 10px;
+              }
             }
           `}</style>
         </div>
