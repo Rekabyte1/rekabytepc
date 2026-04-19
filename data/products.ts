@@ -386,7 +386,7 @@ export const products: SeedProduct[] = [
     Memoria: "DDR5",
     Conectividad: "WIFI 6E",
   },
-  manufacturerPdfUrl: null,
+  manufacturerPdfUrl: "https://www.gigabyte.com/Motherboard/B850M-EAGLE-WIFI6E-rev-10",
   seoTitle: "Gigabyte B850M EAGLE WIFI6E | RekaByte",
   seoDescription:
     "Placa madre Gigabyte B850M EAGLE WIFI6E disponible en RekaByte.",
