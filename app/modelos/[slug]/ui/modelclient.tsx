@@ -322,9 +322,10 @@ Además está preparado para que le puedas agregar una tarjeta de video, ya que 
       </section>
 
       <section className="rb-card rb-section rb-mb">
-        <h2 className="rb-h2">Video del armado</h2>
+        <h2 className="rb-h2">Equipo armado, probado y listo para entrega</h2>
         <p className="rb-p">
-          video, aquí quedará el video del armado.
+          Listo para usar desde el primer momento 
+          Armado, configurado y testeado por RekaByte..
         </p>
 
         {videoUrl ? (
