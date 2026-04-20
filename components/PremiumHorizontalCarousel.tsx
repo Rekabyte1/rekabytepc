@@ -41,7 +41,14 @@ export default function PremiumHorizontalCarousel({
   fallbackDescription,
   emptyText,
 }: Props) {
-  const CARD_WIDTH = 344; // 320 card + 24 gap aprox
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+
+  const isMovingRef = useRef(false);
+
+  const CARD_WIDTH = 344;
   const clonesToShow = items.length > 1 ? Math.min(items.length, 4) : 1;
 
   const extendedItems = useMemo(() => {
@@ -54,13 +61,19 @@ export default function PremiumHorizontalCarousel({
     return [...headClones, ...items, ...tailClones];
   }, [items, clonesToShow]);
 
-  const [currentIndex, setCurrentIndex] = useState(clonesToShow);
-  const [isAnimating, setIsAnimating] = useState(true);
-  const [isReady, setIsReady] = useState(false);
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const isMovingRef = useRef(false);
+  useEffect(() => {
+    const check = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
+    if (isMobile) return;
+
     if (items.length <= 1) {
       setCurrentIndex(0);
       setIsReady(true);
@@ -78,23 +91,29 @@ export default function PremiumHorizontalCarousel({
     });
 
     return () => cancelAnimationFrame(raf);
-  }, [items.length, clonesToShow]);
+  }, [items.length, clonesToShow, isMobile]);
 
   const handleNext = () => {
+    if (isMobile) return;
     if (items.length <= 1 || isMovingRef.current) return;
+
     isMovingRef.current = true;
     setIsAnimating(true);
     setCurrentIndex((prev) => prev + 1);
   };
 
   const handlePrev = () => {
+    if (isMobile) return;
     if (items.length <= 1 || isMovingRef.current) return;
+
     isMovingRef.current = true;
     setIsAnimating(true);
     setCurrentIndex((prev) => prev - 1);
   };
 
   const handleTransitionEnd = () => {
+    if (isMobile) return;
+
     if (items.length <= 1) {
       isMovingRef.current = false;
       return;
@@ -130,6 +149,94 @@ export default function PremiumHorizontalCarousel({
     return (
       <div className="rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 text-neutral-300">
         {emptyText}
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="relative">
+        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {items.map((product) => {
+            const transferPrice =
+              product.priceTransfer && product.priceTransfer > 0
+                ? product.priceTransfer
+                : product.price;
+
+            const hasStock = (product.stock ?? 0) > 0;
+
+            return (
+              <Link
+                key={product.id}
+                href={`${hrefBase}/${product.slug}`}
+                className="group min-w-[280px] max-w-[280px] shrink-0 snap-start overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950/70 shadow-[0_10px_30px_rgba(0,0,0,0.18)] transition duration-300 hover:border-lime-400/30 hover:bg-neutral-950"
+              >
+                <div className="relative aspect-[4/3] bg-black/30">
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-neutral-500">
+                      Sin imagen
+                    </div>
+                  )}
+
+                  <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                    {product.badge ? (
+                      <span className="rounded-full bg-lime-400 px-3 py-1 text-[11px] font-extrabold text-black shadow-[0_0_20px_rgba(163,230,53,0.18)]">
+                        {product.badge}
+                      </span>
+                    ) : null}
+
+                    <span
+                      className={[
+                        "rounded-full border px-3 py-1 text-[11px] font-extrabold",
+                        hasStock
+                          ? "border-lime-400/20 bg-lime-400/10 text-lime-300"
+                          : "border-red-500/20 bg-red-500/10 text-red-300",
+                      ].join(" ")}
+                    >
+                      {hasStock ? `Stock: ${product.stock ?? 0}` : "Agotado"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <p className="text-[11px] font-extrabold uppercase tracking-wide text-neutral-400">
+                    {product.brand || fallbackBrand}
+                  </p>
+
+                  <h3 className="mt-2 text-lg font-black leading-tight text-white">
+                    {product.name}
+                  </h3>
+
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-neutral-300">
+                    {product.shortDescription || fallbackDescription}
+                  </p>
+
+                  <div className="mt-5 flex items-end justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-neutral-400">Transferencia</div>
+                      <div className="text-2xl font-black text-lime-400">
+                        {clp(transferPrice)}
+                      </div>
+                      <div className="mt-1 text-xs text-neutral-500">
+                        Otros medios: {clp(product.priceCard || product.price)}
+                      </div>
+                    </div>
+
+                    <span className="rounded-xl border border-neutral-700 px-3 py-2 text-xs font-extrabold text-neutral-200">
+                      Ver producto
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -240,7 +347,6 @@ export default function PremiumHorizontalCarousel({
 
       <div className="overflow-hidden">
         <div
-          ref={trackRef}
           onTransitionEnd={handleTransitionEnd}
           className="flex gap-6"
           style={{
