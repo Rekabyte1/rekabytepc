@@ -1,7 +1,7 @@
-// app/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import HeroSlider from "@/components/HeroSlider";
+import PremiumHorizontalCarousel from "@/components/PremiumHorizontalCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +71,9 @@ export default async function Home() {
         "CABLE",
       ].includes(p.category)
   );
+
+  const pillButtonClass =
+    "group inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/10 px-5 py-2.5 text-sm font-extrabold text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.05),0_8px_24px_rgba(0,0,0,0.22)] backdrop-blur transition-all duration-300 hover:-translate-y-[1px] hover:border-lime-300/45 hover:bg-lime-400/15 hover:text-lime-200 hover:shadow-[0_0_0_1px_rgba(163,230,53,0.10),0_12px_30px_rgba(163,230,53,0.10)]";
 
   return (
     <main className="pb-14">
@@ -187,264 +190,101 @@ export default async function Home() {
       {/* PERIFÉRICOS DESTACADOS */}
       <section className="rb-container mt-14">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">
                 Periféricos disponibles
               </p>
               <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
-                Recién agregados
+                Periféricos para completar tu setup 🎮
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300 md:text-base">
-                Periféricos disponibles para despacho o retiro, seleccionados
-                para complementar tu setup con disponibilidad real y presentación
-                clara.
+              <p className="mt-2 text-sm leading-7 text-neutral-300 md:text-base">
+                Periféricos seleccionados para mejorar tu experiencia desde el
+                primer uso. Stock disponible para entrega o despacho.
               </p>
             </div>
 
-            <Link
-              href="/gaming-streaming/perifericos"
-              className="text-sm font-extrabold text-lime-300 hover:text-lime-200"
-            >
-              Ver todos los periféricos
-            </Link>
+            <div className="shrink-0 self-start md:self-end">
+              <Link href="/gaming-streaming/perifericos" className={pillButtonClass}>
+                <span>Ver todos los periféricos</span>
+                <span className="text-base leading-none transition-transform duration-300 group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            </div>
           </div>
 
-          {featuredPeripherals.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {featuredPeripherals.map((product) => {
-                const transferPrice =
-                  product.priceTransfer && product.priceTransfer > 0
-                    ? product.priceTransfer
-                    : product.price;
-
-                const hasStock = (product.stock ?? 0) > 0;
-
-                return (
-                  <Link
-                    key={product.id}
-                    href={`/producto/${product.slug}`}
-                    className="group overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950/60 transition hover:border-lime-400/30 hover:bg-neutral-950"
-                  >
-                    <div className="relative aspect-[4/3] bg-black/30">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-neutral-500">
-                          Sin imagen
-                        </div>
-                      )}
-
-                      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                        {product.badge ? (
-                          <span className="rounded-full bg-lime-400 px-3 py-1 text-xs font-extrabold text-black">
-                            {product.badge}
-                          </span>
-                        ) : null}
-
-                        <span
-                          className={[
-                            "rounded-full border px-3 py-1 text-xs font-extrabold",
-                            hasStock
-                              ? "border-lime-400/20 bg-lime-400/10 text-lime-300"
-                              : "border-red-500/20 bg-red-500/10 text-red-300",
-                          ].join(" ")}
-                        >
-                          {hasStock ? `Stock: ${product.stock ?? 0}` : "Agotado"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      <p className="text-xs font-extrabold uppercase tracking-wide text-neutral-400">
-                        {product.brand || "Periférico"}
-                      </p>
-
-                      <h3 className="mt-2 text-lg font-black text-white">
-                        {product.name}
-                      </h3>
-
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-neutral-300">
-                        {product.shortDescription ||
-                          "Periférico seleccionado para mejorar tu experiencia de juego, trabajo o streaming."}
-                      </p>
-
-                      <div className="mt-5 flex items-end justify-between gap-3">
-                        <div>
-                          <div className="text-xs text-neutral-400">
-                            Transferencia
-                          </div>
-                          <div className="text-2xl font-black text-lime-400">
-                            {clp(transferPrice)}
-                          </div>
-                          <div className="mt-1 text-xs text-neutral-500">
-                            Otros medios: {clp(product.priceCard || product.price)}
-                          </div>
-                        </div>
-
-                        <span className="rounded-xl border border-neutral-700 px-3 py-2 text-xs font-extrabold text-neutral-200 transition group-hover:border-lime-400/30 group-hover:text-white">
-                          Ver producto
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 text-neutral-300">
-              Aún no hay periféricos destacados publicados.
-            </div>
-          )}
+          <PremiumHorizontalCarousel
+            items={featuredPeripherals}
+            fallbackBrand="Periférico"
+            fallbackDescription="Periférico seleccionado para mejorar tu experiencia de juego, trabajo o streaming."
+            emptyText="Aún no hay periféricos destacados publicados."
+          />
         </div>
       </section>
 
       {/* COMPONENTES DESTACADOS */}
       <section className="rb-container mt-14">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">
                 Componentes disponibles
               </p>
               <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
-                Recién agregados
+                Arma o mejora tu PC
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300 md:text-base">
-                Componentes disponibles para despacho o retiro, enfocándonos en
-                disponibilidad real y presentación clara.
+              <p className="mt-2 text-sm leading-7 text-neutral-300 md:text-base">
+                Potencia tu PC con componentes seleccionados para rendimiento y
+                estabilidad. Listos para despacho o retiro.
               </p>
             </div>
 
-            <Link
-              href="/componentes"
-              className="text-sm font-extrabold text-lime-300 hover:text-lime-200"
-            >
-              Ver todos los componentes
-            </Link>
+            <div className="shrink-0 self-start md:self-end">
+              <Link href="/componentes" className={pillButtonClass}>
+                <span>Ver todos los componentes</span>
+                <span className="text-base leading-none transition-transform duration-300 group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            </div>
           </div>
 
-          {featuredComponents.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {featuredComponents.map((product) => {
-                const transferPrice =
-                  product.priceTransfer && product.priceTransfer > 0
-                    ? product.priceTransfer
-                    : product.price;
-
-                const hasStock = (product.stock ?? 0) > 0;
-
-                return (
-                  <Link
-                    key={product.id}
-                    href={`/producto/${product.slug}`}
-                    className="group overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950/60 transition hover:border-lime-400/30 hover:bg-neutral-950"
-                  >
-                    <div className="relative aspect-[4/3] bg-black/30">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.name}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-neutral-500">
-                          Sin imagen
-                        </div>
-                      )}
-
-                      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                        {product.badge ? (
-                          <span className="rounded-full bg-lime-400 px-3 py-1 text-xs font-extrabold text-black">
-                            {product.badge}
-                          </span>
-                        ) : null}
-
-                        <span
-                          className={[
-                            "rounded-full border px-3 py-1 text-xs font-extrabold",
-                            hasStock
-                              ? "border-lime-400/20 bg-lime-400/10 text-lime-300"
-                              : "border-red-500/20 bg-red-500/10 text-red-300",
-                          ].join(" ")}
-                        >
-                          {hasStock ? `Stock: ${product.stock ?? 0}` : "Agotado"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      <p className="text-xs font-extrabold uppercase tracking-wide text-neutral-400">
-                        {product.brand || "Componente"}
-                      </p>
-
-                      <h3 className="mt-2 text-lg font-black text-white">
-                        {product.name}
-                      </h3>
-
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-neutral-300">
-                        {product.shortDescription ||
-                          "Producto seleccionado para builds equilibradas y upgrades futuros."}
-                      </p>
-
-                      <div className="mt-5 flex items-end justify-between gap-3">
-                        <div>
-                          <div className="text-xs text-neutral-400">
-                            Transferencia
-                          </div>
-                          <div className="text-2xl font-black text-lime-400">
-                            {clp(transferPrice)}
-                          </div>
-                          <div className="mt-1 text-xs text-neutral-500">
-                            Otros medios: {clp(product.priceCard || product.price)}
-                          </div>
-                        </div>
-
-                        <span className="rounded-xl border border-neutral-700 px-3 py-2 text-xs font-extrabold text-neutral-200 transition group-hover:border-lime-400/30 group-hover:text-white">
-                          Ver producto
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 text-neutral-300">
-              Aún no hay componentes destacados publicados.
-            </div>
-          )}
+          <PremiumHorizontalCarousel
+            items={featuredComponents}
+            fallbackBrand="Componente"
+            fallbackDescription="Producto seleccionado para builds equilibradas y upgrades futuros."
+            emptyText="Aún no hay componentes destacados publicados."
+          />
         </div>
       </section>
 
       {/* MODELOS DESTACADOS */}
       <section className="rb-container mt-14">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">
                 Computadores armados
               </p>
               <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
                 Modelos destacados para comenzar
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300 md:text-base">
+              <p className="mt-2 text-sm leading-7 text-neutral-300 md:text-base">
                 Equipos orientados a trabajo, estudio, gaming y crecimiento
                 futuro, seleccionados para ofrecer una base sólida desde el
                 primer día.
               </p>
             </div>
 
-            <Link
-              href="/modelos"
-              className="text-sm font-extrabold text-lime-300 hover:text-lime-200"
-            >
-              Ver todos los modelos
-            </Link>
+            <div className="shrink-0 self-start md:self-end">
+              <Link href="/modelos" className={pillButtonClass}>
+                <span>Ver todos los modelos</span>
+                <span className="text-base leading-none transition-transform duration-300 group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            </div>
           </div>
 
           {featuredBuilds.length > 0 ? (

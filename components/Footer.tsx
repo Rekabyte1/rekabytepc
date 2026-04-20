@@ -1,4 +1,3 @@
-// components/Footer.tsx
 "use client";
 
 import Link from "next/link";
@@ -86,12 +85,47 @@ export default function Footer() {
               enfocado en rendimiento real y estabilidad.
             </p>
 
+            {/* 🔥 REDES SOCIALES CON LINKS */}
             <div className="mt-3 flex items-center gap-3 text-neutral-400">
-              <FaInstagram className="h-5 w-5 hover:text-lime-400" />
-              <FaTiktok className="h-5 w-5 hover:text-lime-400" />
-              <FaYoutube className="h-5 w-5 hover:text-lime-400" />
-              <FaTwitch className="h-5 w-5 hover:text-lime-400" />
-              <FaWhatsapp className="h-5 w-5 hover:text-lime-400" />
+              <a
+                href="https://instagram.com/rekabytecl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaInstagram className="h-5 w-5 hover:text-lime-400 cursor-pointer" />
+              </a>
+
+              <a
+                href="https://tiktok.com/@rekaplay1_"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaTiktok className="h-5 w-5 hover:text-lime-400 cursor-pointer" />
+              </a>
+
+              <a
+                href="https://youtube.com/@rekabytecl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaYoutube className="h-5 w-5 hover:text-lime-400 cursor-pointer" />
+              </a>
+
+              <a
+                href="https://twitch.tv/rekaplay1"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaTwitch className="h-5 w-5 hover:text-lime-400 cursor-pointer" />
+              </a>
+
+              <a
+                href="https://wa.me/56975939292"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaWhatsapp className="h-5 w-5 hover:text-lime-400 cursor-pointer" />
+              </a>
             </div>
           </div>
 
