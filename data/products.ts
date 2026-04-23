@@ -363,7 +363,7 @@ export const products: SeedProduct[] = [
   shortDescription:
     "Placa madre AM5 con soporte DDR5 y conectividad WIFI 6E para builds modernas.",
   description:
-    "La Gigabyte B850M EAGLE WIFI6E es una placa madre moderna con socket AM5, soporte para memorias DDR5 y conectividad inalámbrica WIFI 6E. Ideal para builds actuales con alto rendimiento y conectividad avanzada.",
+    "La Gigabyte B850M EAGLE WIFI6E es una placa madre AM5 en Chile diseñada para builds modernos con procesadores AMD Ryzen de última generación. Ofrece soporte para memorias DDR5, conectividad WIFI 6E integrada y una base sólida para equipos de alto rendimiento, tanto en gaming como en productividad. Gracias a su formato Micro-ATX y conectividad avanzada, es una excelente opción para quienes buscan estabilidad, velocidad y futuras opciones de actualización en su PC.",
   price: 999909,
   priceCard: 0,
   priceTransfer: 0,

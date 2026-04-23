@@ -138,7 +138,8 @@ function getGamingStreamingSeoContent(slug: string[]) {
       overlayTitle: "",
       overlayText:
         "",
-      description:"aaaa",
+      description:
+      "Explora nuestra selección de periféricos gamer en Chile, pensados para mejorar tu experiencia en cada partida. En RekaByte elegimos teclados mecánicos, mouse gamer, audífonos y accesorios que combinan rendimiento, comodidad y durabilidad, ideales tanto para juegos competitivos como para uso diario. Cada periférico es seleccionado considerando precisión, calidad de construcción y respuesta en tiempo real, factores clave para títulos como Counter-Strike 2, Valorant y otros juegos exigentes. Ya sea que estés armando tu primer setup o buscando mejorar tu rendimiento, aquí encontrarás opciones equilibradas para cada tipo de usuario.",
     };
   }
 
@@ -149,7 +150,7 @@ function getGamingStreamingSeoContent(slug: string[]) {
       overlayText:
         "",
       description:
-        "Explora audífonos gamer con sonido envolvente, micrófono integrado y diseño cómodo para sesiones prolongadas. Son una excelente opción para juegos competitivos, comunicación en equipo, streaming y uso diario, priorizando calidad de audio, comodidad y presencia visual en tu setup.",
+        "Explora audífonos gamer en Chile diseñados para ofrecer sonido envolvente, micrófono integrado y máxima comodidad en sesiones prolongadas. Ideales para juegos competitivos, comunicación en equipo y streaming, estos headsets destacan por su calidad de audio, cancelación de ruido y ergonomía, permitiendo una experiencia inmersiva tanto en gaming como en uso diario. En RekaByte seleccionamos modelos que equilibran rendimiento, durabilidad y diseño, asegurando una presencia sólida en tu setup y una comunicación clara en cada partida.",
     };
   }
 
@@ -160,7 +161,7 @@ function getGamingStreamingSeoContent(slug: string[]) {
       overlayText:
         "",
       description:
-        "Descubre mouse gamer orientados a precisión, velocidad y comodidad. Aquí encontrarás opciones con sensores confiables, DPI ajustable y diseño ergonómico, ideales para shooters, MOBAs, trabajo diario o setups que buscan mejorar control, fluidez y estética.",
+        "Descubre mouse gamer en Chile diseñados para ofrecer precisión, velocidad y comodidad en cada movimiento. Equipados con sensores confiables, DPI ajustable y diseño ergonómico, estos mouse están pensados para juegos competitivos como shooters y MOBAs, así como para uso diario y productividad. En RekaByte seleccionamos modelos que equilibran rendimiento, control y durabilidad, ideales para mejorar tu puntería, fluidez y la estética de tu setup.",
     };
   }
 
@@ -182,7 +183,7 @@ function getGamingStreamingSeoContent(slug: string[]) {
       overlayText:
         "",
       description:
-        "Encuentra teclados gamer y mecánicos con mejor respuesta, iluminación RGB y formatos pensados para distintos estilos de uso. Ya sea para gaming competitivo, productividad o estética de escritorio, esta categoría reúne opciones que buscan equilibrio entre sensación de escritura, diseño y funcionalidad.",
+        "Descubre teclados gamer y mecánicos en Chile diseñados para ofrecer respuesta rápida, precisión y una experiencia de escritura superior. Desde formatos compactos como 60% y 75% hasta opciones completas, estos teclados integran iluminación RGB personalizable, switches mecánicos y funciones pensadas tanto para gaming competitivo como para productividad diaria. En RekaByte seleccionamos modelos que equilibran rendimiento, comodidad y diseño, ideales para mejorar tu setup y lograr una mayor precisión en cada partida.",
     };
   }
 
@@ -226,7 +227,7 @@ function getGamingStreamingSeoContent(slug: string[]) {
       overlayText:
         "",
       description:
-        "Explora monitores pensados para gaming, trabajo y entretenimiento. Esta categoría reúne opciones que priorizan calidad de imagen, fluidez, tamaño útil y comodidad visual, buscando adaptarse a distintos tipos de setup, desde escritorios compactos hasta estaciones más exigentes.",
+        "Explora monitores en Chile diseñados para gaming, trabajo y entretenimiento, con enfoque en calidad de imagen, fluidez y comodidad visual. Encuentra opciones con altas tasas de refresco, baja latencia y resoluciones desde Full HD hasta 2K y 4K, ideales para juegos competitivos, productividad y consumo multimedia. En RekaByte seleccionamos monitores que equilibran rendimiento, tamaño útil y fidelidad de color, adaptándose a distintos tipos de setup, desde escritorios compactos hasta estaciones más exigentes.",
     };
   }
 
