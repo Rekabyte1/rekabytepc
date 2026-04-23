@@ -128,6 +128,111 @@ function resolveGamingStreamingFilter(slug: string[]) {
   };
 }
 
+function getGamingStreamingSeoContent(slug: string[]) {
+  const path = slug.map((s) => decodeURIComponent(s).toLowerCase());
+  const joined = path.join("/");
+
+  if (joined === "perifericos") {
+    return {
+      banner: "/banners/perifericos.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:"aaaa",
+    };
+  }
+
+  if (joined === "perifericos/audifonos") {
+    return {
+      banner: "/banners/audifonos.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Explora audífonos gamer con sonido envolvente, micrófono integrado y diseño cómodo para sesiones prolongadas. Son una excelente opción para juegos competitivos, comunicación en equipo, streaming y uso diario, priorizando calidad de audio, comodidad y presencia visual en tu setup.",
+    };
+  }
+
+  if (joined === "perifericos/mouse") {
+    return {
+      banner: "/banners/mouse.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Descubre mouse gamer orientados a precisión, velocidad y comodidad. Aquí encontrarás opciones con sensores confiables, DPI ajustable y diseño ergonómico, ideales para shooters, MOBAs, trabajo diario o setups que buscan mejorar control, fluidez y estética.",
+    };
+  }
+
+  if (joined === "perifericos/mousepad") {
+    return {
+      banner: "/banners/mousepad.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Los mousepads gamer ayudan a mejorar el deslizamiento, control y consistencia del sensor, además de aportar estética al escritorio. Son un complemento simple pero importante para setups competitivos, creativos y de uso diario, especialmente cuando buscas una experiencia más estable y cómoda.",
+    };
+  }
+
+  if (joined === "perifericos/teclado") {
+    return {
+      banner: "/banners/teclados.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Encuentra teclados gamer y mecánicos con mejor respuesta, iluminación RGB y formatos pensados para distintos estilos de uso. Ya sea para gaming competitivo, productividad o estética de escritorio, esta categoría reúne opciones que buscan equilibrio entre sensación de escritura, diseño y funcionalidad.",
+    };
+  }
+
+  if (joined === "streaming") {
+    return {
+      banner: "/banners/streaming.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "La categoría de streaming reúne productos orientados a mejorar audio, video, iluminación y presencia en cámara. Aquí podrás encontrar accesorios pensados para creadores, streamers y usuarios que buscan una configuración más profesional para transmitir, grabar o comunicarse con mejor calidad.",
+    };
+  }
+
+  if (joined === "streaming/webcam") {
+    return {
+      banner: "/banners/webcam.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Las webcams son una excelente solución para videollamadas, reuniones, clases online y streaming. Esta categoría está pensada para quienes buscan mejorar su imagen en cámara con opciones prácticas, fáciles de integrar y útiles tanto en contextos profesionales como de creación de contenido.",
+    };
+  }
+
+  if (joined === "streaming/microfono") {
+    return {
+      banner: "/banners/microfono.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Los micrófonos de streaming ayudan a mejorar claridad, presencia y calidad de voz en transmisiones, grabaciones, reuniones o partidas online. Aquí encontrarás opciones pensadas para usuarios que buscan un salto real en audio, tanto para entretenimiento como para trabajo o creación de contenido.",
+    };
+  }
+
+  if (joined === "monitores") {
+    return {
+      banner: "/banners/monitores.jpg",
+      overlayTitle: "",
+      overlayText:
+        "",
+      description:
+        "Explora monitores pensados para gaming, trabajo y entretenimiento. Esta categoría reúne opciones que priorizan calidad de imagen, fluidez, tamaño útil y comodidad visual, buscando adaptarse a distintos tipos de setup, desde escritorios compactos hasta estaciones más exigentes.",
+    };
+  }
+
+  return null;
+}
+
 async function getGamingStreamingProducts(slug: string[]) {
   const filter = resolveGamingStreamingFilter(slug);
 
@@ -165,6 +270,7 @@ export default async function GamingStreamingCatchAllPage({
 }: PageProps) {
   const { slug } = params;
   const info = prettyFromSlug(slug);
+  const seoContent = getGamingStreamingSeoContent(slug);
   const products = await getGamingStreamingProducts(slug);
 
   return (
@@ -184,6 +290,42 @@ export default async function GamingStreamingCatchAllPage({
       <h1 className="mb-6 text-2xl font-extrabold md:text-3xl">
         {info.title}
       </h1>
+
+      {seoContent ? (
+        <div className="mb-8 space-y-6">
+<div className="relative overflow-hidden rounded-2xl border border-neutral-800">
+  <div className="relative w-full aspect-[1730/909] md:aspect-[1730/700]">
+    <img
+      src={seoContent.banner}
+      alt={info.title}
+      className="absolute inset-0 w-full h-full object-cover object-right opacity-90"
+    />
+
+    {/* overlay */}
+    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+
+    <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-10">
+      {seoContent.overlayTitle && (
+        <h2 className="text-xl font-extrabold text-white md:text-2xl">
+          {seoContent.overlayTitle}
+        </h2>
+      )}
+
+      {seoContent.overlayText && (
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-300">
+          {seoContent.overlayText}
+        </p>
+      )}
+    </div>
+  </div>
+</div>
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-5">
+            <p className="text-sm leading-relaxed text-neutral-300 md:text-base">
+              {seoContent.description}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {products.length === 0 ? (
         <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-6 md:p-8">

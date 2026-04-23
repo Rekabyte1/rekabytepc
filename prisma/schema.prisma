@@ -67,6 +67,8 @@ model Product {
   brand       String?
   sku         String?
 
+  platformTag String? // eS NUEVO
+
   shortDescription String?
   specs            Json?
   images           String[] @default([])

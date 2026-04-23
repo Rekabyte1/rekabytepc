@@ -48,14 +48,6 @@ const COLS: Array<{
         label: "Micrófono Streaming",
         href: "/gaming-streaming/streaming/microfono",
       },
-      {
-        label: "Iluminación",
-        href: "/gaming-streaming/streaming/iluminacion",
-      },
-      {
-        label: "Accesorios Streaming",
-        href: "/gaming-streaming/streaming/accesorios",
-      },
     ],
   },
   {

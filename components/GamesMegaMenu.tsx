@@ -35,26 +35,6 @@ export default function GamesMegaMenu({
           </ul>
         </div>
 
-        <div className="col">
-          <h4>Explorar por uso</h4>
-          <ul>
-            <li>
-              <Link href="/tareas/trabajar-y-estudiar" onClick={handleClick}>
-                Trabajar y estudiar
-              </Link>
-            </li>
-            <li>
-              <Link href="/tareas/streaming" onClick={handleClick}>
-                Streaming
-              </Link>
-            </li>
-            <li>
-              <Link href="/tareas/juegos-2k" onClick={handleClick}>
-                Juegos en 2K
-              </Link>
-            </li>
-          </ul>
-        </div>
 
         <div className="col">
           <h4>Explorar por juego</h4>
@@ -90,31 +70,7 @@ export default function GamesMegaMenu({
           </ul>
         </div>
 
-        <div className="col">
-          <h4>Rendimiento gráfico</h4>
-          <ul>
-            <li>
-              <Link href="/gpu/geforce-rtx-5060-ti" onClick={handleClick}>
-                GeForce RTX 5060/Ti
-              </Link>
-            </li>
-            <li>
-              <Link href="/gpu/geforce-rtx-5070-ti" onClick={handleClick}>
-                GeForce RTX 5070/Ti
-              </Link>
-            </li>
-            <li>
-              <Link href="/gpu/geforce-rtx-5080" onClick={handleClick}>
-                GeForce RTX 5080
-              </Link>
-            </li>
-            <li>
-              <Link href="/gpu/geforce-rtx-5090" onClick={handleClick}>
-                GeForce RTX 5090
-              </Link>
-            </li>
-          </ul>
-        </div>
+
       </div>
 
       <div className="rb-mega-accent" />
