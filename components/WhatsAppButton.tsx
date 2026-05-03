@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FaWhatsapp } from "react-icons/fa";
 
-const WHATSAPP = "56971457514"; // cámbialo
+const WHATSAPP = "56939401789"; // cámbialo
 
 export default function WhatsAppButton() {
   return (

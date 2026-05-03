@@ -113,7 +113,7 @@ export default function Header() {
             </div>
 
             <div className="pill">
-              <FaWhatsapp className="text-green-400" /> +56971457514
+              <FaWhatsapp className="text-green-400" /> +56939401789
             </div>
           </div>
         </div>

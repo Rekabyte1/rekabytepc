@@ -113,14 +113,14 @@ export default function ContactoPage() {
                 <p className="text-sm text-neutral-400">Teléfono / WhatsApp</p>
                 <div className="flex flex-wrap items-center gap-3">
                   <a
-                    href="tel:+56971457514"
+                    href="tel:+56939401789"
                     className="font-medium text-white hover:text-lime-300"
                   >
-                    +56 56971457514
+                    +56 56939401789
                   </a>
 
                   <a
-                    href="https://wa.me/56971457514"
+                    href="https://wa.me/56939401789"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-neutral-900 px-3 py-1 text-lime-400 hover:bg-neutral-900/70"
