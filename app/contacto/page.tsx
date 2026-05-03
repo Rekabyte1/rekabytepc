@@ -116,7 +116,7 @@ export default function ContactoPage() {
                     href="tel:+56939401789"
                     className="font-medium text-white hover:text-lime-300"
                   >
-                    +56 56939401789
+                    +56939401789
                   </a>
 
                   <a

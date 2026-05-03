@@ -150,7 +150,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <FiPhone className="h-4 w-4 text-neutral-400" />
-                +569 7145 7514
+                +569 3940 1789
               </li>
               <li className="flex items-center gap-2">
                 <FiMail className="h-4 w-4 text-neutral-400" />
