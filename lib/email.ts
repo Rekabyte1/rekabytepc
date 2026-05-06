@@ -43,6 +43,14 @@ function esc(s: unknown) {
     .replaceAll("'", "&#39;");
 }
 
+function money(n: number) {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Number(n || 0));
+}
+
 function statusLabel(status: string) {
   switch (status) {
     case "PENDING_PAYMENT":
@@ -186,8 +194,8 @@ export async function sendOrderCreatedEmail(args: {
         <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#a3a3a3;text-align:right;">x${esc(
           it.qty
         )}</td>
-        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;text-align:right;">$${esc(
-          it.unitPrice
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;text-align:right;">${esc(
+          money(it.unitPrice)
         )}</td>
       </tr>`
     )
@@ -231,8 +239,8 @@ export async function sendOrderCreatedEmail(args: {
 
         <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;display:flex;justify-content:space-between;">
           <div style="color:#a3a3a3;font-size:13px;font-weight:800;">Total</div>
-          <div style="color:#b6ff2e;font-size:16px;font-weight:900;">$${esc(
-            args.total
+          <div style="color:#b6ff2e;font-size:16px;font-weight:900;">${esc(
+            money(args.total)
           )}</div>
         </div>
 
@@ -247,6 +255,142 @@ export async function sendOrderCreatedEmail(args: {
     to: args.to,
     subject: `RekaByte — Pedido ${niceId} creado`,
     html,
+  });
+}
+
+/** ✅ Email interno: nuevo pedido recibido para RekaByte */
+export async function sendNewOrderAdminEmail(args: {
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+  orderId: string;
+  paymentMethod: PaymentMethod;
+  shippingMethod: ShippingMethod;
+  total: number;
+  subtotal: number;
+  shippingCost: number;
+  createdAtISO: string;
+  items: { name: string; qty: number; unitPrice: number }[];
+}): Promise<EmailSendResult> {
+  const niceId = orderNumberNice(args.orderId);
+
+  const itemsHtml = args.items
+    .map(
+      (it) => `
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;">${esc(
+          it.name
+        )}</td>
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#a3a3a3;text-align:right;">x${esc(
+          it.qty
+        )}</td>
+        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:#e5e7eb;text-align:right;">${esc(
+          money(it.unitPrice)
+        )}</td>
+      </tr>`
+    )
+    .join("");
+
+  const html = `
+  <div style="background:#0b0b0b;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+    <div style="max-width:720px;margin:0 auto;border:1px solid #262626;border-radius:16px;overflow:hidden;background:#0d0d0d;">
+      <div style="padding:18px 18px 0 18px;">
+        <div style="height:4px;width:48px;background:#b6ff2e;border-radius:999px;margin-bottom:12px;"></div>
+        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:900;">Nuevo pedido recibido ${esc(
+          niceId
+        )}</h1>
+        <p style="margin:8px 0 0;color:#a3a3a3;font-size:14px;line-height:1.5;">
+          Se creó un nuevo pedido en RekaByte. Revisa el panel de administración para gestionarlo.
+        </p>
+      </div>
+
+      <div style="padding:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Cliente</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+              args.customerName
+            )}</div>
+          </div>
+
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Correo</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+              args.customerEmail
+            )}</div>
+          </div>
+        </div>
+
+        ${
+          args.customerPhone
+            ? `
+        <div style="margin-top:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+          <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Teléfono</div>
+          <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+            args.customerPhone
+          )}</div>
+        </div>`
+            : ""
+        }
+
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Pago</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+              paymentLabel(args.paymentMethod)
+            )}</div>
+          </div>
+
+          <div style="border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+            <div style="color:#a3a3a3;font-size:12px;font-weight:900;">Entrega</div>
+            <div style="color:#fff;font-size:14px;font-weight:900;margin-top:4px;">${esc(
+              shippingLabel(args.shippingMethod)
+            )}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,20,0.35);border-radius:14px;padding:12px;">
+          <div style="color:#e5e7eb;font-weight:900;margin-bottom:8px;">Productos</div>
+          <table style="width:100%;border-collapse:collapse;">
+            ${itemsHtml}
+          </table>
+        </div>
+
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="color:#a3a3a3;font-size:13px;">Subtotal</span>
+            <span style="color:#fff;font-size:13px;font-weight:800;">${esc(
+              money(args.subtotal)
+            )}</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span style="color:#a3a3a3;font-size:13px;">Envío</span>
+            <span style="color:#fff;font-size:13px;font-weight:800;">${esc(
+              money(args.shippingCost)
+            )}</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin-top:10px;">
+            <span style="color:#a3a3a3;font-size:14px;font-weight:900;">Total</span>
+            <span style="color:#b6ff2e;font-size:18px;font-weight:900;">${esc(
+              money(args.total)
+            )}</span>
+          </div>
+        </div>
+
+        <p style="margin:12px 0 0;color:#737373;font-size:12px;line-height:1.5;">
+          Este correo es una notificación interna automática. Puedes responder directamente al cliente desde este mensaje.
+        </p>
+      </div>
+    </div>
+  </div>`;
+
+  return sendHtmlEmail({
+    to: getContactTo(),
+    subject: `Nuevo pedido ${niceId} — RekaByte`,
+    html,
+    replyTo: args.customerEmail,
   });
 }
 
