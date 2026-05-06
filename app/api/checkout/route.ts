@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendOrderCreatedEmail } from "@/lib/email";
+import { sendNewOrderAdminEmail, sendOrderCreatedEmail } from "@/lib/email";
 import { DocumentType, ProductCategory, ProductKind } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +75,6 @@ function zoneByRegion(regionRaw: string): ShippingZone {
 
   if (r.includes("metropolitana")) return "RM";
 
-  // Zonas extremas para tu lógica comercial
   if (
     r.includes("arica") ||
     r.includes("parinacota") ||
@@ -275,7 +274,6 @@ function calculateShippingCost(params: {
   for (const item of itemsDetailed) {
     const quantity = Math.max(1, Number(item.quantity ?? 1));
 
-    // PC armado: cobra por unidad
     if (item.kind === ProductKind.PREBUILT_PC) {
       const unitSubtotalTransfer =
         (item.priceTransfer ?? 0) || (item.price ?? 0);
@@ -284,7 +282,6 @@ function calculateShippingCost(params: {
       continue;
     }
 
-    // Gabinete: cobra por unidad
     if (item.category === ProductCategory.CASE) {
       const caseSize = inferComponentShippingSize(item);
       const perUnit = componentShippingBySize(zone, caseSize);
@@ -292,14 +289,11 @@ function calculateShippingCost(params: {
       continue;
     }
 
-    // Todo lo demás: se agrupa y cobra una sola vez
     if (quantity > 0) {
       hasGroupedComponents = true;
     }
   }
 
-  // Si existe al menos un producto que no sea PC ni gabinete,
-  // se cobra un solo envío agrupado usando el tamaño más grande de ese grupo.
   if (hasGroupedComponents) {
     const groupedItems = itemsDetailed.filter(
       (item) =>
@@ -471,7 +465,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             ok: false,
-            error: "Falta dirección para despacho (calle, región y ciudad/comuna).",
+            error:
+              "Falta dirección para despacho (calle, región y ciudad/comuna).",
           },
           { status: 400 }
         );
@@ -480,8 +475,11 @@ export async function POST(req: NextRequest) {
 
     if (documentType === DocumentType.FACTURA) {
       const inv: any = invoiceDataRaw || {};
-      const razon = safeStr(inv?.razonSocial ?? inv?.razon_social ?? inv?.razon ?? "");
+      const razon = safeStr(
+        inv?.razonSocial ?? inv?.razon_social ?? inv?.razon ?? ""
+      );
       const rut = safeStr(inv?.rutEmpresa ?? inv?.rut_empresa ?? inv?.rut ?? "");
+
       if (!razon || !rut) {
         return NextResponse.json(
           {
@@ -505,7 +503,9 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.order.findUnique({
       where: { checkoutToken },
       include: {
-        items: { select: { productName: true, unitPrice: true, quantity: true } },
+        items: {
+          select: { productName: true, unitPrice: true, quantity: true },
+        },
         shipment: true,
       },
     });
@@ -674,7 +674,9 @@ export async function POST(req: NextRequest) {
           paymentDueAt,
           documentType,
           invoiceData:
-            documentType === DocumentType.FACTURA ? (invoiceDataRaw as any) : null,
+            documentType === DocumentType.FACTURA
+              ? (invoiceDataRaw as any)
+              : null,
         },
       });
 
@@ -745,6 +747,35 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {
       console.error("[email] send attempt failed:", e);
+    }
+
+    try {
+      const adminEmailResult = await sendNewOrderAdminEmail({
+        customerName,
+        customerEmail,
+        customerPhone,
+        orderId: created.order.id,
+        paymentMethod: created.order.paymentMethod,
+        shippingMethod: created.order.shippingMethod,
+        total: created.order.total,
+        subtotal: created.order.subtotal,
+        shippingCost: created.order.shippingCost,
+        createdAtISO: new Date(created.order.createdAt).toISOString(),
+        items: created.orderItems.map((it) => ({
+          name: it.productName,
+          qty: Number(it.quantity),
+          unitPrice: Number(it.unitPrice),
+        })),
+      });
+
+      if (!adminEmailResult.ok) {
+        console.error(
+          "[email] admin new order notification failed:",
+          adminEmailResult.error
+        );
+      }
+    } catch (e) {
+      console.error("[email] admin new order notification crashed:", e);
     }
 
     return NextResponse.json(
