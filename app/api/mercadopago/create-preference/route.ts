@@ -79,15 +79,15 @@ export async function POST(req: NextRequest) {
       currency_id: "CLP",
     }));
 
-    if ((order.shippingCost ?? 0) > 0) {
-      items.push({
-        id: "shipping",
-        title: "Costo de envío",
-        quantity: 1,
-        unit_price: Number(order.shippingCost),
-        currency_id: "CLP",
-      });
-    }
+// TEMPORAL DEBUG: no enviar shipping como item a Mercado Pago
+// if ((order.shippingCost ?? 0) > 0) {
+//   items.push({
+//     title: "Costo de envío",
+//     quantity: 1,
+//     unit_price: Number(order.shippingCost),
+//     currency_id: "CLP",
+//   } as any);
+// }
 
     const preferenceBody: Record<string, any> = {
       items,
