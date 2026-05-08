@@ -97,13 +97,12 @@ export async function POST(req: NextRequest) {
       },
       external_reference: order.id,
       notification_url: webhookUrl,
-      payment_methods: {
-        excluded_payment_types: [
-          { id: "ticket" },
-          { id: "bank_transfer" },
-          { id: "atm" },
-        ],
-      },
+
+
+
+
+
+
       metadata: {
         order_id: order.id,
         checkout_token: order.checkoutToken ?? null,
@@ -119,7 +118,7 @@ export async function POST(req: NextRequest) {
       };
 
       preferenceBody.auto_return = "approved";
-      preferenceBody.binary_mode = true;
+      //preferenceBody.binary_mode = true;//
     }
 
     console.log("[MP create-preference] siteUrl:", siteUrl);
