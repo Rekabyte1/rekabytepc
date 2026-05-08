@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         order_id: order.id,
         checkout_token: order.checkoutToken ?? null,
       },
-      statement_descriptor: "REKABYTE",
+      // statement_descriptor: "REKABYTE",
     };
 
 if (!isLocal) {
