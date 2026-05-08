@@ -118,12 +118,14 @@ export async function POST(req: NextRequest) {
       };
 
       preferenceBody.auto_return = "approved";
-      //preferenceBody.binary_mode = true;//
+      //preferenceBody.binary_mode = true;
     }
 
     console.log("[MP create-preference] siteUrl:", siteUrl);
     console.log("[MP create-preference] webhookUrl:", webhookUrl);
     console.log("[MP create-preference] external_reference:", order.id);
+
+    console.log("[MP create-preference] preferenceBody:", JSON.stringify(preferenceBody, null, 2));
 
     const mpResp = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
@@ -136,6 +138,8 @@ export async function POST(req: NextRequest) {
     });
 
     const mpData = await mpResp.json().catch(() => null);
+
+    console.log("[MP create-preference] response:", JSON.stringify(mpData, null, 2));
 
     if (!mpResp.ok || !mpData?.init_point) {
       console.error("Mercado Pago create preference error:", mpData);
