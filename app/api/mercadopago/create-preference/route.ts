@@ -110,16 +110,27 @@ export async function POST(req: NextRequest) {
       statement_descriptor: "REKABYTE",
     };
 
-    if (!isLocal) {
-      preferenceBody.back_urls = {
-        success: `${siteUrl}/checkout/success?source=mercadopago&status=success&orderId=${encodeURIComponent(order.id)}`,
-        pending: `${siteUrl}/checkout/success?source=mercadopago&status=pending&orderId=${encodeURIComponent(order.id)}`,
-        failure: `${siteUrl}/checkout/success?source=mercadopago&status=failure&orderId=${encodeURIComponent(order.id)}`,
-      };
+if (!isLocal) {
+  const successUrl = `${siteUrl}/checkout/success?source=mercadopago&status=success&orderId=${encodeURIComponent(order.id)}`;
 
-      preferenceBody.auto_return = "approved";
-      //preferenceBody.binary_mode = true;
-    }
+  const pendingUrl = `${siteUrl}/checkout/success?source=mercadopago&status=pending&orderId=${encodeURIComponent(order.id)}`;
+
+  const failureUrl = `${siteUrl}/checkout/success?source=mercadopago&status=failure&orderId=${encodeURIComponent(order.id)}`;
+
+  preferenceBody.back_urls = {
+    success: successUrl,
+    pending: pendingUrl,
+    failure: failureUrl,
+  };
+
+  preferenceBody.redirect_urls = {
+    success: successUrl,
+    pending: pendingUrl,
+    failure: failureUrl,
+  };
+
+  preferenceBody.auto_return = "approved";
+}
 
     console.log("[MP create-preference] siteUrl:", siteUrl);
     console.log("[MP create-preference] webhookUrl:", webhookUrl);

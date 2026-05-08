@@ -214,7 +214,7 @@ export default function Paso4Confirmacion() {
     clearCart();
     setCreated(true);
 
-    const redirectUrl = mpData.initPoint || mpData.sandboxInitPoint;
+const redirectUrl = mpData.initPoint;
 
 if (!redirectUrl) {
   throw new Error("Mercado Pago no devolvió una URL de pago válida.");
