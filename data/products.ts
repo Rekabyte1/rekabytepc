@@ -790,7 +790,7 @@ export const products: SeedProduct[] = [
   title: "Mousepad Fantech MP70 XL Basic Purple",
   kind: "UNIT_PRODUCT",
   category: "PERIPHERAL",
-  subcategory: "MOUSEPAD",
+  subcategory: "MOUSE",
   brand: "Fantech",
   sku: "MP70-Purple",
   shortDescription:

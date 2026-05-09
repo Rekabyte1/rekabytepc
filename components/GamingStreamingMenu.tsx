@@ -28,7 +28,7 @@ const COLS: Array<{
       },
       {
         label: "Mouse Pad Gamer",
-        href: "/gaming-streaming/perifericos/mousepad",
+        href: "/gaming-streaming/perifericos/alfombrilla",
       },
       {
         label: "Teclado Gamer",
