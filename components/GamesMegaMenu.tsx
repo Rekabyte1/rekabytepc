@@ -1,3 +1,4 @@
+// components/GamesMegaMenu.tsx
 "use client";
 
 import Link from "next/link";
@@ -7,10 +8,10 @@ type Props = {
   mobile?: boolean;
 };
 
-const GAME_LINKS = [
-  { label: "Counter-Strike 2", slug: "counter-strike-2" },
-  { label: "Call of Duty: Warzone", slug: "call-of-duty-warzone" },
-  { label: "Minecraft", slug: "minecraft" },
+const SETUP_LINKS = [
+  { label: "Spawn", href: "/setup-gamer?tier=spawn" },
+  { label: "Loadout", href: "/setup-gamer?tier=loadout" },
+  { label: "Clutch", href: "/setup-gamer?tier=clutch" },
 ];
 
 export default function GamesMegaMenu({
@@ -25,11 +26,11 @@ export default function GamesMegaMenu({
     <div className={mobile ? "rb-mobile-panel" : "rb-mega-panel"}>
       <div className={mobile ? "rb-mobile-grid" : "rb-mega-grid"}>
         <div className="col">
-          <h4>Equipos y Setup</h4>
+          <h4>Setup Gamer</h4>
           <ul>
             <li>
-              <Link href="/modelos" onClick={handleClick}>
-                Ver colección completa
+              <Link href="/setup-gamer" onClick={handleClick}>
+                Explorar Setup Gamer (temporal)
               </Link>
             </li>
           </ul>
@@ -37,34 +38,24 @@ export default function GamesMegaMenu({
 
 
         <div className="col">
-          <h4>Explorar por juego</h4>
+          <h4>Niveles</h4>
           <ul>
-            {GAME_LINKS.map((g) => (
-              <li key={g.slug}>
-                <Link href={`/juegos/${g.slug}`} onClick={handleClick}>
-                  {g.label}
+            {SETUP_LINKS.map((item) => (
+              <li key={item.label}>
+                <Link href={item.href} onClick={handleClick}>
+                  {item.label}
                 </Link>
               </li>
             ))}
-            <li>
-              <Link href="/allgames" onClick={handleClick}>
-                Ver todos los juegos
-              </Link>
-            </li>
           </ul>
         </div>
 
         <div className="col">
-          <h4>Plataforma</h4>
+          <h4>Estado</h4>
           <ul>
             <li>
-              <Link href="/procesador/intel" onClick={handleClick}>
-                Intel
-              </Link>
-            </li>
-            <li>
-              <Link href="/procesador/amd-ryzen" onClick={handleClick}>
-                AMD Ryzen
+              <Link href="/setup-gamer" onClick={handleClick}>
+                Selector definitivo en Etapa B
               </Link>
             </li>
           </ul>

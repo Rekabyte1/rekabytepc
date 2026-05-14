@@ -69,6 +69,9 @@ model Product {
 
   platformTag String? // eS NUEVO
 
+  setupTier     SetupTier?
+  setupCategory SetupCategory?
+
   shortDescription String?
   specs            Json?
   images           String[] @default([])
@@ -191,6 +194,18 @@ enum ProductCategory {
   ACCESSORY
   STREAMING
   OTHER
+}
+
+enum SetupTier {
+  SPAWN
+  LOADOUT
+  CLUTCH
+}
+
+enum SetupCategory {
+  MOUSE
+  KEYBOARD
+  KEYBOARD_MOUSE_COMBO
 }
 
 enum DocumentType {

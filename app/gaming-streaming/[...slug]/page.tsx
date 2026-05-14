@@ -39,17 +39,17 @@ function resolveGamingStreamingFilter(slug: string[]) {
       };
     }
 
+    if (joined.includes("/mousepad") || joined.includes("/alfombrilla")) {
+      return {
+        categories: ["PERIPHERAL"],
+        subcategories: ["MOUSEPAD"],
+      };
+    }
+
     if (joined.includes("/mouse")) {
       return {
         categories: ["PERIPHERAL"],
         subcategories: ["MOUSE"],
-      };
-    }
-
-    if (joined.includes("/mousepad")) {
-      return {
-        categories: ["PERIPHERAL"],
-        subcategories: ["MOUSEPAD"],
       };
     }
 
@@ -165,7 +165,7 @@ function getGamingStreamingSeoContent(slug: string[]) {
     };
   }
 
-  if (joined === "perifericos/mousepad") {
+  if (joined === "perifericos/mousepad" || joined === "perifericos/alfombrilla") {
     return {
       banner: "/banners/mousepad.jpg",
       overlayTitle: "",

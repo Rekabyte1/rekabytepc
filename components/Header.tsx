@@ -1,3 +1,4 @@
+// components/Header.tsx
 "use client";
 
 import Link from "next/link";
@@ -9,6 +10,7 @@ import GamesMegaMenu from "./GamesMegaMenu";
 import CartCount from "./CartCount";
 import ComponentsMenu from "./ComponentsMenu";
 import GamingStreamingMenu from "./GamingStreamingMenu";
+import StreamingMenu from "./StreamingMenu";
 
 import {
   FaEnvelope,
@@ -19,7 +21,7 @@ import {
   FaSearch,
 } from "react-icons/fa";
 
-type MobileMenuKey = "armados" | "componentes" | "gaming" | null;
+type MobileMenuKey = "setup" | "componentes" | "perifericos" | "streaming" | null;
 
 export default function Header() {
   const router = useRouter();
@@ -81,7 +83,7 @@ export default function Header() {
 
   const toggleMenuMobile = () => {
     if (!isMobile) return;
-    setMobileOpen((prev) => (prev === "armados" ? null : "armados"));
+    setMobileOpen((prev) => (prev === "setup" ? null : "setup"));
   };
 
   function handleSearchSubmit(e: FormEvent<HTMLFormElement>) {
@@ -157,6 +159,45 @@ export default function Header() {
 
         <nav className="rb-nav">
           <div className="rb-container rb-nav-row rb-nav-mobile-grid">
+            <GamingStreamingMenu
+              isMobile={isMobile}
+              mobileOpen={mobileOpen === "perifericos"}
+              onMobileToggle={() =>
+                setMobileOpen((prev) => (prev === "perifericos" ? null : "perifericos"))
+              }
+              onNavigate={closeAllMenus}
+            />
+
+            <div
+              className="rb-mega-wrap rb-mega-wrap-mobile"
+              onMouseEnter={openMenuSoft}
+              onMouseLeave={closeMenuSoft}
+            >
+              <button
+                className={`rb-pill ${mobileOpen === "setup" ? "is-open" : ""}`}
+                onClick={toggleMenuMobile}
+                type="button"
+              >
+                Setup Gamer
+              </button>
+
+              {isMobile ? (
+                mobileOpen === "setup" ? (
+                  <GamesMegaMenu mobile onNavigate={closeAllMenus} />
+                ) : null
+              ) : menuOpen ? (
+                <GamesMegaMenu onNavigate={closeAllMenus} />
+              ) : null}
+            </div>
+            <StreamingMenu
+              isMobile={isMobile}
+              mobileOpen={mobileOpen === "streaming"}
+              onMobileToggle={() =>
+                setMobileOpen((prev) => (prev === "streaming" ? null : "streaming"))
+              }
+              onNavigate={closeAllMenus}
+            />
+
             <ComponentsMenu
               isMobile={isMobile}
               mobileOpen={mobileOpen === "componentes"}
@@ -168,36 +209,6 @@ export default function Header() {
               onNavigate={closeAllMenus}
             />
 
-            <GamingStreamingMenu
-              isMobile={isMobile}
-              mobileOpen={mobileOpen === "gaming"}
-              onMobileToggle={() =>
-                setMobileOpen((prev) => (prev === "gaming" ? null : "gaming"))
-              }
-              onNavigate={closeAllMenus}
-            />
-
-            <div
-              className="rb-mega-wrap rb-mega-wrap-mobile"
-              onMouseEnter={openMenuSoft}
-              onMouseLeave={closeMenuSoft}
-            >
-              <button
-                className={`rb-pill ${mobileOpen === "armados" ? "is-open" : ""}`}
-                onClick={toggleMenuMobile}
-                type="button"
-              >
-                Setup y Periféricos
-              </button>
-
-              {isMobile ? (
-                mobileOpen === "armados" ? (
-                  <GamesMegaMenu mobile onNavigate={closeAllMenus} />
-                ) : null
-              ) : menuOpen ? (
-                <GamesMegaMenu onNavigate={closeAllMenus} />
-              ) : null}
-            </div>
           </div>
         </nav>
 
