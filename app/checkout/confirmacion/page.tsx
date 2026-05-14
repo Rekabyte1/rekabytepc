@@ -1,7 +1,8 @@
+// app/checkout/confirmacion/page.tsx
 "use client";
 
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CheckoutSteps from "@/components/CheckoutSteps";
 import CheckoutSummary from "@/components/CheckoutSummary";
@@ -88,10 +89,15 @@ export default function Paso4Confirmacion() {
   const [orderId, setOrderId] = useState<string>("");
   const [uiError, setUiError] = useState<string | null>(null);
   const [uiSuccess, setUiSuccess] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const datosEfectivos = useMemo(() => {
-    return datos ?? contacto ?? readCheckoutDatosFromSessionStorage() ?? null;
-  }, [datos, contacto]);
+    return datos ?? contacto ?? (mounted ? readCheckoutDatosFromSessionStorage() : null) ?? null;
+  }, [datos, contacto, mounted]);
 
   const sessionName = (session?.user as any)?.name ?? "";
   const sessionEmail = (session?.user as any)?.email ?? "";
