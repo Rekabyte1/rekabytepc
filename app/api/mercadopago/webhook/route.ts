@@ -1,5 +1,8 @@
+// app/api/mercadopago/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { OrderStatus } from "@prisma/client";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +40,58 @@ function mapPaymentStatus(mpStatus: string): "CONFIRMED" | "PENDING" | "FAILED" 
   return "FAILED";
 }
 
+function isPaidOrBeyond(status: OrderStatus) {
+  return (
+    status === "PAID" ||
+    status === "PREPARING" ||
+    status === "SHIPPED" ||
+    status === "DELIVERED" ||
+    status === "COMPLETED"
+  );
+}
+
+function parseSignatureHeader(signature: string) {
+  const parts = signature.split(",").map((p) => p.trim());
+  const map = new Map<string, string>();
+  for (const part of parts) {
+    const idx = part.indexOf("=");
+    if (idx <= 0) continue;
+    const key = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    map.set(key, value);
+  }
+  return {
+    ts: map.get("ts") || "",
+    v1: map.get("v1") || "",
+  };
+}
+
+function isTimestampWithin5Minutes(tsSec: number) {
+  if (!Number.isFinite(tsSec)) return false;
+  const nowSec = Math.floor(Date.now() / 1000);
+  return Math.abs(nowSec - tsSec) <= 5 * 60;
+}
+
+function safeEqualHex(a: string, b: string) {
+  const aBuf = Buffer.from(a, "hex");
+  const bBuf = Buffer.from(b, "hex");
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+function buildManifest(params: { dataId: string; requestId: string; ts: string }) {
+  return `id:${params.dataId};request-id:${params.requestId};ts:${params.ts};`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
+    const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim();
+
+    if (process.env.NODE_ENV === "production" && !webhookSecret) {
+      return NextResponse.json({ ok: false, error: "Webhook secret no configurado." }, { status: 401 });
+    }
+
     if (!accessToken) {
       return NextResponse.json({ ok: false }, { status: 200 });
     }
@@ -57,6 +109,8 @@ export async function POST(req: NextRequest) {
       safeStr(body?.id) ||
       safeStr(url.searchParams.get("data.id")) ||
       safeStr(url.searchParams.get("id"));
+    const notificationDataId =
+      safeStr(url.searchParams.get("data.id")) || safeStr(body?.data?.id);
 
     if (topic && topic !== "payment") {
       return NextResponse.json({ ok: true, ignored: true }, { status: 200 });
@@ -64,6 +118,40 @@ export async function POST(req: NextRequest) {
 
     if (!paymentId) {
       return NextResponse.json({ ok: true, ignored: true }, { status: 200 });
+    }
+
+    if (webhookSecret) {
+      const signatureHeader = req.headers.get("x-signature")?.trim() || "";
+      const requestId = req.headers.get("x-request-id")?.trim() || "";
+
+      if (!signatureHeader || !requestId) {
+        return NextResponse.json({ ok: false, error: "Firma inválida." }, { status: 401 });
+      }
+
+      const { ts, v1 } = parseSignatureHeader(signatureHeader);
+      const tsNum = Number(ts);
+
+      if (!ts || !v1 || !isTimestampWithin5Minutes(tsNum)) {
+        return NextResponse.json({ ok: false, error: "Firma inválida." }, { status: 401 });
+      }
+      if (!notificationDataId) {
+        return NextResponse.json({ ok: false, error: "Firma inválida." }, { status: 401 });
+      }
+
+      const manifest = buildManifest({
+        dataId: notificationDataId.toLowerCase(),
+        requestId,
+        ts,
+      });
+
+      const expected = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(manifest)
+        .digest("hex");
+
+      if (!safeEqualHex(v1.toLowerCase(), expected.toLowerCase())) {
+        return NextResponse.json({ ok: false, error: "Firma inválida." }, { status: 401 });
+      }
     }
 
     const paymentData = await fetchMercadoPagoPayment(paymentId, accessToken);
@@ -131,6 +219,10 @@ export async function POST(req: NextRequest) {
 
       // 3) Pago pendiente / en proceso -> mantener pendiente
       if (mpStatus === "pending" || mpStatus === "in_process") {
+        if (isPaidOrBeyond(order.status)) {
+          return;
+        }
+
         if (order.status !== "PENDING_PAYMENT") {
           await tx.order.update({
             where: { id: order.id },
@@ -159,20 +251,10 @@ export async function POST(req: NextRequest) {
           for (const item of order.items) {
             const qty = Number(item.quantity || 0);
             if (qty <= 0) continue;
-
-            const product = await tx.product.findUnique({
-              where: { id: item.productId },
-              select: { id: true, stock: true },
-            });
-
-            if (!product) continue;
-
-            const current = typeof product.stock === "number" ? product.stock : 0;
-
-            await tx.product.update({
-              where: { id: product.id },
+            await tx.product.updateMany({
+              where: { id: item.productId, stock: { not: null } },
               data: {
-                stock: current + qty,
+                stock: { increment: qty },
               },
             });
           }

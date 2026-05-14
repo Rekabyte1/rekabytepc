@@ -6,6 +6,11 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+function isAdmin(req: NextRequest): boolean {
+  const token = req.cookies.get("admin_token")?.value;
+  return !!token && !!process.env.ADMIN_TOKEN && token === process.env.ADMIN_TOKEN;
+}
+
 function appendNote(prev: string | null | undefined, msg: string) {
   const line = `[${new Date().toISOString()}] ${msg}`;
   if (!prev?.trim()) return line;
@@ -13,6 +18,10 @@ function appendNote(prev: string | null | undefined, msg: string) {
 }
 
 export async function POST(req: NextRequest, ctx: Ctx) {
+  if (!isAdmin(req)) {
+    return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 401 });
+  }
+
   const { id: orderId } = await ctx.params;
 
   try {
@@ -83,19 +92,10 @@ export async function POST(req: NextRequest, ctx: Ctx) {
         const qty = Number(it.quantity || 0);
         if (qty <= 0) continue;
 
-        const product = await tx.product.findUnique({
-          where: { id: it.productId },
-          select: { id: true, stock: true },
-        });
-
-        if (!product) continue;
-
-        const current = typeof product.stock === "number" ? product.stock : 0;
-
-        await tx.product.update({
-          where: { id: product.id },
+        await tx.product.updateMany({
+          where: { id: it.productId, stock: { not: null } },
           data: {
-            stock: current + qty,
+            stock: { increment: qty },
           },
         });
       }
