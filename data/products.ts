@@ -25,9 +25,12 @@ export type SeedProduct = {
     | "STREAMING"
     | "OTHER";
 
-  subcategory?: string | null;
+ subcategory?: string | null;
   brand?: string | null;
   sku?: string | null;
+
+  setupTier?: "SPAWN" | "LOADOUT" | "CLUTCH" | null;
+  setupCategory?: "MOUSE" | "KEYBOARD" | "KEYBOARD_MOUSE_COMBO" | null;
 
   shortDescription?: string | null;
   description?: string | null;

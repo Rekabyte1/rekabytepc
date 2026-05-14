@@ -1,3 +1,4 @@
+// components/ComponentsMenu.tsx
 "use client";
 
 import Link from "next/link";
@@ -16,80 +17,28 @@ const COLS: Array<{
   links: Array<{ label: string; href: string }>;
 }> = [
   {
-    title: "Procesador",
-    links: [
-      { label: "Procesador Intel", href: "/componentes/procesador/intel" },
-      { label: "Procesador AMD", href: "/componentes/procesador/amd" },
-    ],
-  },
-  {
-    title: "Placa Madre",
-    links: [
-      { label: "Placa Intel", href: "/componentes/placa-madre/intel" },
-      { label: "Placa AMD", href: "/componentes/placa-madre/amd" },
-    ],
-  },
-  {
-    title: "Memorias RAM",
-    links: [{ label: "Memoria RAM PC", href: "/componentes/ram/pc" }],
-  },
-  {
-    title: "Almacenamiento",
-    links: [
-      {
-        label: "SSD Unidad Estado Sólido",
-        href: "/componentes/almacenamiento/ssd",
-      },
-    ],
-  },
-  {
-    title: "Tarjeta de Video",
-    links: [
-      { label: "Tarjeta Video Nvidia", href: "/componentes/gpu/nvidia" },
-      { label: "Tarjeta Video AMD", href: "/componentes/gpu/amd" },
-      { label: "Tarjeta de Video Intel", href: "/componentes/gpu/intel" },
-    ],
-  },
-  {
-    title: "Refrigeración y Ventilación",
-    links: [
-      {
-        label: "Refrigeración Líquida",
-        href: "/componentes/refrigeracion/liquida",
-      },
-      {
-        label: "Disipador CPU",
-        href: "/componentes/refrigeracion/disipador-cpu",
-      },
-      {
-        label: "Ventilador Gabinete",
-        href: "/componentes/refrigeracion/ventilador-gabinete",
-      },
-      {
-        label: "Pasta Térmica",
-        href: "/componentes/refrigeracion/pasta-termica",
-      },
-    ],
-  },
-  {
-    title: "Fuente de Poder",
-    links: [
-      { label: "Fuentes de poder", href: "/componentes/fuente-poder/fuentes" },
-      { label: "Cables de Poder", href: "/componentes/fuente-poder/cables" },
-    ],
-  },
-  {
     title: "Gabinetes",
     links: [
-      {
-        label: "Full y Mid Tower",
-        href: "/componentes/gabinetes/full-mid-tower",
-      },
-      {
-        label: "Micro-ATX & Mini-ITX",
-        href: "/componentes/gabinetes/matx-mini-itx",
-      },
+      { label: "Full y Mid Tower", href: "/componentes/gabinetes/full-mid-tower" },
+      { label: "Micro-ATX & Mini-ITX", href: "/componentes/gabinetes/matx-mini-itx" },
     ],
+  },
+  {
+    title: "Fuentes",
+    links: [
+      { label: "Fuentes de poder", href: "/componentes/fuente-poder/fuentes" },
+      { label: "Cables de poder", href: "/componentes/fuente-poder/cables" },
+    ],
+  },
+  {
+    title: "Placas madre",
+    links: [
+      { label: "Placas madre", href: "/componentes/placa-madre" },
+    ],
+  },
+  {
+    title: "PC Gamer",
+    links: [{ label: "Ver PC Gamer", href: "/modelos" }],
   },
 ];
 

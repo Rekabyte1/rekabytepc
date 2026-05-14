@@ -7,12 +7,6 @@ type Props = {
   mobile?: boolean;
 };
 
-const GAME_LINKS = [
-  { label: "Counter-Strike 2", slug: "counter-strike-2" },
-  { label: "Call of Duty: Warzone", slug: "call-of-duty-warzone" },
-  { label: "Minecraft", slug: "minecraft" },
-];
-
 export default function GamesMegaMenu({
   onNavigate,
   mobile = false,
@@ -25,52 +19,16 @@ export default function GamesMegaMenu({
     <div className={mobile ? "rb-mobile-panel" : "rb-mega-panel"}>
       <div className={mobile ? "rb-mobile-grid" : "rb-mega-grid"}>
         <div className="col">
-          <h4>Equipos y Setup</h4>
+          <h4>Setup Gamer</h4>
           <ul>
             <li>
-              <Link href="/modelos" onClick={handleClick}>
-                Ver colección completa
+              <Link href="/setup-gamer" onClick={handleClick}>
+                Explorar Setup Gamer
               </Link>
             </li>
           </ul>
+          <p className="rb-copy">Encuentra periféricos según tu nivel de setup.</p>
         </div>
-
-
-        <div className="col">
-          <h4>Explorar por juego</h4>
-          <ul>
-            {GAME_LINKS.map((g) => (
-              <li key={g.slug}>
-                <Link href={`/juegos/${g.slug}`} onClick={handleClick}>
-                  {g.label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <Link href="/allgames" onClick={handleClick}>
-                Ver todos los juegos
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div className="col">
-          <h4>Plataforma</h4>
-          <ul>
-            <li>
-              <Link href="/procesador/intel" onClick={handleClick}>
-                Intel
-              </Link>
-            </li>
-            <li>
-              <Link href="/procesador/amd-ryzen" onClick={handleClick}>
-                AMD Ryzen
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-
       </div>
 
       <div className="rb-mega-accent" />
@@ -120,6 +78,14 @@ export default function GamesMegaMenu({
 
         .col :global(a:hover) {
           color: #b6ff2e;
+        }
+
+        .rb-copy {
+          margin-top: 12px;
+          color: #a3a3a3;
+          font-size: 13px;
+          line-height: 1.5;
+          max-width: 320px;
         }
       `}</style>
     </div>

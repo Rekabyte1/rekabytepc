@@ -1,3 +1,4 @@
+// components/GamingStreamingMenu.tsx
 "use client";
 
 import Link from "next/link";
@@ -18,50 +19,22 @@ const COLS: Array<{
   {
     title: "Periféricos Gamer",
     links: [
+      { label: "Teclados", href: "/gaming-streaming/perifericos/teclado" },
+      { label: "Mouse", href: "/gaming-streaming/perifericos/mouse" },
+      { label: "Mousepads", href: "/gaming-streaming/perifericos/alfombrilla" },
       {
-        label: "Audífonos Gamer",
-        href: "/gaming-streaming/perifericos/audifonos",
-      },
-      {
-        label: "Mouse Gamer",
-        href: "/gaming-streaming/perifericos/mouse",
-      },
-      {
-        label: "Mouse Pad Gamer",
-        href: "/gaming-streaming/perifericos/alfombrilla",
-      },
-      {
-        label: "Teclado Gamer",
-        href: "/gaming-streaming/perifericos/teclado",
-      },
-      {
-        label: "Kit Teclado + Mouse Gamer",
+        label: "Combos teclado + mouse",
         href: "/gaming-streaming/perifericos/kit-teclado-mouse",
       },
     ],
   },
   {
-    title: "Streaming",
+    title: "Más categorías",
     links: [
-      { label: "Webcam", href: "/gaming-streaming/streaming/webcam" },
-      {
-        label: "Micrófono Streaming",
-        href: "/gaming-streaming/streaming/microfono",
-      },
+      { label: "Audífonos", href: "/gaming-streaming/perifericos/audifonos" },
+      { label: "Monitores", href: "/gaming-streaming/monitores" },
+      { label: "Controles", href: "/gaming-streaming/consolas/acc" },
     ],
-  },
-  {
-    title: "Consolas y Controles",
-    links: [
-      {
-        label: "Consolas y Accesorios",
-        href: "/gaming-streaming/consolas/acc",
-      },
-    ],
-  },
-  {
-    title: "Monitores Gamer",
-    links: [{ label: "Monitor Gamer", href: "/gaming-streaming/monitores" }],
   },
 ];
 
@@ -109,7 +82,7 @@ export default function GamingStreamingMenu({
         onClick={isMobile ? onMobileToggle : undefined}
         type="button"
       >
-        Gaming y Streaming
+        Periféricos
       </button>
 
       {showPanel ? (

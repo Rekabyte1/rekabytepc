@@ -1,6 +1,6 @@
 // prisma/seed.ts
 import "dotenv/config";
-import { PrismaClient, ProductCategory, ProductKind } from "@prisma/client";
+import { PrismaClient, ProductCategory, ProductKind, SetupCategory, SetupTier } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { products } from "../data/products";
 
@@ -37,6 +37,9 @@ async function main() {
           brand: p.brand ?? null,
           sku: p.sku ?? null,
 
+          setupTier: (p.setupTier as SetupTier | undefined) ?? null,
+          setupCategory: (p.setupCategory as SetupCategory | undefined) ?? null,
+
           // Puedes decidir si esto lo maneja código o BD
           specs: p.specs ?? undefined,
 
@@ -72,6 +75,9 @@ async function main() {
           subcategory: p.subcategory ?? null,
           brand: p.brand ?? null,
           sku: p.sku ?? null,
+
+          setupTier: (p.setupTier as SetupTier | undefined) ?? null,
+          setupCategory: (p.setupCategory as SetupCategory | undefined) ?? null,
 
           shortDescription: p.shortDescription ?? null,
           specs: p.specs ?? undefined,
