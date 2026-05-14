@@ -1,4 +1,3 @@
-// components/GamesMegaMenu.tsx
 "use client";
 
 import Link from "next/link";
@@ -7,12 +6,6 @@ type Props = {
   onNavigate?: () => void;
   mobile?: boolean;
 };
-
-const SETUP_LINKS = [
-  { label: "Spawn", href: "/setup-gamer?tier=spawn" },
-  { label: "Loadout", href: "/setup-gamer?tier=loadout" },
-  { label: "Clutch", href: "/setup-gamer?tier=clutch" },
-];
 
 export default function GamesMegaMenu({
   onNavigate,
@@ -30,38 +23,12 @@ export default function GamesMegaMenu({
           <ul>
             <li>
               <Link href="/setup-gamer" onClick={handleClick}>
-                Explorar Setup Gamer (temporal)
+                Explorar Setup Gamer
               </Link>
             </li>
           </ul>
+          <p className="rb-copy">Encuentra periféricos según tu nivel de setup.</p>
         </div>
-
-
-        <div className="col">
-          <h4>Niveles</h4>
-          <ul>
-            {SETUP_LINKS.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} onClick={handleClick}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="col">
-          <h4>Estado</h4>
-          <ul>
-            <li>
-              <Link href="/setup-gamer" onClick={handleClick}>
-                Selector definitivo en Etapa B
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-
       </div>
 
       <div className="rb-mega-accent" />
@@ -111,6 +78,14 @@ export default function GamesMegaMenu({
 
         .col :global(a:hover) {
           color: #b6ff2e;
+        }
+
+        .rb-copy {
+          margin-top: 12px;
+          color: #a3a3a3;
+          font-size: 13px;
+          line-height: 1.5;
+          max-width: 320px;
         }
       `}</style>
     </div>

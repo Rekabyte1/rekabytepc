@@ -81,8 +81,7 @@ export default function Footer() {
           <div className="min-w-[220px] flex-1 md:basis-1/5">
             <p className="text-lg font-extrabold text-white">RekaByte</p>
             <p className="mt-2 text-sm text-neutral-400">
-              Computadoras armadas, hardware y más. Construido por gamers,
-              enfocado en rendimiento real y estabilidad.
+              Periféricos gamer, setups y rendimiento real. Construido por gamers, enfocado en experiencia, calidad y estética.
             </p>
 
             {/* 🔥 REDES SOCIALES CON LINKS */}
@@ -134,8 +133,7 @@ export default function Footer() {
             <p className="font-semibold text-white">Quiénes somos</p>
             <p className="mt-2 text-sm text-neutral-400">
               RekaByte nace desde la experiencia real en gaming, software y 
-              hardware. Cada equipo es ensamblado y probado con
-              criterios técnicos sólidos, buscando equilibrio entre
+              hardware. buscando equilibrio entre
               rendimiento, estética y confiabilidad.
             </p>
           </div>
