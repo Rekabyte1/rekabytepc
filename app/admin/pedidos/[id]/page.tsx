@@ -139,7 +139,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     timeStyle: "short",
   });
 
-  const totalItems = order.items.reduce((a, it) => a + (it.quantity || 0), 0);
+  const totalItems = order.items.reduce((a: number, it: { quantity: number | null }) => a + (it.quantity || 0), 0);
 
   const customerName =
     order.contactName || [order.user?.name, order.user?.lastName].filter(Boolean).join(" ") || "—";
