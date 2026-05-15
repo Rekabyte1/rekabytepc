@@ -214,7 +214,7 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 md:p-8">
           <div className="mb-6">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">Encuentra tu setup</p>
-            <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">El nuevo corazón de RekaByte</h2>
+            <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">Desde Spawn hasta Clutch. Elige según tu estilo, nivel y experiencia.</h2>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -298,10 +298,10 @@ export default async function Home() {
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: "¿Qué es un teclado magnético?", desc: "Cómo mejora respuesta y consistencia en juego.", href: "/setup-gamer" },
-              { title: "¿Qué significa Rapid Trigger?", desc: "Activación dinámica para mayor control.", href: "/setup-gamer" },
-              { title: "Mouse liviano vs mouse tradicional", desc: "Cuándo conviene cada enfoque según tu estilo.", href: "/setup-gamer" },
-              { title: "Cómo elegir tu primer setup", desc: "Guía simple para Spawn, Loadout o Clutch.", href: "/setup-gamer" },
+  { title: "¿Qué es un teclado magnético?", desc: "Cómo mejora respuesta y consistencia en juego.", href: "/guias/que-es-un-teclado-magnetico" },
+{ title: "¿Qué significa Rapid Trigger?", desc: "Activación dinámica para mayor control.", href: "/guias/que-significa-rapid-trigger" },
+{ title: "Mouse liviano vs mouse tradicional", desc: "Cuándo conviene cada enfoque según tu estilo.", href: "/guias/mouse-liviano-vs-tradicional" },
+{ title: "Cómo elegir tu primer setup", desc: "Guía simple para Spawn, Loadout o Clutch.", href: "/guias/como-elegir-tu-primer-setup" },
             ].map((item) => (
               <Link key={item.title} href={item.href} className="rounded-2xl border border-neutral-800 bg-neutral-950/60 p-4 transition hover:border-lime-400/60">
                 <h3 className="font-black text-white">{item.title}</h3>
@@ -348,7 +348,7 @@ export default async function Home() {
           <div className="mb-4 flex items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-500">PC Gamer</p>
-              <h3 className="mt-1 text-xl font-black text-white">Disponible en sección secundaria</h3>
+              <h3 className="mt-1 text-xl font-black text-white">Disponible para entrega inmediata</h3>
             </div>
             <Link href="/modelos" className={pillButtonClass}>Ver PC Gamer →</Link>
           </div>
