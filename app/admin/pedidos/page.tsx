@@ -176,7 +176,7 @@ export default async function AdminPedidosPage({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const countsByStatus = statusAgg.reduce<Record<string, number>>((acc, row) => {
+  const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<string, number>, row) => {
     acc[row.status] = row._count._all;
     return acc;
   }, {});
