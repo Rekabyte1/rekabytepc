@@ -22,8 +22,16 @@ export default async function Home() {
     },
   ];
 
-  const featuredProducts = await prisma.product.findMany({
-    where: { isActive: true, featured: true },
+  const featuredPeripherals = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      featured: true,
+      kind: "UNIT_PRODUCT",
+      category: "PERIPHERAL",
+      subcategory: {
+        in: ["MOUSE", "KEYBOARD", "MOUSEPAD", "COMBO", "KEYBOARD_MOUSE_COMBO", "KIT"],
+      },
+    },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     take: 18,
     select: {
@@ -43,22 +51,82 @@ export default async function Home() {
     },
   });
 
-  const featuredPeripherals = featuredProducts.filter(
-    (p) =>
-      p.kind === "UNIT_PRODUCT" &&
-      p.category === "PERIPHERAL" &&
-      ["MOUSE", "KEYBOARD", "MOUSEPAD", "COMBO", "KEYBOARD_MOUSE_COMBO", "KIT"].includes((p as any).subcategory)
-  );
+  const featuredStreaming = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      featured: true,
+      kind: "UNIT_PRODUCT",
+      category: "STREAMING",
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: 12,
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      kind: true,
+      category: true,
+      brand: true,
+      shortDescription: true,
+      imageUrl: true,
+      stock: true,
+      price: true,
+      priceTransfer: true,
+      priceCard: true,
+      badge: true,
+    },
+  });
 
-  const featuredStreaming = featuredProducts.filter(
-    (p) => p.kind === "UNIT_PRODUCT" && p.category === "STREAMING"
-  );
+  const featuredComponents = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      featured: true,
+      kind: "UNIT_PRODUCT",
+      category: { in: ["MOTHERBOARD", "CASE", "PSU", "CABLE"] },
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: 12,
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      kind: true,
+      category: true,
+      brand: true,
+      shortDescription: true,
+      imageUrl: true,
+      stock: true,
+      price: true,
+      priceTransfer: true,
+      priceCard: true,
+      badge: true,
+    },
+  });
 
-  const featuredComponents = featuredProducts.filter(
-    (p) => p.kind === "UNIT_PRODUCT" && ["MOTHERBOARD", "CASE", "PSU", "CABLE"].includes(p.category)
-  );
-
-  const featuredBuilds = featuredProducts.filter((p) => p.kind === "PREBUILT_PC");
+  const featuredBuilds = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      featured: true,
+      kind: "PREBUILT_PC",
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    take: 6,
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      kind: true,
+      category: true,
+      brand: true,
+      shortDescription: true,
+      imageUrl: true,
+      stock: true,
+      price: true,
+      priceTransfer: true,
+      priceCard: true,
+      badge: true,
+    },
+  });
 
   const pillButtonClass =
     "group inline-flex items-center gap-2 rounded-full border border-lime-400/25 bg-lime-400/10 px-5 py-2.5 text-sm font-extrabold text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.05),0_8px_24px_rgba(0,0,0,0.22)] backdrop-blur transition-all duration-300 hover:-translate-y-[1px] hover:border-lime-300/45 hover:bg-lime-400/15 hover:text-lime-200";
@@ -93,7 +161,7 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 md:p-8">
           <div className="mb-6">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">Encuentra tu setup</p>
-            <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">Periféricos seleccionados según tu estilo, nivel y experiencia de juego.</h2>
+            <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">El nuevo corazón de RekaByte</h2>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -184,7 +252,7 @@ export default async function Home() {
           <div className="mb-4 flex items-end justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-500">PC Gamer</p>
-              <h3 className="mt-1 text-xl font-black text-white">Equipos disponibles</h3>
+              <h3 className="mt-1 text-xl font-black text-white">Disponible en sección secundaria</h3>
             </div>
             <Link href="/modelos" className={pillButtonClass}>Ver PC Gamer →</Link>
           </div>
