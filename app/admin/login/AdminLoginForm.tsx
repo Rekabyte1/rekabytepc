@@ -46,17 +46,16 @@ export default function AdminLoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 max-w-xl px-4 pb-10">
-      <h1 className="mb-4 text-2xl font-extrabold text-white">
-        Acceso administrador
-      </h1>
-      <p className="mb-4 text-sm text-neutral-300">
-        Ingresa con las credenciales de administrador para revisar y gestionar
-        los pedidos de la tienda.
-      </p>
+    <form onSubmit={handleSubmit} className="mt-7 max-w-xl rounded-2xl border border-neutral-800 bg-black/30 p-5 md:p-6">
+      <div className="mb-4">
+        <div className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-500">Inicio de sesión</div>
+        <p className="mt-2 text-sm text-neutral-300">
+          Ingresa con tu cuenta admin para continuar.
+        </p>
+      </div>
 
       {error && (
-        <p className="mb-3 text-sm text-red-400">
+        <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           {error}
         </p>
       )}
@@ -70,7 +69,7 @@ export default function AdminLoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-lime-400"
+          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-white outline-none focus:border-lime-400/70"
         />
       </div>
 
@@ -83,17 +82,17 @@ export default function AdminLoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-lime-400"
+          className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-sm text-white outline-none focus:border-lime-400/70"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className={`rounded-xl px-5 py-2 text-sm font-semibold ${
+        className={`rounded-xl px-5 py-2.5 text-sm font-extrabold ${
           loading
             ? "cursor-wait border border-neutral-700 bg-neutral-800 text-neutral-300"
-            : "bg-lime-400 text-black hover:bg-lime-300"
+            : "bg-lime-400 text-black hover:bg-lime-300 shadow-md shadow-lime-400/20"
         }`}
       >
         {loading ? "Entrando..." : "Entrar"}

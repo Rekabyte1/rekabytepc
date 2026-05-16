@@ -176,7 +176,8 @@ export default async function AdminPedidosPage({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<string, number>, row: (typeof statusAgg)[number]) => {    acc[row.status] = row._count._all;
+  const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<string, number>, row: (typeof statusAgg)[number]) => {
+    acc[row.status] = row._count._all;
     return acc;
   }, {});
 
@@ -217,57 +218,60 @@ const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<str
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-100">
       {/* Header */}
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white">Pedidos</h1>
-          <p className="mt-1 text-neutral-400">
-            Gestión de pedidos registrados en la tienda.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
-            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
-              TOTAL
-            </div>
-            <div className="text-sm font-extrabold text-neutral-100">
-              {totalCount}
-            </div>
+      <div className="mb-6 rounded-3xl border border-neutral-800 bg-neutral-950/55 p-5 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">RekaByte Admin</p>
+            <h1 className="mt-2 text-2xl font-extrabold text-white">Pedidos</h1>
+            <p className="mt-1 text-neutral-400">
+              Gestión de pedidos registrados en la tienda.
+            </p>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
-            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
-              PENDIENTES
+          <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
+            <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-2">
+              <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+                TOTAL
+              </div>
+              <div className="text-sm font-extrabold text-neutral-100">
+                {totalCount}
+              </div>
             </div>
-            <div className="text-sm font-extrabold text-amber-200">
-              {countsByStatus["PENDING_PAYMENT"] ?? 0}
-            </div>
-          </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
-            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
-              PAGADOS
+            <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-2">
+              <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+                PENDIENTES
+              </div>
+              <div className="text-sm font-extrabold text-amber-200">
+                {countsByStatus["PENDING_PAYMENT"] ?? 0}
+              </div>
             </div>
-            <div className="text-sm font-extrabold text-lime-200">
-              {countsByStatus["PAID"] ?? 0}
-            </div>
-          </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
-            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
-              CANCELADOS
+            <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-2">
+              <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+                PAGADOS
+              </div>
+              <div className="text-sm font-extrabold text-lime-200">
+                {countsByStatus["PAID"] ?? 0}
+              </div>
             </div>
-            <div className="text-sm font-extrabold text-red-200">
-              {countsByStatus["CANCELLED"] ?? 0}
-            </div>
-          </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-3 py-2">
-            <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
-              PÁGINA
+            <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-2">
+              <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+                CANCELADOS
+              </div>
+              <div className="text-sm font-extrabold text-red-200">
+                {countsByStatus["CANCELLED"] ?? 0}
+              </div>
             </div>
-            <div className="text-sm font-extrabold text-neutral-100">
-              {page}/{totalPages}
+
+            <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-2">
+              <div className="text-[11px] font-extrabold tracking-wide text-neutral-500">
+                PÁGINA
+              </div>
+              <div className="text-sm font-extrabold text-neutral-100">
+                {page}/{totalPages}
+              </div>
             </div>
           </div>
         </div>
@@ -277,8 +281,9 @@ const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<str
       <form
         action="/admin/pedidos"
         method="GET"
-        className="mb-5 rounded-2xl border border-neutral-800 bg-neutral-950/55 p-3"
+        className="mb-6 rounded-3xl border border-neutral-800 bg-neutral-950/55 p-4 md:p-5"
       >
+        <div className="mb-3 text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-500">Filtros</div>
         <div className="flex flex-wrap items-end gap-2">
           {/* Buscar */}
           <div className="min-w-[240px] flex-1">
@@ -431,11 +436,11 @@ const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<str
 
       {/* Tabla */}
       {orders.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-6 text-neutral-300">
+        <div className="rounded-3xl border border-neutral-800 bg-neutral-950/55 p-8 text-neutral-300">
           No hay pedidos para estos filtros.
         </div>
       ) : (
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55">
+        <div className="rounded-3xl border border-neutral-800 bg-neutral-950/55">
           <div className="flex items-center justify-between gap-3 border-b border-neutral-800 px-4 py-3">
             <div className="text-xs text-neutral-400">
               Mostrando{" "}
@@ -482,7 +487,7 @@ const countsByStatus = statusAgg.reduce<Record<string, number>>((acc: Record<str
               </thead>
 
               <tbody>
-                {orders.map((o) => (
+                {orders.map((o: (typeof orders)[number]) => (
                   <tr
                     key={o.id}
                     className="border-t border-neutral-900 hover:bg-white/[0.03]"
