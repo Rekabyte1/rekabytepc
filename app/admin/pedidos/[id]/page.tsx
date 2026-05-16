@@ -155,84 +155,87 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-100">
-      <div className="mb-5 flex flex-col gap-3">
-        <Link href="/admin/pedidos" className="text-xs text-lime-300 font-extrabold w-fit">
-          ← Volver a pedidos
-        </Link>
+      <div className="mb-6 rounded-3xl border border-neutral-800 bg-neutral-950/55 p-5 md:p-6">
+        <div className="flex flex-col gap-3">
+          <Link href="/admin/pedidos" className="text-xs text-lime-300 font-extrabold w-fit">
+            ← Volver a pedidos
+          </Link>
 
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-extrabold text-white">
-              Pedido <span className="font-mono text-base text-neutral-400 break-all">{order.id}</span>
-            </h1>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">RekaByte Admin</p>
+              <h1 className="text-2xl font-extrabold text-white">
+                Pedido <span className="font-mono text-base text-neutral-400 break-all">{order.id}</span>
+              </h1>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge tone={statusTone(order.status)}>{statusLabel}</Badge>
-              <Badge tone={shippingTone(order.shippingMethod)}>{shippingLabel}</Badge>
-              <Badge tone={paymentTone(order.paymentMethod)}>{paymentLabel}</Badge>
-              <Badge tone="border-neutral-800 bg-black/20 text-neutral-200">
-                {totalItems} item{totalItems === 1 ? "" : "s"}
-              </Badge>
-
-              {order.confirmationEmailSentAt ? (
-                <Badge tone="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
-                  Confirmación enviada
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge tone={statusTone(order.status)}>{statusLabel}</Badge>
+                <Badge tone={shippingTone(order.shippingMethod)}>{shippingLabel}</Badge>
+                <Badge tone={paymentTone(order.paymentMethod)}>{paymentLabel}</Badge>
+                <Badge tone="border-neutral-800 bg-black/20 text-neutral-200">
+                  {totalItems} item{totalItems === 1 ? "" : "s"}
                 </Badge>
+
+                {order.confirmationEmailSentAt ? (
+                  <Badge tone="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
+                    Confirmación enviada
+                  </Badge>
+                ) : (
+                  <Badge tone="border-neutral-800 bg-black/20 text-neutral-300">
+                    Confirmación no enviada
+                  </Badge>
+                )}
+              </div>
+
+              <p className="mt-2 text-xs text-neutral-400">
+                Creado el <span className="text-neutral-200 font-bold">{createdAt}</span> · Última actualización{" "}
+                <span className="text-neutral-200 font-bold">{updatedAt}</span>
+              </p>
+
+              {order.user?.id ? (
+                <p className="mt-1 text-xs text-neutral-400">
+                  Usuario asociado:{" "}
+                  <span className="text-neutral-200 font-bold">{order.user.email ?? order.user.id}</span>
+                </p>
               ) : (
-                <Badge tone="border-neutral-800 bg-black/20 text-neutral-300">
-                  Confirmación no enviada
-                </Badge>
+                <p className="mt-1 text-xs text-neutral-500">Pedido sin usuario asociado (guest).</p>
               )}
+
+              {order.paymentDueAt ? (
+                <p className="mt-1 text-xs text-neutral-400">
+                  Vence:{" "}
+                  <span className="text-neutral-200 font-bold">
+                    {new Date(order.paymentDueAt).toLocaleString("es-CL", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </span>
+                </p>
+              ) : null}
+
+              {order.stockReleasedAt ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Stock liberado:{" "}
+                  <span className="text-neutral-200 font-bold">
+                    {new Date(order.stockReleasedAt).toLocaleString("es-CL", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </span>
+                </p>
+              ) : null}
             </div>
 
-            <p className="mt-2 text-xs text-neutral-400">
-              Creado el <span className="text-neutral-200 font-bold">{createdAt}</span> · Última actualización{" "}
-              <span className="text-neutral-200 font-bold">{updatedAt}</span>
-            </p>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-4 md:min-w-[280px]">
+              <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">RESUMEN</div>
 
-            {order.user?.id ? (
-              <p className="mt-1 text-xs text-neutral-400">
-                Usuario asociado:{" "}
-                <span className="text-neutral-200 font-bold">{order.user.email ?? order.user.id}</span>
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-neutral-500">Pedido sin usuario asociado (guest).</p>
-            )}
-
-            {order.paymentDueAt ? (
-              <p className="mt-1 text-xs text-neutral-400">
-                Vence:{" "}
-                <span className="text-neutral-200 font-bold">
-                  {new Date(order.paymentDueAt).toLocaleString("es-CL", {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
-                </span>
-              </p>
-            ) : null}
-
-            {order.stockReleasedAt ? (
-              <p className="mt-1 text-xs text-neutral-500">
-                Stock liberado:{" "}
-                <span className="text-neutral-200 font-bold">
-                  {new Date(order.stockReleasedAt).toLocaleString("es-CL", {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
-                </span>
-              </p>
-            ) : null}
-          </div>
-
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-4 md:min-w-[280px]">
-            <div className="text-[11px] font-extrabold tracking-wide text-neutral-400">RESUMEN</div>
-
-            <div className="mt-3 space-y-2 text-sm">
-              <Row label="Subtotal" value={CLP(order.subtotal)} />
-              <Row label="Envío" value={CLP(order.shippingCost ?? 0)} />
-              <div className="mt-2 flex items-center justify-between border-t border-neutral-800 pt-3">
-                <span className="text-neutral-200 font-extrabold">TOTAL</span>
-                <span className="text-lime-300 font-extrabold">{CLP(order.total)}</span>
+              <div className="mt-3 space-y-2 text-sm">
+                <Row label="Subtotal" value={CLP(order.subtotal)} />
+                <Row label="Envío" value={CLP(order.shippingCost ?? 0)} />
+                <div className="mt-2 flex items-center justify-between border-t border-neutral-800 pt-3">
+                  <span className="text-neutral-200 font-extrabold">TOTAL</span>
+                  <span className="text-lime-300 font-extrabold">{CLP(order.total)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -266,7 +269,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   </thead>
 
                   <tbody>
-                    {order.items.map((item) => {
+                    {order.items.map((item: (typeof order.items)[number]) => {
                       const rowTotal = Number(item.unitPrice || 0) * Number(item.quantity || 0);
                       return (
                         <tr key={item.id} className="border-t border-neutral-900 hover:bg-white/[0.03]">
@@ -433,7 +436,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             </Card>
 
             <Card>
-              <CardHeader title="Acciones" />
+              <CardHeader title="Acciones operativas" />
               <div className="grid gap-4">
                 <AdminReleaseReservationButton
                   orderId={order.id}
@@ -441,7 +444,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   paymentMethod={order.paymentMethod}
                 />
 
-                <div className="rounded-2xl border border-neutral-800 bg-black/20 p-4">
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4">
                   <div className="text-xs font-extrabold text-neutral-200">Estado</div>
                   <p className="mt-1 text-xs text-neutral-400">
                     Cambia el estado del pedido. (Nota: cambiar a CANCELLED no devuelve stock a menos que tu endpoint lo haga.)
@@ -466,7 +469,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5">
+    <section className="rounded-2xl border border-neutral-800 bg-gradient-to-b from-neutral-950/60 to-black/30 p-5">
       {children}
     </section>
   );
