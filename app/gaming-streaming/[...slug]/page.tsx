@@ -361,7 +361,7 @@ export default async function GamingStreamingCatchAllPage({
 
           <div className="mt-6 h-[2px] w-full bg-lime-400/80" />
           <p className="mt-3 text-xs text-neutral-500">
-            Cuando activemos stock, acá va listado + filtros + orden.
+            {/* texto*/}
           </p>
         </div>
       ) : (
