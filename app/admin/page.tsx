@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 const ACTIVE_PROCESSED_STATUSES = ["PREPARING", "SHIPPED", "DELIVERED", "COMPLETED"] as const;
 const PREPARE_STATUSES = ["PAID", "PREPARING"] as const;
+const CONFIRMED_SALE_STATUSES = ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "COMPLETED"] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING_PAYMENT: "Pendiente de pago",
@@ -43,6 +44,13 @@ function ageLabel(date: Date) {
   if (days >= 1) return `${days} día${days === 1 ? "" : "s"}`;
   if (hours >= 1) return `${hours} h`;
   return `${minutes} min`;
+}
+
+function dateTimeLabel(date: Date) {
+  return new Date(date).toLocaleString("es-CL", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
 }
 
 function statusTone(status: string) {
@@ -87,7 +95,6 @@ function chileTodayRange() {
 export default async function AdminDashboardPage() {
   const now = new Date();
   const today = chileTodayRange();
-
   const preparingOldLimit = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
   const [
@@ -97,7 +104,11 @@ export default async function AdminDashboardPage() {
     preparingOrders,
     processedOrders,
     productsToPrepare,
+    expiredPendingOrders,
+    cancelledToday,
+    todayConfirmedSales,
     actionOrders,
+    latestOrders,
   ] = await Promise.all([
     prisma.order.count({
       where: {
@@ -147,6 +158,43 @@ export default async function AdminDashboardPage() {
       },
     }),
 
+    prisma.order.count({
+      where: {
+        status: "PENDING_PAYMENT",
+        paymentDueAt: {
+          lt: now,
+        },
+      },
+    }),
+
+    prisma.order.count({
+      where: {
+        status: "CANCELLED",
+        updatedAt: {
+          gte: today.start,
+          lte: today.end,
+        },
+      },
+    }),
+
+    prisma.order.aggregate({
+      where: {
+        status: {
+          in: [...CONFIRMED_SALE_STATUSES],
+        },
+        createdAt: {
+          gte: today.start,
+          lte: today.end,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      _sum: {
+        total: true,
+      },
+    }),
+
     prisma.order.findMany({
       where: {
         OR: [
@@ -182,6 +230,22 @@ export default async function AdminDashboardPage() {
         total: true,
       },
     }),
+
+    prisma.order.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: {
+        id: true,
+        createdAt: true,
+        status: true,
+        paymentMethod: true,
+        contactName: true,
+        contactEmail: true,
+        total: true,
+      },
+    }),
   ]);
 
   const sortedActions = [...actionOrders].sort((a, b) => {
@@ -197,7 +261,7 @@ export default async function AdminDashboardPage() {
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
-  const kpis = [
+  const mainKpis = [
     {
       label: "Pedidos de hoy",
       value: todayOrders,
@@ -236,6 +300,33 @@ export default async function AdminDashboardPage() {
     },
   ];
 
+  const secondaryKpis = [
+    {
+      label: "Ventas confirmadas hoy",
+      value: todayConfirmedSales._count._all,
+      hint: "Pedidos activos pagados/confirmados",
+      tone: "text-lime-200",
+    },
+    {
+      label: "Ingresos confirmados hoy",
+      value: CLP(todayConfirmedSales._sum.total ?? 0),
+      hint: "Total de pedidos activos de hoy",
+      tone: "text-lime-300",
+    },
+    {
+      label: "Pedidos vencidos",
+      value: expiredPendingOrders,
+      hint: "PENDING_PAYMENT con paymentDueAt vencido",
+      tone: "text-red-200",
+    },
+    {
+      label: "Cancelados hoy",
+      value: cancelledToday,
+      hint: "Cancelados actualizados durante el día",
+      tone: "text-neutral-300",
+    },
+  ];
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-100">
       <section className="relative overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950/60 p-5 md:p-7">
@@ -250,8 +341,8 @@ export default async function AdminDashboardPage() {
               Dashboard operativo
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
-              Vista rápida para responder qué debes revisar hoy: pagos, pedidos por procesar
-              y productos pendientes de preparación.
+              Vista rápida para responder qué debes revisar hoy: pagos, pedidos por procesar,
+              productos pendientes y últimas señales comerciales.
             </p>
           </div>
 
@@ -265,94 +356,180 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        {kpis.map((kpi) => (
-          <article
-            key={kpi.label}
-            className="rounded-3xl border border-neutral-800 bg-neutral-950/60 p-4"
-          >
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-neutral-500">
-              {kpi.label}
-            </p>
-            <div className={`mt-3 text-3xl font-black ${kpi.tone}`}>{kpi.value}</div>
-            <p className="mt-2 text-xs leading-5 text-neutral-500">{kpi.hint}</p>
-          </article>
+        {mainKpis.map((kpi) => (
+          <KpiCard key={kpi.label} {...kpi} />
         ))}
       </section>
 
-      <section className="mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/60">
-        <div className="border-b border-neutral-800 p-5">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">
-            Requieren acción
-          </p>
-          <h2 className="mt-2 text-xl font-black text-white">Cola priorizada</h2>
-          <p className="mt-2 text-sm text-neutral-400">
-            Prioridad: pagos vencidos, pedidos pagados sin procesar y pedidos en preparación antiguos.
-          </p>
-        </div>
+      <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {secondaryKpis.map((kpi) => (
+          <KpiCard key={kpi.label} {...kpi} />
+        ))}
+      </section>
 
-        {sortedActions.length === 0 ? (
-          <div className="p-6 text-sm text-neutral-400">
-            No hay pedidos críticos pendientes en este momento.
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+        <section className="rounded-3xl border border-neutral-800 bg-neutral-950/60">
+          <div className="border-b border-neutral-800 p-5">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">
+              Requieren acción
+            </p>
+            <h2 className="mt-2 text-xl font-black text-white">Cola priorizada</h2>
+            <p className="mt-2 text-sm text-neutral-400">
+              Prioridad: pagos vencidos, pedidos pagados sin procesar y pedidos en preparación antiguos.
+            </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-xs">
-              <thead className="border-b border-neutral-800 bg-black/20">
-                <tr>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Pedido</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Cliente</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Total</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Estado</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Pago</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Antigüedad</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Acción</th>
-                </tr>
-              </thead>
 
-              <tbody>
-                {sortedActions.map((order) => (
-                  <tr key={order.id} className="border-t border-neutral-900 hover:bg-white/[0.03]">
-                    <td className="px-4 py-3 font-mono text-[11px] text-neutral-400">
-                      {shortId(order.id)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-neutral-100">{order.contactName || "—"}</div>
-                      <div className="mt-1 text-[11px] text-neutral-500">
+          {sortedActions.length === 0 ? (
+            <div className="p-6 text-sm text-neutral-400">
+              No hay pedidos críticos pendientes en este momento.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse text-xs">
+                <thead className="border-b border-neutral-800 bg-black/20">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Pedido</th>
+                    <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Cliente</th>
+                    <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Total</th>
+                    <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Estado</th>
+                    <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Pago</th>
+                    <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Antigüedad</th>
+                    <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Acción</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {sortedActions.map((order) => (
+                    <tr key={order.id} className="border-t border-neutral-900 hover:bg-white/[0.03]">
+                      <td className="px-4 py-3 font-mono text-[11px] text-neutral-400">
+                        {shortId(order.id)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-neutral-100">{order.contactName || "—"}</div>
+                        <div className="mt-1 text-[11px] text-neutral-500">
+                          {order.contactEmail || "—"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-extrabold text-neutral-100">
+                        {CLP(order.total)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={order.status} />
+                      </td>
+                      <td className="px-4 py-3 text-neutral-300">
+                        {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-300">{ageLabel(order.createdAt)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/admin/pedidos/${order.id}`}
+                          className="inline-flex rounded-xl border border-lime-400/30 bg-lime-400/10 px-3 py-2 font-extrabold text-lime-200 hover:bg-lime-400/15"
+                        >
+                          Ver pedido
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-neutral-800 bg-neutral-950/60">
+          <div className="border-b border-neutral-800 p-5">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">
+              Últimos pedidos
+            </p>
+            <h2 className="mt-2 text-xl font-black text-white">Actividad reciente</h2>
+            <p className="mt-2 text-sm text-neutral-400">
+              Últimos 5 pedidos registrados en la tienda.
+            </p>
+          </div>
+
+          {latestOrders.length === 0 ? (
+            <div className="p-6 text-sm text-neutral-400">No hay pedidos registrados.</div>
+          ) : (
+            <div className="divide-y divide-neutral-900">
+              {latestOrders.map((order) => (
+                <div key={order.id} className="p-4 hover:bg-white/[0.03]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-mono text-[11px] text-neutral-500">
+                        {shortId(order.id)}
+                      </div>
+                      <div className="mt-1 font-extrabold text-neutral-100">
+                        {order.contactName || "—"}
+                      </div>
+                      <div className="mt-1 truncate text-xs text-neutral-500">
                         {order.contactEmail || "—"}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-extrabold text-neutral-100">
-                      {CLP(order.total)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={[
-                          "inline-flex rounded-full border px-2 py-1 text-[11px] font-extrabold",
-                          statusTone(order.status),
-                        ].join(" ")}
-                      >
-                        {STATUS_LABELS[order.status] ?? order.status}
+                    </div>
+
+                    <div className="text-right">
+                      <div className="font-black text-neutral-100">{CLP(order.total)}</div>
+                      <div className="mt-1 text-[11px] text-neutral-500">
+                        {dateTimeLabel(order.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={order.status} />
+                      <span className="rounded-full border border-neutral-800 bg-black/20 px-2 py-1 text-[11px] font-extrabold text-neutral-300">
+                        {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-neutral-300">
-                      {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-300">{ageLabel(order.createdAt)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/pedidos/${order.id}`}
-                        className="inline-flex rounded-xl border border-lime-400/30 bg-lime-400/10 px-3 py-2 font-extrabold text-lime-200 hover:bg-lime-400/15"
-                      >
-                        Ver pedido
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </div>
+
+                    <Link
+                      href={`/admin/pedidos/${order.id}`}
+                      className="text-xs font-extrabold text-lime-300 hover:text-lime-200"
+                    >
+                      Ver pedido →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </section>
     </main>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  hint: string;
+  tone: string;
+}) {
+  return (
+    <article className="rounded-3xl border border-neutral-800 bg-neutral-950/60 p-4">
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-neutral-500">
+        {label}
+      </p>
+      <div className={`mt-3 text-3xl font-black ${tone}`}>{value}</div>
+      <p className="mt-2 text-xs leading-5 text-neutral-500">{hint}</p>
+    </article>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      className={[
+        "inline-flex rounded-full border px-2 py-1 text-[11px] font-extrabold",
+        statusTone(status),
+      ].join(" ")}
+    >
+      {STATUS_LABELS[status] ?? status}
+    </span>
   );
 }
