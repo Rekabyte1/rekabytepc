@@ -6,9 +6,10 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", description: "Resumen operativo" },
+  { href: "/admin/operaciones", label: "Operaciones", description: "Alertas y prioridades" },
   { href: "/admin/pedidos", label: "Pedidos", description: "Gestión diaria" },
   { href: "/admin/reportes", label: "Reportes", description: "Lectura comercial" },
-  { href: "/admin/productos", label: "Productos", description: "Próximamente" },
+  { href: "/admin/productos", label: "Productos", description: "Catálogo operativo" },
   { href: "/admin/clientes", label: "Clientes", description: "Próximamente" },
   { href: "/admin/configuracion", label: "Configuración", description: "Próximamente" },
 ];
@@ -37,7 +38,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             </p>
             <h2 className="mt-2 text-xl font-black text-white">Admin Operativo</h2>
             <p className="mt-2 text-xs leading-5 text-neutral-400">
-              Backoffice para revisar pedidos, prioridades y reportes sin tocar lógica crítica.
+              Backoffice para revisar pedidos, prioridades, catálogo y operación comercial.
             </p>
           </div>
 
