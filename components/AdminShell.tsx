@@ -10,8 +10,8 @@ const NAV_ITEMS = [
   { href: "/admin/pedidos", label: "Pedidos", description: "Gestión diaria" },
   { href: "/admin/reportes", label: "Reportes", description: "Lectura comercial" },
   { href: "/admin/productos", label: "Productos", description: "Catálogo operativo" },
-  { href: "/admin/clientes", label: "Clientes", description: "Próximamente" },
-  { href: "/admin/configuracion", label: "Configuración", description: "Próximamente" },
+  { href: "/admin/clientes", label: "Clientes", description: "Inteligencia de clientes" },
+  { href: "/admin/configuracion", label: "Configuración", description: "Estado del sistema" },
 ];
 
 function isActive(pathname: string, href: string) {
