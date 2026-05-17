@@ -98,7 +98,7 @@ export default function HeroSlider({
   if (len === 0) {
     return (
       <section className={`w-full max-w-[1400px] mx-auto px-4 sm:px-6 ${className}`}>
-        <div className="relative h-[280px] sm:h-[360px] md:h-[440px] lg:h-[520px] overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
+        <div className="relative aspect-[16/9] sm:aspect-[16/8] md:h-[440px] md:aspect-auto lg:h-[520px] overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
           <div className="flex h-full w-full items-center justify-center text-sm text-neutral-500">
             Sin banners disponibles
           </div>
@@ -116,19 +116,30 @@ export default function HeroSlider({
       onTouchEnd={onTouchEnd}
       aria-roledescription="Carrusel"
     >
-      <div className="relative h-[280px] sm:h-[360px] md:h-[440px] lg:h-[520px] overflow-hidden rounded-2xl border border-neutral-800/60 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
+      <div className="relative aspect-[16/9] sm:aspect-[16/8] md:h-[440px] md:aspect-auto lg:h-[520px] overflow-hidden rounded-2xl border border-neutral-800/60 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
         {safeSlides.map((slide, i) => {
           const isActive = i === index;
 
           const content = (
-            <img
-              src={slide.src}
-              alt={slide.alt ?? `Banner ${i + 1}`}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+            <div
+              className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
                 isActive ? "opacity-100" : "opacity-0"
               }`}
-              draggable={false}
-            />
+            >
+              <img
+                src={slide.src}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover object-center blur-sm scale-105 md:hidden"
+                draggable={false}
+              />
+              <img
+                src={slide.src}
+                alt={slide.alt ?? `Banner ${i + 1}`}
+                className="absolute inset-0 h-full w-full object-contain object-center md:object-cover"
+                draggable={false}
+              />
+            </div>
           );
 
           return (
