@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/admin/pedidos", label: "Pedidos", description: "Gestión diaria" },
   { href: "/admin/reportes", label: "Reportes", description: "Lectura comercial" },
   { href: "/admin/productos", label: "Productos", description: "Catálogo operativo" },
+  { href: "/admin/inventario", label: "Inventario", description: "Costos y capital" },
   { href: "/admin/clientes", label: "Clientes", description: "Inteligencia de clientes" },
   { href: "/admin/configuracion", label: "Configuración", description: "Estado del sistema" },
 ];
