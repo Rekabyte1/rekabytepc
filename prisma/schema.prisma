@@ -8,26 +8,22 @@ datasource db {
 }
 
 model User {
-  id           String  @id @default(cuid())
-  name         String
-  lastName     String?
-  rut          String?
-  email        String  @unique
-  passwordHash String?
-  phone        String?
-
-  // Perfil de facturación guardado como JSON
+  id             String    @id @default(cuid())
+  name           String
+  lastName       String?
+  rut            String?
+  email          String    @unique
+  passwordHash   String?
+  phone          String?
   billingProfile Json?
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
-
-  addresses Address[]
-  orders    Order[]
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+  addresses      Address[]
+  orders         Order[]
 }
 
 model Address {
-  id        String  @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String?
   fullName  String
   phone     String
@@ -36,107 +32,84 @@ model Address {
   apartment String?
   city      String
   region    String
-  country   String  @default("Chile")
+  country   String     @default("Chile")
   commune   String?
-
-  isDefault Boolean @default(false)
-
+  isDefault Boolean    @default(false)
   user      User?      @relation(fields: [userId], references: [id])
   shipments Shipment[]
 }
 
 model Product {
-  id   String @id @default(cuid())
-  name String
-  slug String @unique
-
-  // Compatibilidad hacia atrás
-  description   String?
-  price         Int
-  priceCard     Int     @default(0)
-  priceTransfer Int     @default(0)
-  imageUrl      String?
-
-  stock    Int?
-  isActive Boolean @default(true)
-
-  // Nuevos campos catálogo
-  kind        ProductKind     @default(PREBUILT_PC)
-  category    ProductCategory @default(PREBUILT_PC)
-  subcategory String?
-  brand       String?
-  sku         String?
-
-  platformTag String? // eS NUEVO
-
-  setupTier     SetupTier?
-  setupCategory SetupCategory?
-
-  shortDescription String?
-  specs            Json?
-  images           String[] @default([])
-
+  id                 String          @id @default(cuid())
+  name               String
+  slug               String          @unique
+  description        String?
+  price              Int
+  priceCard          Int             @default(0)
+  priceTransfer      Int             @default(0)
+  imageUrl           String?
+  stock              Int?
+  isActive           Boolean         @default(true)
+  kind               ProductKind     @default(PREBUILT_PC)
+  category           ProductCategory @default(PREBUILT_PC)
+  subcategory        String?
+  brand              String?
+  sku                String?
+  shortDescription   String?
+  specs              Json?
+  images             String[]        @default([])
   seoTitle           String?
   seoDescription     String?
   manufacturerPdfUrl String?
-
-  badge     String?
-  featured  Boolean @default(false)
-  sortOrder Int     @default(0)
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
-
-  orderItems OrderItem[]
+  badge              String?
+  featured           Boolean         @default(false)
+  sortOrder          Int             @default(0)
+  createdAt          DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(6)
+  platformTag        String?
+  setupTier          SetupTier?
+  setupCategory      SetupCategory?
+  inventoryItems     InventoryItem[]
+  orderItems         OrderItem[]
 }
 
 model Order {
-  id           String  @id @default(cuid())
-  userId       String?
-  contactEmail String
-  contactName  String
-  contactPhone String?
-
-  status         OrderStatus    @default(PENDING_PAYMENT)
-  shippingMethod ShippingMethod
-  paymentMethod  PaymentMethod
-
-  shippingCost Int @default(0)
-  subtotal     Int
-  total        Int
-
-  notes String?
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
-
-  checkoutToken           String?   @unique
-  confirmationEmailSentAt DateTime? @db.Timestamptz(6)
-
-  paymentDueAt    DateTime? @db.Timestamptz(6)
-  cancelledAt     DateTime? @db.Timestamptz(6)
-  stockReleasedAt DateTime? @db.Timestamptz(6)
-
-  // Documento tributario
-  documentType DocumentType @default(BOLETA)
-  invoiceData  Json?
-
-  user     User?       @relation(fields: [userId], references: [id])
-  items    OrderItem[]
-  payment  Payment?
-  shipment Shipment?
+  id                      String         @id @default(cuid())
+  userId                  String?
+  contactEmail            String
+  contactName             String
+  contactPhone            String?
+  status                  OrderStatus    @default(PENDING_PAYMENT)
+  shippingMethod          ShippingMethod
+  paymentMethod           PaymentMethod
+  shippingCost            Int            @default(0)
+  subtotal                Int
+  total                   Int
+  notes                   String?
+  createdAt               DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime       @updatedAt @db.Timestamptz(6)
+  checkoutToken           String?        @unique
+  confirmationEmailSentAt DateTime?      @db.Timestamptz(6)
+  paymentDueAt            DateTime?      @db.Timestamptz(6)
+  cancelledAt             DateTime?      @db.Timestamptz(6)
+  stockReleasedAt         DateTime?      @db.Timestamptz(6)
+  documentType            DocumentType   @default(BOLETA)
+  invoiceData             Json?
+  user                    User?          @relation(fields: [userId], references: [id])
+  items                   OrderItem[]
+  payment                 Payment?
+  shipment                Shipment?
 }
 
 model OrderItem {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   orderId     String
   productId   String
   productName String
   unitPrice   Int
   quantity    Int
-
-  order   Order   @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  order       Order   @relation(fields: [orderId], references: [id])
+  product     Product @relation(fields: [productId], references: [id])
 }
 
 model Payment {
@@ -147,10 +120,8 @@ model Payment {
   amount        Int
   transactionId String?
   proofUrl      String?
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-
-  order Order @relation(fields: [orderId], references: [id])
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  order         Order         @relation(fields: [orderId], references: [id])
 }
 
 model Shipment {
@@ -159,16 +130,69 @@ model Shipment {
   type           ShippingMethod
   addressId      String?
   pickupLocation String?
+  status         ShipmentStatus @default(PENDING)
+  trackingCode   String?
+  estimatedDate  DateTime?      @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+  address        Address?       @relation(fields: [addressId], references: [id])
+  order          Order          @relation(fields: [orderId], references: [id])
+}
 
-  status        ShipmentStatus @default(PENDING)
-  trackingCode  String?
-  estimatedDate DateTime?      @db.Timestamptz(6)
+model Supplier {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  notes       String?
+  createdAt   DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime            @updatedAt @db.Timestamptz(6)
+  purchases   InventoryPurchase[]
+}
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+model InventoryItem {
+  id                   String              @id @default(cuid())
+  productId            String?
+  internalSku          String              @unique
+  category             ProductCategory
+  brand                String?
+  model                String
+  currentStock         Int                 @default(0)
+  minStock             Int                 @default(0)
+  targetStock          Int                 @default(0)
+  lastNetCost          Int                 @default(0)
+  lastTaxRate          Float               @default(0.19)
+  lastCostWithTax      Int                 @default(0)
+  currentTransferPrice Int                 @default(0)
+  currentCardPrice     Int                 @default(0)
+  notes                String?
+  createdAt            DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime            @updatedAt @db.Timestamptz(6)
+  product              Product?            @relation(fields: [productId], references: [id])
+  purchases            InventoryPurchase[]
+}
 
-  address Address? @relation(fields: [addressId], references: [id])
-  order   Order    @relation(fields: [orderId], references: [id])
+model InventoryPurchase {
+  id                     String        @id @default(cuid())
+  inventoryItemId        String
+  supplierId             String
+  purchaseDate           DateTime      @db.Timestamptz(6)
+  quantity               Int
+  unitNetCost            Int
+  taxRate                Float         @default(0.19)
+  unitCostWithTax        Int
+  totalCost              Int
+  suggestedTransferPrice Int           @default(0)
+  suggestedCardPrice     Int           @default(0)
+  marginTransferPercent  Float         @default(0)
+  marginCardPercent      Float         @default(0)
+  invoiceNumber          String?
+  notes                  String?
+  createdAt              DateTime      @default(now()) @db.Timestamptz(6)
+  inventoryItem          InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  supplier               Supplier      @relation(fields: [supplierId], references: [id])
 }
 
 enum ProductKind {
