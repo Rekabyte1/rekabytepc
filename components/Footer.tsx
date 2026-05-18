@@ -95,7 +95,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://tiktok.com/@rekaplay1_"
+                href="https://www.tiktok.com/@rekabyte.cl"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -103,7 +103,7 @@ export default function Footer() {
               </a>
 
               <a
-                href="https://youtube.com/@rekabytecl"
+                href="https://www.youtube.com/@rekabytecl"
                 target="_blank"
                 rel="noopener noreferrer"
               >
