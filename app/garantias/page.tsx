@@ -20,8 +20,8 @@ export default function GarantiasPage() {
         <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
           <h2 className="mb-2 text-xl font-bold text-white">Resumen</h2>
           <p className="text-neutral-300">
-            En RekaByte armamos equipos y realizamos control de calidad antes de
-            entregar o despachar. La garantía cubre{" "}
+            En RekaByte nos especializamos en Periféricos gamer y realizamos control de calidad antes de
+             despachar(protección del empaque). La garantía cubre{" "}
             <span className="font-bold text-neutral-200">
               fallas de fábrica / componente defectuoso
             </span>{" "}
@@ -36,7 +36,7 @@ export default function GarantiasPage() {
           <p className="text-neutral-300">
             Para comenzar, ofrecemos{" "}
             <span className="font-bold text-neutral-200">6 meses de garantía</span>{" "}
-            en equipos armados, aplicable a{" "}
+             aplicable a{" "}
             <span className="font-bold text-neutral-200">
               fallas atribuibles a defecto de fábrica del componente
             </span>
@@ -51,7 +51,7 @@ export default function GarantiasPage() {
             DOA (falla inicial)
           </h2>
           <p className="text-neutral-300">
-            Si el equipo presenta una falla al recibirlo o durante los primeros
+            Si el producto presenta una falla al recibirlo o durante los primeros
             días de uso, contáctanos de inmediato. Revisaremos el caso para
             aplicar una solución prioritaria ( reemplazo del
             componente o alternativa disponible), sujeto a evaluación técnica y
@@ -69,19 +69,17 @@ export default function GarantiasPage() {
               La garantía <span className="font-bold text-neutral-200">no cubre</span>{" "}
               daños por golpes, caídas, líquidos, humedad, polvo excesivo,
               intervención de terceros, mal uso, negligencia, uso fuera de
-              especificación, overclock, daño por transporte posterior a la
+              especificación, daño por transporte posterior a la
               entrega, o desgaste normal.
             </li>
             <li>
               La garantía <span className="font-bold text-neutral-200">no cubre</span>{" "}
-              daños por sobrevoltaje, variaciones eléctricas, descargas
-              eléctricas, fuentes externas defectuosas, o instalaciones sin
-              protección adecuada.
+              daños por daño fisico ni mal uso de los productos. 
             </li>
             <li>
               Se debe entregar el producto con{" "}
               <span className="font-bold text-neutral-200">N° de pedido</span> y,
-              idealmente, con todos sus accesorios y embalaje correcto.
+               con todos sus accesorios y embalaje correcto.
             </li>
             <li>
               El diagnóstico técnico puede tardar entre{" "}
@@ -91,26 +89,6 @@ export default function GarantiasPage() {
           </ul>
         </section>
 
-        {/* Upgrades */}
-        <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-          <h2 className="mb-2 text-xl font-bold text-white">
-            Cambios y upgrades del cliente
-          </h2>
-          <p className="text-neutral-300">
-            El cliente puede realizar cambios o upgrades (por ejemplo, añadir RAM
-            o almacenamiento){" "}
-            <span className="font-bold text-neutral-200">
-              siempre que no afecten el funcionamiento del equipo
-            </span>
-            . Sin embargo,{" "}
-            <span className="font-bold text-neutral-200">
-              si después de una modificación el equipo presenta fallas asociadas
-              a dicha intervención
-            </span>
-            , RekaByte no se hace responsable por daños o fallas derivadas de esa
-            modificación.
-          </p>
-        </section>
 
         {/* Envíos por garantía */}
         <section className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">

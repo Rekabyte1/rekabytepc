@@ -77,14 +77,14 @@ export default function EnviosPage() {
           <h2 className="mb-2 text-xl font-bold text-white">Plazos y preparación</h2>
           <ul className="list-disc space-y-2 pl-5 text-neutral-300">
             <li>
-              Publicaremos principalmente equipos armados{" "}
+              Publicaremos principalmente Periféricos de todas las gamas.{" "}
               <span className="font-semibold text-white">listos para entrega inmediata</span>.
             </li>
             <li>
-              Antes de despachar, podemos realizar control de calidad y pruebas
+              Antes de despachar, podemos realizar control de calidad
               (embalaje, revisión final, estrés básico). Esto puede añadir{" "}
-              <span className="font-semibold text-white">24–72 horas hábiles</span> antes
-              del retiro/despacho.
+              <span className="font-semibold text-white">24–48 horas hábiles</span> antes
+              del despacho.
             </li>
             <li>
               Los plazos de transporte dependen de Bluexpress los tiempos estimados son de 2 a 4 días. En fechas de
