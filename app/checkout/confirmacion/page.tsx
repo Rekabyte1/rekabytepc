@@ -89,6 +89,7 @@ export default function Paso4Confirmacion() {
   const [orderId, setOrderId] = useState<string>("");
   const [uiError, setUiError] = useState<string | null>(null);
   const [uiSuccess, setUiSuccess] = useState<string | null>(null);
+  const [pricingWarning, setPricingWarning] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -234,6 +235,7 @@ window.location.href = String(redirectUrl);
 
     setUiError(null);
     setUiSuccess(null);
+    setPricingWarning(null);
 
     if (missing.length) {
       setUiError(`Falta completar: ${missing.join(", ")}. Revisa los pasos anteriores.`);
@@ -310,6 +312,10 @@ window.location.href = String(redirectUrl);
       }
 
       setOrderId(finalId);
+
+      if (checkoutData?.pricingUpdated && checkoutData?.pricingWarning) {
+        setPricingWarning(String(checkoutData.pricingWarning));
+      }
 
       if (paymentMethod === "mercadopago") {
         await createOrReuseMercadoPagoPreference(finalId);
@@ -397,6 +403,12 @@ window.location.href = String(redirectUrl);
               </div>
             </div>
           )}
+
+          {pricingWarning ? (
+            <div className="cs-msg" style={{ border: "1px solid rgba(251, 191, 36, 0.35)", background: "rgba(251, 191, 36, 0.08)", color: "#fde68a" }}>
+              {pricingWarning}
+            </div>
+          ) : null}
 
           <div className="cs-panels">
             <div className="cs-panel">
