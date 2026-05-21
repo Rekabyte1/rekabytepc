@@ -7,234 +7,14 @@ import CheckoutSummary from "@/components/CheckoutSummary";
 import { useCheckout } from "@/components/CheckoutStore";
 import { useCheckoutGuard } from "@/components/useCheckoutGuard";
 import { useCart } from "@/components/CartContext";
+import { calculateShippingCost } from "@/lib/shipping";
 
 type TipoEnvioUI = "pickup" | "delivery";
 type CourierUI = "bluexpress";
-type ShippingZone = "RM" | "NO_EXTREMA" | "EXTREMOS" | "UNKNOWN";
-type ComponentShippingSize = "SMALL" | "MEDIUM" | "LARGE" | "XL";
-
 type Option = { value: string; label: string };
 
 function safeStr(v: unknown) {
   return String(v ?? "").trim();
-}
-
-function normalizeText(v: unknown) {
-  return safeStr(v)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function normalizeRegion(regionRaw: string) {
-  return safeStr(regionRaw).toLowerCase();
-}
-
-function zoneByRegion(regionRaw: string): ShippingZone {
-  const r = normalizeRegion(regionRaw);
-  if (!r) return "UNKNOWN";
-
-  if (r.includes("metropolitana")) return "RM";
-
-  // Zonas extremas para tu lógica comercial
-  if (
-    r.includes("arica") ||
-    r.includes("parinacota") ||
-    r.includes("tarapac") ||
-    r.includes("atacama") ||
-    r.includes("ays") ||
-    r.includes("magall")
-  ) {
-    return "EXTREMOS";
-  }
-
-  return "NO_EXTREMA";
-}
-
-function pcShippingPerUnit(zone: ShippingZone, unitSubtotalTransfer: number) {
-  if (zone === "EXTREMOS") return 20000;
-
-  if (zone === "RM") {
-    return unitSubtotalTransfer > 2_000_000 ? 12000 : 8000;
-  }
-
-  return unitSubtotalTransfer > 1_500_000 ? 15000 : 12000;
-}
-
-function componentShippingBySize(
-  zone: ShippingZone,
-  size: ComponentShippingSize
-) {
-  const table: Record<
-    ComponentShippingSize,
-    Record<"RM" | "NO_EXTREMA" | "EXTREMOS", number>
-  > = {
-    SMALL: { RM: 3990, NO_EXTREMA: 5990, EXTREMOS: 7990 },
-    MEDIUM: { RM: 4990, NO_EXTREMA: 7990, EXTREMOS: 9990 },
-    LARGE: { RM: 6990, NO_EXTREMA: 10990, EXTREMOS: 14990 },
-    XL: { RM: 8990, NO_EXTREMA: 13990, EXTREMOS: 17990 },
-  };
-
-  const normalizedZone = zone === "UNKNOWN" ? "NO_EXTREMA" : zone;
-  return table[size][normalizedZone];
-}
-
-function sizeRank(size: ComponentShippingSize) {
-  switch (size) {
-    case "SMALL":
-      return 1;
-    case "MEDIUM":
-      return 2;
-    case "LARGE":
-      return 3;
-    case "XL":
-      return 4;
-  }
-}
-
-function inferCartItemShippingSize(item: {
-  id?: string;
-  name?: string;
-}): ComponentShippingSize {
-  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
-
-  if (text.includes("monitor")) return "XL";
-
-  if (text.includes("gabinete") || text.includes("case")) {
-    if (
-      text.includes("mini itx") ||
-      text.includes("mini-itx") ||
-      text.includes("micro atx") ||
-      text.includes("micro-atx") ||
-      text.includes("matx")
-    ) {
-      return "LARGE";
-    }
-    return "XL";
-  }
-
-  if (
-    text.includes("rtx") ||
-    text.includes("radeon") ||
-    text.includes("rx ") ||
-    text.includes("rx-") ||
-    text.includes("gpu") ||
-    text.includes("tarjeta de video") ||
-    text.includes("placa madre") ||
-    text.includes("motherboard")
-  ) {
-    return "LARGE";
-  }
-
-  if (
-    text.includes("fuente") ||
-    text.includes("psu") ||
-    text.includes("cooler") ||
-    text.includes("disipador") ||
-    text.includes("ventilador") ||
-    text.includes("teclado") ||
-    text.includes("audifono") ||
-    text.includes("headset") ||
-    text.includes("webcam") ||
-    text.includes("microfono") ||
-    text.includes("mousepad")
-  ) {
-    return "MEDIUM";
-  }
-
-  if (
-    text.includes("mouse") ||
-    text.includes("ram") ||
-    text.includes("ssd") ||
-    text.includes("nvme") ||
-    text.includes("pasta termica") ||
-    text.includes("cpu") ||
-    text.includes("procesador")
-  ) {
-    return "SMALL";
-  }
-
-  return "MEDIUM";
-}
-
-function isPcItem(item: { id?: string; name?: string }) {
-  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
-
-  return (
-    text.includes("oficina-") ||
-    text.includes("entrada-") ||
-    text.includes("media-") ||
-    text.includes("ryzen") ||
-    text.includes("8600g") ||
-    text.includes("pc ")
-  );
-}
-
-function calculateShipping(params: {
-  region?: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    priceTransfer: number;
-  }>;
-}) {
-  const { region, items } = params;
-  if (!region) return 0;
-
-  const zone = zoneByRegion(region);
-
-  let totalShipping = 0;
-  const groupedItems: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    priceTransfer: number;
-  }> = [];
-
-  for (const item of items) {
-    const quantity = Math.max(1, Number(item.quantity ?? 1));
-    const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
-
-    const isPc = isPcItem(item);
-    const isCase = text.includes("gabinete") || text.includes("case");
-
-    // 1) PC armado → cobra por unidad
-    if (isPc) {
-      const perUnit = pcShippingPerUnit(zone, item.priceTransfer);
-      totalShipping += perUnit * quantity;
-      continue;
-    }
-
-    // 2) Gabinete → cobra por unidad
-    if (isCase) {
-      const size = inferCartItemShippingSize(item);
-      const perUnit = componentShippingBySize(zone, size);
-      totalShipping += perUnit * quantity;
-      continue;
-    }
-
-    // 3) Todo lo demás → se agrupa y cobra una sola vez
-    if (quantity > 0) {
-      groupedItems.push(item);
-    }
-  }
-
-  // 4) Si existe al menos un producto pequeño/normal,
-  // se cobra un solo envío agrupado usando el mayor tamaño del grupo
-  if (groupedItems.length > 0) {
-    const biggestSize = groupedItems.reduce<ComponentShippingSize>(
-      (max, item) => {
-        const current = inferCartItemShippingSize(item);
-        return sizeRank(current) > sizeRank(max) ? current : max;
-      },
-      "SMALL"
-    );
-
-    totalShipping += componentShippingBySize(zone, biggestSize);
-  }
-
-  return totalShipping;
 }
 
 const REGIONES_COMUNAS: Record<string, string[]> = {
@@ -289,45 +69,46 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
   ],
   Valparaíso: [
     "Valparaíso",
-    "Casablanca",
-    "Concón",
-    "Juan Fernández",
-    "Puchuncaví",
-    "Quintero",
     "Viña del Mar",
+    "Concón",
+    "Quilpué",
+    "Villa Alemana",
+    "Casablanca",
+    "Quintero",
+    "Puchuncaví",
+    "Juan Fernández",
+    "San Antonio",
+    "Cartagena",
+    "El Tabo",
+    "El Quisco",
+    "Algarrobo",
+    "Santo Domingo",
     "Isla de Pascua",
     "Los Andes",
     "Calle Larga",
     "Rinconada",
     "San Esteban",
-    "La Ligua",
-    "Cabildo",
-    "Papudo",
-    "Petorca",
-    "Zapallar",
-    "Quillota",
-    "Calera",
-    "Hijuelas",
-    "La Cruz",
-    "Nogales",
-    "San Antonio",
-    "Algarrobo",
-    "Cartagena",
-    "El Quisco",
-    "El Tabo",
-    "Santo Domingo",
     "San Felipe",
     "Catemu",
     "Llaillay",
     "Panquehue",
     "Putaendo",
     "Santa María",
-    "Quilpué",
+    "Quillota",
+    "Calera",
+    "Hijuelas",
+    "La Cruz",
+    "Nogales",
+    "Petorca",
+    "Cabildo",
+    "La Ligua",
+    "Papudo",
+    "Zapallar",
     "Limache",
     "Olmué",
-    "Villa Alemana",
   ],
-  "Región Metropolitana": [
+  Metropolitana: [
+    "Santiago",
     "Cerrillos",
     "Cerro Navia",
     "Conchalí",
@@ -358,7 +139,6 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "San Joaquín",
     "San Miguel",
     "San Ramón",
-    "Santiago",
     "Vitacura",
     "Puente Alto",
     "Pirque",
@@ -382,7 +162,7 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Peñaflor",
   ],
   "O'Higgins": [
-    "Rancagua",
+  "Rancagua",
     "Codegua",
     "Coinco",
     "Coltauco",
@@ -402,7 +182,7 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Pichilemu",
     "La Estrella",
     "Litueche",
-    "Marchigüe",
+    "Marchihue",
     "Navidad",
     "Paredones",
     "San Fernando",
@@ -427,6 +207,9 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Río Claro",
     "San Clemente",
     "San Rafael",
+    "Cauquenes",
+    "Chanco",
+    "Pelluhue",
     "Curicó",
     "Hualañé",
     "Licantén",
@@ -444,14 +227,10 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "San Javier",
     "Villa Alegre",
     "Yerbas Buenas",
-    "Cauquenes",
-    "Chanco",
-    "Pelluhue",
   ],
   Ñuble: [
     "Chillán",
     "Bulnes",
-    "Chillán Viejo",
     "Cobquecura",
     "Coelemu",
     "Coihueco",
@@ -470,6 +249,7 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "San Nicolás",
     "Treguaco",
     "Yungay",
+    "Chillán Viejo",
   ],
   Biobío: [
     "Concepción",
@@ -506,7 +286,7 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Yumbel",
     "Alto Biobío",
   ],
-  "La Araucanía": [
+  Araucanía: [
     "Temuco",
     "Carahue",
     "Cunco",
@@ -593,7 +373,7 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
     "Cisnes",
     "Guaitecas",
     "Cochrane",
-    "O'Higgins",
+    "O’Higgins",
     "Tortel",
     "Chile Chico",
     "Río Ibáñez",
@@ -614,183 +394,132 @@ const REGIONES_COMUNAS: Record<string, string[]> = {
 };
 
 function uniqueSorted(arr: string[]) {
-  const set = new Set(arr.map((x) => safeStr(x)).filter(Boolean));
-  return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  return [...new Set(arr.map((x) => safeStr(x)).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "es")
+  );
 }
 
-function toOptions(list: string[]): Option[] {
-  return list.map((x) => ({ value: x, label: x }));
+function toOptions(arr: string[]): Option[] {
+  return arr.map((x) => ({ value: x, label: x }));
 }
 
-function SearchSelect(props: {
-  name: string;
-  label: string;
-  placeholder: string;
+function SearchSelect({
+  value,
+  options,
+  onChange,
+  placeholder,
+  label,
+  disabled,
+  required,
+  name,
+}: {
   value: string;
   options: Option[];
+  onChange: (v: string) => void;
+  placeholder: string;
+  label: string;
   disabled?: boolean;
   required?: boolean;
-  onChange: (next: string) => void;
+  name: string;
 }) {
-  const { name, label, placeholder, value, options, disabled, required, onChange } =
-    props;
-
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const lastKeyRef = useRef<{ key: string; t: number; idx: number }>({
-    key: "",
-    t: 0,
-    idx: 0,
-  });
+  const [active, setActive] = useState(0);
+  const boxRef = useRef<HTMLDivElement | null>(null);
 
   const filtered = useMemo(() => {
-    const q = normalizeText(query);
-    if (!q) return options;
-    return options.filter((o) => normalizeText(o.label).includes(q));
-  }, [options, query]);
-
-  const selectedLabel = useMemo(() => {
-    const found = options.find((o) => o.value === value);
-    return found?.label ?? "";
-  }, [options, value]);
+    if (!query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [query, options]);
 
   useEffect(() => {
-    if (!open) return;
-    setActiveIdx(0);
-    const t = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(t);
-  }, [open]);
-
-  useEffect(() => {
-    function onDocMouseDown(e: MouseEvent) {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
+    const onDoc = (e: MouseEvent) => {
+      if (!boxRef.current) return;
+      if (!boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  function commitValue(v: string) {
-    onChange(v);
-    setOpen(false);
-    setQuery("");
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (disabled) return;
-
-    if (!open && (e.key === "Enter" || e.key === " ")) {
-      e.preventDefault();
-      setOpen(true);
-      return;
-    }
-
+  useEffect(() => {
     if (!open) return;
+    setActive(0);
+  }, [query, open]);
 
-    if (e.key === "Escape") {
-      e.preventDefault();
-      setOpen(false);
-      setQuery("");
-      return;
-    }
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIdx((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)));
-      return;
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIdx((i) => Math.max(i - 1, 0));
-      return;
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const opt = filtered[activeIdx];
-      if (opt) commitValue(opt.value);
-      return;
-    }
-
-    const isLetter = /^[a-zA-ZñÑáéíóúÁÉÍÓÚ]$/.test(e.key);
-    if (isLetter) {
-      const now = Date.now();
-      const k = normalizeText(e.key);
-      const prev = lastKeyRef.current;
-      const within = now - prev.t < 900 && prev.key === k;
-
-      const candidates = filtered
-        .map((o, idx) => ({ o, idx }))
-        .filter(({ o }) => normalizeText(o.label).startsWith(k));
-
-      if (candidates.length) {
-        e.preventDefault();
-        const nextIdx = within ? (prev.idx + 1) % candidates.length : 0;
-        lastKeyRef.current = { key: k, t: now, idx: nextIdx };
-        setActiveIdx(candidates[nextIdx].idx);
-      }
-    }
-  }
+  const selectedLabel = value
+    ? options.find((o) => o.value === value)?.label ?? value
+    : "";
 
   return (
-    <div className="ss-wrap" ref={wrapRef}>
-      <label className="cs-label">
-        {label}
-        {required ? " *" : ""}
-      </label>
-
-      <input type="hidden" name={name} value={value} />
-
+    <div className="ss-wrap" ref={boxRef}>
+      <label className="cs-label">{label}{required ? " *" : ""}</label>
       <button
         type="button"
-        className={`ss-btn ${disabled ? "is-disabled" : ""}`}
+        className={`cs-input ss-trigger ${disabled ? "is-disabled" : ""}`}
         onClick={() => !disabled && setOpen((v) => !v)}
-        onKeyDown={handleKeyDown}
-        aria-haspopup="listbox"
         aria-expanded={open}
-        disabled={disabled}
+        aria-haspopup="listbox"
+        name={name}
       >
-        <span className={`ss-value ${selectedLabel ? "" : "is-placeholder"}`}>
+        <span className={selectedLabel ? "ss-value" : "ss-placeholder"}>
           {selectedLabel || placeholder}
         </span>
-        <span className="ss-caret" aria-hidden="true">
-          ▾
-        </span>
+        <span className="ss-caret">▾</span>
       </button>
 
-      {open ? (
-        <div className="ss-pop" role="listbox" tabIndex={-1} onKeyDown={handleKeyDown}>
-          <div className="ss-search">
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar..."
-              className="ss-input"
-            />
-          </div>
+      {open && !disabled && (
+        <div className="ss-pop">
+          <input
+            className="ss-search"
+            placeholder="Escribe para buscar…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActive((a) => Math.min(a + 1, Math.max(filtered.length - 1, 0)));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((a) => Math.max(a - 1, 0));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                const opt = filtered[active];
+                if (opt) {
+                  onChange(opt.value);
+                  setOpen(false);
+                  setQuery("");
+                }
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                setOpen(false);
+              }
+            }}
+            autoFocus
+          />
 
-          <div className="ss-list">
+          <div className="ss-list" role="listbox">
             {filtered.length === 0 ? (
               <div className="ss-empty">Sin resultados</div>
             ) : (
-              filtered.map((opt, idx) => {
-                const active = idx === activeIdx;
-                const selected = opt.value === value;
+              filtered.map((opt, i) => {
+                const isSelected = opt.value === value;
+                const isActive = i === active;
                 return (
                   <button
-                    type="button"
                     key={opt.value}
-                    className={`ss-item ${active ? "is-active" : ""} ${
-                      selected ? "is-selected" : ""
-                    }`}
-                    onMouseEnter={() => setActiveIdx(idx)}
-                    onClick={() => commitValue(opt.value)}
+                    type="button"
+                    className={`ss-item ${isSelected ? "is-selected" : ""} ${isActive ? "is-active" : ""}`}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                    role="option"
+                    aria-selected={isSelected}
                   >
                     {opt.label}
                   </button>
@@ -799,104 +528,75 @@ function SearchSelect(props: {
             )}
           </div>
         </div>
-      ) : null}
+      )}
 
       <style jsx>{`
         .ss-wrap {
           position: relative;
         }
 
-        .ss-btn {
-          width: 100%;
-          height: 44px;
-          border-radius: 12px;
-          background: #141414;
-          border: 1px solid #242424;
-          color: #e5e7eb;
-          padding: 0 12px;
+        .ss-trigger {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
-          cursor: pointer;
+          gap: 8px;
+          text-align: left;
         }
 
-        .ss-btn:hover {
-          border-color: #343434;
-        }
-
-        .ss-btn.is-disabled {
-          opacity: 0.6;
+        .ss-trigger.is-disabled {
+          opacity: 0.55;
           cursor: not-allowed;
         }
 
-        .ss-value {
-          text-align: left;
-          font-size: 14px;
-          font-weight: 600;
-          color: #e5e7eb;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+        .ss-placeholder {
+          color: #737373;
         }
 
-        .ss-value.is-placeholder {
-          color: #6b7280;
-          font-weight: 600;
+        .ss-value {
+          color: #f5f5f5;
         }
 
         .ss-caret {
-          color: #9ca3af;
-          font-size: 14px;
+          color: #a3a3a3;
+          font-size: 12px;
         }
 
         .ss-pop {
           position: absolute;
-          z-index: 40;
-          top: calc(100% + 8px);
+          z-index: 50;
+          top: calc(100% + 6px);
           left: 0;
           right: 0;
-          background: #0d0d0d;
-          border: 1px solid #262626;
-          border-radius: 14px;
-          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+          border: 1px solid #2a2a2a;
+          border-radius: 12px;
+          background: #0f0f0f;
+          box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
           overflow: hidden;
         }
 
         .ss-search {
-          padding: 10px;
-          border-bottom: 1px solid #262626;
-          background: rgba(20, 20, 20, 0.45);
-        }
-
-        .ss-input {
           width: 100%;
-          height: 40px;
-          border-radius: 12px;
-          background: #141414;
-          border: 1px solid #242424;
-          color: #e5e7eb;
-          padding: 0 12px;
+          border: 0;
+          border-bottom: 1px solid #232323;
+          background: #111;
+          color: #f5f5f5;
+          padding: 10px 12px;
+          font-size: 13px;
           outline: none;
         }
 
-        .ss-input:focus {
-          border-color: rgba(182, 255, 46, 0.6);
-          box-shadow: 0 0 0 1px rgba(182, 255, 46, 0.15) inset;
-        }
-
         .ss-list {
-          max-height: 260px;
+          max-height: 230px;
           overflow: auto;
-          padding: 6px;
+          display: grid;
         }
 
         .ss-item {
-          width: 100%;
-          text-align: left;
-          border: 1px solid transparent;
+          border: 0;
+          border-bottom: 1px solid #1f1f1f;
           background: transparent;
           color: #e5e7eb;
+          text-align: left;
           padding: 10px 10px;
           border-radius: 12px;
           cursor: pointer;
@@ -979,12 +679,14 @@ export default function Paso2Envio() {
   const estimatedShipping = useMemo(() => {
     if (tipo !== "delivery") return 0;
 
-    return calculateShipping({
+    return calculateShippingCost({
+      deliveryType: "shipping",
       region,
       items: items.map((item) => ({
-        id: item.id,
-        name: item.name,
         quantity: item.quantity,
+        kind: item.kind,
+        name: item.name,
+        slug: item.slug || item.id,
         priceTransfer: item.priceTransfer,
       })),
     });
@@ -1119,10 +821,7 @@ export default function Paso2Envio() {
                     options={ciudadesOptions}
                     disabled={tipo !== "delivery" || !region}
                     required
-                    onChange={(v) => {
-                      setCiudad(v);
-                      if (!comuna) setComuna(v);
-                    }}
+                    onChange={setCiudad}
                   />
                 </div>
 
@@ -1135,57 +834,28 @@ export default function Paso2Envio() {
                     options={comunasOptions}
                     disabled={tipo !== "delivery" || !region}
                     required
-                    onChange={(v) => {
-                      setComuna(v);
-                      if (!ciudad) setCiudad(v);
-                    }}
+                    onChange={setComuna}
                   />
                 </div>
               </div>
 
-              <div className="cs-two">
-                <div className="cs-field">
-                  <label className="cs-label">Courier</label>
-                  <select name="courier" value="bluexpress" className="cs-select" disabled>
-                    <option value="bluexpress">Bluexpress</option>
-                  </select>
-                </div>
-
-                <div className="cs-field">
-                  <label className="cs-label">Costo estimado</label>
-                  <input
-                    className="cs-input"
-                    value={
-                      tipo === "delivery"
-                        ? new Intl.NumberFormat("es-CL", {
-                            style: "currency",
-                            currency: "CLP",
-                          }).format(estimatedShipping)
-                        : "$0"
-                    }
-                    disabled
-                    readOnly
-                  />
-                </div>
+              <div className="cs-estimate">
+                <span>Estimado de envío</span>
+                <strong>
+                  {new Intl.NumberFormat("es-CL", {
+                    style: "currency",
+                    currency: "CLP",
+                    maximumFractionDigits: 0,
+                  }).format(estimatedShipping)}
+                </strong>
               </div>
-
-              {!canContinueDelivery && tipo === "delivery" ? (
-                <p className="cs-warn">
-                  Completa dirección, región, ciudad y comuna para continuar.
-                </p>
-              ) : null}
-
-              <p className="cs-help">
-                Bluexpress se calcula según zona y tipo real de producto. El backend
-                siempre valida el monto final antes de crear el pedido.
-              </p>
             </div>
 
             <div className="cs-actions">
               <button
                 type="button"
-                onClick={() => router.back()}
                 className="rb-btn rb-btn--ghost"
+                onClick={() => router.push("/checkout")}
               >
                 Volver
               </button>
@@ -1193,10 +863,9 @@ export default function Paso2Envio() {
               <button
                 type="submit"
                 className="rb-btn"
-                disabled={tipo === "delivery" && !canContinueDelivery}
-                aria-disabled={tipo === "delivery" && !canContinueDelivery}
+                disabled={!canContinueDelivery}
               >
-                Continuar
+                Continuar a pago
               </button>
             </div>
           </form>
@@ -1212,7 +881,6 @@ export default function Paso2Envio() {
           padding-top: 24px;
           padding-bottom: 24px;
         }
-
         .cs-title {
           margin: 0 0 10px;
           font-size: 30px;
@@ -1220,25 +888,21 @@ export default function Paso2Envio() {
           color: #fff;
           letter-spacing: -0.02em;
         }
-
         .cs-steps {
           margin-bottom: 14px;
         }
-
         .cs-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 18px;
           align-items: start;
         }
-
         @media (min-width: 1024px) {
           .cs-grid {
             grid-template-columns: 1fr 420px;
             gap: 22px;
           }
         }
-
         .cs-card {
           background: #0d0d0d;
           border: 1px solid #262626;
@@ -1246,7 +910,6 @@ export default function Paso2Envio() {
           padding: 18px;
           box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
         }
-
         .cs-head {
           display: grid;
           grid-template-columns: 10px 1fr;
@@ -1254,7 +917,6 @@ export default function Paso2Envio() {
           align-items: start;
           margin-bottom: 14px;
         }
-
         .cs-accent {
           width: 4px;
           height: 24px;
@@ -1262,19 +924,22 @@ export default function Paso2Envio() {
           background: #b6ff2e;
           margin-top: 2px;
         }
-
         .cs-card-title {
           margin: 0;
           color: #fff;
           font-size: 18px;
           font-weight: 800;
         }
-
         .cs-card-sub {
           margin: 6px 0 0;
           color: #a3a3a3;
           font-size: 14px;
           line-height: 1.5;
+        }
+
+        .cs-summary {
+          position: sticky;
+          top: 1.5rem;
         }
 
         .cs-form {
@@ -1284,167 +949,163 @@ export default function Paso2Envio() {
 
         .cs-choice-grid {
           display: grid;
+          grid-template-columns: 1fr;
           gap: 10px;
+        }
+        @media (min-width: 768px) {
+          .cs-choice-grid {
+            grid-template-columns: 1fr 1fr;
+          }
         }
 
         .cs-choice {
-          display: grid;
-          grid-template-columns: 18px 1fr auto;
-          gap: 12px;
-          align-items: center;
-          padding: 12px;
+          border: 1px solid #2a2a2a;
+          background: rgba(20, 20, 20, 0.35);
           border-radius: 14px;
-          background: rgba(20, 20, 20, 0.55);
-          border: 1px solid #262626;
+          padding: 12px;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 10px;
           cursor: pointer;
-          transition: border-color 0.15s ease, background 0.15s ease;
         }
 
-        .cs-choice:hover {
-          border-color: #3a3a3a;
-          background: rgba(20, 20, 20, 0.7);
-        }
-
-        .cs-choice.is-selected {
-          border-color: rgba(182, 255, 46, 0.6);
-          box-shadow: 0 0 0 1px rgba(182, 255, 46, 0.15) inset;
-        }
-
-        .cs-choice input[type="radio"] {
+        .cs-choice input {
+          margin-top: 2px;
           accent-color: #b6ff2e;
         }
 
-        .cs-choice-title {
-          color: #fff;
-          font-weight: 800;
-          font-size: 14px;
+        .cs-choice.is-selected {
+          border-color: rgba(182, 255, 46, 0.35);
+          background: rgba(182, 255, 46, 0.06);
         }
 
+        .cs-choice-title {
+          color: #f5f5f5;
+          font-size: 14px;
+          font-weight: 900;
+        }
         .cs-choice-sub {
-          margin-top: 2px;
+          margin-top: 4px;
           color: #a3a3a3;
-          font-size: 13px;
+          font-size: 12px;
+          line-height: 1.45;
         }
 
         .cs-pill {
-          border: 1px solid #2a2a2a;
-          background: rgba(20, 20, 20, 0.6);
+          border: 1px solid rgba(182, 255, 46, 0.4);
           color: #b6ff2e;
-          font-weight: 800;
-          font-size: 12px;
-          padding: 6px 10px;
+          background: rgba(182, 255, 46, 0.08);
           border-radius: 999px;
+          font-size: 11px;
+          font-weight: 900;
+          padding: 4px 9px;
           white-space: nowrap;
         }
 
         .cs-pill--muted {
-          color: #e5e7eb;
-          opacity: 0.9;
+          border-color: rgba(255, 255, 255, 0.14);
+          color: #d4d4d4;
+          background: rgba(255, 255, 255, 0.04);
         }
 
         .cs-block {
-          border: 1px solid #262626;
+          border: 1px solid #2a2a2a;
           background: rgba(20, 20, 20, 0.35);
           border-radius: 14px;
           padding: 12px;
-          transition: opacity 0.15s ease;
+          display: grid;
+          gap: 10px;
         }
 
         .cs-block.is-hidden {
-          opacity: 0.4;
-          pointer-events: none;
-          filter: grayscale(0.2);
+          display: none;
         }
 
         .cs-block-title {
-          color: #e5e7eb;
-          font-weight: 800;
+          color: #f5f5f5;
           font-size: 14px;
-          margin-bottom: 10px;
+          font-weight: 900;
+          margin-bottom: 2px;
         }
 
         .cs-two {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 12px;
+          gap: 10px;
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 900px) {
           .cs-two {
             grid-template-columns: 1fr 1fr;
           }
         }
 
         .cs-field {
-          display: grid;
-          gap: 6px;
+          min-width: 0;
         }
 
         .cs-label {
+          display: block;
           color: #d4d4d4;
-          font-size: 13px;
-          font-weight: 700;
-        }
-
-        .cs-input,
-        .cs-select {
-          width: 100%;
-          background: #141414;
-          border: 1px solid #242424;
-          color: #e5e7eb;
-          border-radius: 12px;
-          height: 44px;
-          padding: 0 12px;
-        }
-
-        .cs-select {
-          padding-right: 10px;
-        }
-
-        .cs-input::placeholder {
-          color: #6b7280;
-        }
-
-        .cs-help {
-          margin: 10px 0 0;
-          color: #737373;
-          font-size: 12px;
-          line-height: 1.45;
-        }
-
-        .cs-warn {
-          margin: 10px 0 0;
-          color: #fca5a5;
           font-size: 12px;
           font-weight: 800;
+          margin-bottom: 6px;
+        }
+
+        .cs-input {
+          width: 100%;
+          border: 1px solid #2a2a2a;
+          background: #121212;
+          color: #f5f5f5;
+          border-radius: 12px;
+          padding: 10px 12px;
+          outline: none;
+          font-size: 13px;
+        }
+
+        .cs-input:focus {
+          border-color: rgba(182, 255, 46, 0.35);
+          box-shadow: 0 0 0 3px rgba(182, 255, 46, 0.08);
+        }
+
+        .cs-input:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .cs-estimate {
+          margin-top: 4px;
+          border: 1px dashed rgba(182, 255, 46, 0.25);
+          background: rgba(182, 255, 46, 0.05);
+          border-radius: 12px;
+          padding: 10px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          color: #e5e7eb;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .cs-estimate strong {
+          color: #b6ff2e;
+          font-size: 14px;
+          white-space: nowrap;
         }
 
         .cs-actions {
           display: flex;
+          align-items: center;
           justify-content: space-between;
           gap: 10px;
-          margin-top: 6px;
           flex-wrap: wrap;
+          margin-top: 2px;
         }
 
-        .cs-actions .rb-btn {
+        .cs-actions :global(.rb-btn) {
           min-width: 160px;
-        }
-
-        .cs-summary {
-          position: sticky;
-          top: 1.5rem;
-        }
-
-        :global(.checkout-step input),
-        :global(.checkout-step select) {
-          appearance: none;
-          -webkit-appearance: none;
-        }
-
-        :global(.checkout-step select) {
-          appearance: auto;
-          -webkit-appearance: auto;
         }
       `}</style>
     </main>

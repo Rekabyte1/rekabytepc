@@ -21,9 +21,9 @@ export default async function Home() {
       href: "/gaming-streaming/perifericos",
     },
     {
-      src: "/banners/Tecladohome.jpg",
+      src: "/banners/cyber2026.jpg",
       alt: "Tecnología que se siente en cada partida",
-      href: "/gaming-streaming/perifericos/teclado",
+      href: "/cyber-2026",
     },
   ];
 

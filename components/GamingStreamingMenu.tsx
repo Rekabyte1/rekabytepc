@@ -32,7 +32,7 @@ const COLS: Array<{
     title: "Más categorías",
     links: [
       { label: "Audífonos", href: "/gaming-streaming/perifericos/audifonos" },
-      { label: "Monitores", href: "/gaming-streaming/monitores" },
+       //{ label: "Monitores", href: "/gaming-streaming/monitores" },
       { label: "Controles", href: "/gaming-streaming/consolas/acc" },
     ],
   },

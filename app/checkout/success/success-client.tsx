@@ -208,7 +208,7 @@ Correo: contacto@rekabyte.cl`,
             <div className="cs-note">
               Tienes <span className="cs-strong">2 horas</span> para completar la transferencia.
               <br />
-              Por restriccion bancaría, puedes realizar un abono del máximo permitido por tu banco, con esto, tu pedido quedará reservado.
+              Dependiendo del valor del producto, puedes realizar un abono por el máximo permitido por tu banco, con esto , tu pedido quedará reservado.
               Envía el comprobante junto a tu número de pedido de la parte superior, respondiendo el correo de confirmación o a{" "}
               <span className="cs-strong">contacto@rekabyte.cl</span>.
             </div>
@@ -250,8 +250,8 @@ Correo: contacto@rekabyte.cl`,
               <Link href="/" className="rb-btn">
                 Volver al inicio
               </Link>
-              <Link href="/auth/registro" className="rb-btn rb-btn--ghost">
-                Crear cuenta
+              <Link href="/cuenta/registro" className="rb-btn rb-btn--ghost">
+               Crear cuenta
               </Link>
             </div>
           </>

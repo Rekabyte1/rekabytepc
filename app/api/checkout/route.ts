@@ -3,58 +3,14 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendNewOrderAdminEmail, sendOrderCreatedEmail } from "@/lib/email";
+import { DocumentType, ProductCategory, ProductKind } from "@prisma/client";
 import { resolvePricingSnapshot } from "@/lib/pricing";
+import { calculateShippingCost } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
 
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 type CheckoutDocumentUI = "boleta" | "factura";
-type DocumentType = "BOLETA" | "FACTURA";
-type ProductKind = "PREBUILT_PC" | "UNIT_PRODUCT";
-type ProductCategory =
-  | "PREBUILT_PC"
-  | "CPU"
-  | "MOTHERBOARD"
-  | "GPU"
-  | "RAM"
-  | "STORAGE"
-  | "CASE"
-  | "PSU"
-  | "CPU_COOLER"
-  | "CASE_FAN"
-  | "THERMAL_PASTE"
-  | "CABLE"
-  | "MONITOR"
-  | "PERIPHERAL"
-  | "ACCESSORY"
-  | "STREAMING"
-  | "OTHER";
-
-const DocumentType = { BOLETA: "BOLETA", FACTURA: "FACTURA" } as const;
-const ProductKind = { PREBUILT_PC: "PREBUILT_PC", UNIT_PRODUCT: "UNIT_PRODUCT" } as const;
-const ProductCategory = {
-  PREBUILT_PC: "PREBUILT_PC",
-  CPU: "CPU",
-  MOTHERBOARD: "MOTHERBOARD",
-  GPU: "GPU",
-  RAM: "RAM",
-  STORAGE: "STORAGE",
-  CASE: "CASE",
-  PSU: "PSU",
-  CPU_COOLER: "CPU_COOLER",
-  CASE_FAN: "CASE_FAN",
-  THERMAL_PASTE: "THERMAL_PASTE",
-  CABLE: "CABLE",
-  MONITOR: "MONITOR",
-  PERIPHERAL: "PERIPHERAL",
-  ACCESSORY: "ACCESSORY",
-  STREAMING: "STREAMING",
-  OTHER: "OTHER",
-} as const;
-
-type TransactionClient = Parameters<
-  Exclude<Parameters<typeof prisma.$transaction>[0], any[]>
->[0];
 
 type CheckoutPayload = {
   checkoutToken: string;
@@ -78,18 +34,8 @@ type CheckoutPayload = {
   notes?: string;
 };
 
-type ShippingZone = "RM" | "NO_EXTREMA" | "EXTREMOS" | "UNKNOWN";
-type ComponentShippingSize = "SMALL" | "MEDIUM" | "LARGE" | "XL";
-
 function safeStr(v: unknown) {
   return String(v ?? "").trim();
-}
-
-function normalizeText(v: unknown) {
-  return safeStr(v)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
 }
 
 function orderNumberNice(id: string) {
@@ -109,256 +55,6 @@ function normalizeShipping(deliveryType: "pickup" | "shipping") {
 function normalizeDocumentType(doc?: CheckoutDocumentUI): DocumentType {
   const d = safeStr(doc).toLowerCase();
   return d === "factura" ? DocumentType.FACTURA : DocumentType.BOLETA;
-}
-
-function normalizeRegion(regionRaw: string) {
-  return safeStr(regionRaw).toLowerCase();
-}
-
-function zoneByRegion(regionRaw: string): ShippingZone {
-  const r = normalizeRegion(regionRaw);
-  if (!r) return "UNKNOWN";
-
-  if (r.includes("metropolitana")) return "RM";
-
-  if (
-    r.includes("arica") ||
-    r.includes("parinacota") ||
-    r.includes("tarapac") ||
-    r.includes("atacama") ||
-    r.includes("ays") ||
-    r.includes("magall")
-  ) {
-    return "EXTREMOS";
-  }
-
-  return "NO_EXTREMA";
-}
-
-function pcShippingPerUnit(zone: ShippingZone, unitSubtotalTransfer: number) {
-  if (zone === "EXTREMOS") return 20000;
-
-  if (zone === "RM") {
-    return unitSubtotalTransfer > 2_000_000 ? 12000 : 8000;
-  }
-
-  return unitSubtotalTransfer > 1_500_000 ? 15000 : 12000;
-}
-
-function componentShippingBySize(
-  zone: ShippingZone,
-  size: ComponentShippingSize
-) {
-  const table: Record<
-    ComponentShippingSize,
-    Record<"RM" | "NO_EXTREMA" | "EXTREMOS", number>
-  > = {
-    SMALL: { RM: 3990, NO_EXTREMA: 5990, EXTREMOS: 7990 },
-    MEDIUM: { RM: 4990, NO_EXTREMA: 7990, EXTREMOS: 9990 },
-    LARGE: { RM: 6990, NO_EXTREMA: 10990, EXTREMOS: 14990 },
-    XL: { RM: 8990, NO_EXTREMA: 13990, EXTREMOS: 17990 },
-  };
-
-  const normalizedZone = zone === "UNKNOWN" ? "NO_EXTREMA" : zone;
-  return table[size][normalizedZone];
-}
-
-function sizeRank(size: ComponentShippingSize) {
-  switch (size) {
-    case "SMALL":
-      return 1;
-    case "MEDIUM":
-      return 2;
-    case "LARGE":
-      return 3;
-    case "XL":
-      return 4;
-  }
-}
-
-function inferComponentShippingSize(product: {
-  category?: ProductCategory | null;
-  subcategory?: string | null;
-  name?: string | null;
-  slug?: string | null;
-}): ComponentShippingSize {
-  const category = product.category ?? null;
-  const sub = normalizeText(product.subcategory);
-  const name = normalizeText(product.name);
-  const slug = normalizeText(product.slug);
-
-  if (category === ProductCategory.MONITOR) return "XL";
-
-  if (category === ProductCategory.CASE) {
-    if (
-      sub.includes("micro") ||
-      sub.includes("mini") ||
-      sub.includes("itx") ||
-      sub.includes("matx")
-    ) {
-      return "LARGE";
-    }
-    return "XL";
-  }
-
-  if (
-    category === ProductCategory.GPU ||
-    category === ProductCategory.MOTHERBOARD
-  ) {
-    return "LARGE";
-  }
-
-  if (
-    category === ProductCategory.PSU ||
-    category === ProductCategory.CPU_COOLER ||
-    category === ProductCategory.CASE_FAN
-  ) {
-    return "MEDIUM";
-  }
-
-  if (
-    category === ProductCategory.CPU ||
-    category === ProductCategory.RAM ||
-    category === ProductCategory.STORAGE ||
-    category === ProductCategory.THERMAL_PASTE ||
-    category === ProductCategory.CABLE
-  ) {
-    return "SMALL";
-  }
-
-  if (
-    name.includes("monitor") ||
-    slug.includes("monitor") ||
-    name.includes("ultrawide")
-  ) {
-    return "XL";
-  }
-
-  if (
-    name.includes("gabinete") ||
-    slug.includes("gabinete") ||
-    slug.includes("case")
-  ) {
-    if (
-      name.includes("mini itx") ||
-      name.includes("micro atx") ||
-      slug.includes("mini-itx") ||
-      slug.includes("micro-atx") ||
-      slug.includes("matx")
-    ) {
-      return "LARGE";
-    }
-    return "XL";
-  }
-
-  if (
-    name.includes("gpu") ||
-    slug.includes("gpu") ||
-    slug.includes("rtx") ||
-    slug.includes("rx-")
-  ) {
-    return "LARGE";
-  }
-
-  if (
-    name.includes("fuente") ||
-    slug.includes("psu") ||
-    name.includes("cooler") ||
-    name.includes("disipador") ||
-    name.includes("ventilador") ||
-    name.includes("teclado") ||
-    name.includes("audifono") ||
-    name.includes("headset") ||
-    name.includes("webcam") ||
-    name.includes("microfono") ||
-    name.includes("mousepad")
-  ) {
-    return "MEDIUM";
-  }
-
-  if (
-    name.includes("mouse") ||
-    name.includes("ram") ||
-    name.includes("ssd") ||
-    name.includes("nvme") ||
-    name.includes("pasta termica") ||
-    slug.includes("mouse") ||
-    slug.includes("ram") ||
-    slug.includes("ssd") ||
-    slug.includes("nvme")
-  ) {
-    return "SMALL";
-  }
-
-  return "MEDIUM";
-}
-
-function calculateShippingCost(params: {
-  deliveryType: "pickup" | "shipping";
-  address?: CheckoutPayload["address"];
-  itemsDetailed: Array<{
-    quantity: number;
-    kind?: ProductKind | null;
-    category?: ProductCategory | null;
-    subcategory?: string | null;
-    name?: string | null;
-    slug?: string | null;
-    priceTransfer?: number | null;
-    price?: number | null;
-  }>;
-}) {
-  const { deliveryType, address, itemsDetailed } = params;
-
-  if (deliveryType === "pickup") return 0;
-
-  const region = safeStr(address?.region);
-  const zone = zoneByRegion(region);
-
-  let totalShipping = 0;
-  let hasGroupedComponents = false;
-
-  for (const item of itemsDetailed) {
-    const quantity = Math.max(1, Number(item.quantity ?? 1));
-
-    if (item.kind === ProductKind.PREBUILT_PC) {
-      const unitSubtotalTransfer =
-        (item.priceTransfer ?? 0) || (item.price ?? 0);
-      const perUnit = pcShippingPerUnit(zone, unitSubtotalTransfer);
-      totalShipping += perUnit * quantity;
-      continue;
-    }
-
-    if (item.category === ProductCategory.CASE) {
-      const caseSize = inferComponentShippingSize(item);
-      const perUnit = componentShippingBySize(zone, caseSize);
-      totalShipping += perUnit * quantity;
-      continue;
-    }
-
-    if (quantity > 0) {
-      hasGroupedComponents = true;
-    }
-  }
-
-  if (hasGroupedComponents) {
-    const groupedItems = itemsDetailed.filter(
-      (item) =>
-        item.kind !== ProductKind.PREBUILT_PC &&
-        item.category !== ProductCategory.CASE
-    );
-
-    const biggestGroupedSize = groupedItems.reduce<ComponentShippingSize>(
-      (max, item) => {
-        const current = inferComponentShippingSize(item);
-        return sizeRank(current) > sizeRank(max) ? current : max;
-      },
-      "SMALL"
-    );
-
-    totalShipping += componentShippingBySize(zone, biggestGroupedSize);
-  }
-
-  return totalShipping;
 }
 
 async function trySendConfirmationEmailOnce(params: {
@@ -447,8 +143,6 @@ async function trySendConfirmationEmailOnce(params: {
 
 export async function POST(req: NextRequest) {
   try {
-    const ENABLE_MERCADOPAGO = true;
-
     const session = await getServerSession(authOptions);
     const checkoutUserId = (session?.user as any)?.id as string | undefined;
 
@@ -683,8 +377,8 @@ export async function POST(req: NextRequest) {
 
       return {
         quantity: Math.max(1, Number(item.quantity ?? 1)),
-        kind: product.kind,
-        category: product.category,
+        kind: product.kind as ProductKind | null,
+        category: product.category as ProductCategory | null,
         subcategory: product.subcategory,
         name: product.name,
         slug: product.slug,
@@ -695,13 +389,13 @@ export async function POST(req: NextRequest) {
 
     const shippingCost = calculateShippingCost({
       deliveryType,
-      address,
-      itemsDetailed,
+      region: safeStr(address?.region),
+      items: itemsDetailed,
     });
 
     const total = subtotal + shippingCost;
 
-    const created = await prisma.$transaction(async (tx: TransactionClient) => {
+    const created = await prisma.$transaction(async (tx) => {
       let addressRecord: { id: string } | null = null;
 
       const shippingMethod = normalizeShipping(deliveryType);

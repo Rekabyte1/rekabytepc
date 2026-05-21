@@ -487,7 +487,7 @@ window.location.href = String(redirectUrl);
               <div className="cs-panel">
                 <div className="cs-panel-title">Datos de facturación</div>
                 <div className="cs-note" style={{ marginTop: 8 }}>
-                  Se guardarán en el pedido para que puedas emitir la factura desde el admin.
+                  Se guardarán en el pedido.
                 </div>
               </div>
             ) : null}

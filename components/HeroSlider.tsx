@@ -123,7 +123,9 @@ export default function HeroSlider({
           const content = (
             <div
               className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${
-                isActive ? "opacity-100" : "opacity-0"
+                isActive
+                  ? "opacity-100 pointer-events-auto z-10"
+                  : "opacity-0 pointer-events-none z-0"
               }`}
             >
               <img

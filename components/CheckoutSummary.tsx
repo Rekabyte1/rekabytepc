@@ -2,208 +2,7 @@
 
 import { CLP, useCart } from "./CartContext";
 import { useCheckout } from "./CheckoutStore";
-
-type ShippingZone =
-  | "RM"
-  | "NO_EXTREMA"
-  | "EXTREMOS"
-  | "UNKNOWN";
-
-type ComponentShippingSize = "SMALL" | "MEDIUM" | "LARGE" | "XL";
-
-function safeStr(v: unknown) {
-  return String(v ?? "").trim();
-}
-
-function normalizeText(v: unknown) {
-  return safeStr(v)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function zoneByRegion(regionRaw: string): ShippingZone {
-  const r = normalizeText(regionRaw);
-  if (!r) return "UNKNOWN";
-
-  if (r.includes("metropolitana")) return "RM";
-
-  // Zonas extremas para tu lógica comercial:
-  // Arica y Parinacota, Tarapacá, Aysén, Magallanes
-   if (
-  r.includes("arica") ||
-  r.includes("parinacota") ||
-  r.includes("tarapac") ||
-  r.includes("atacama") ||
-  r.includes("ays") ||
-  r.includes("magall")
-) {
-  return "EXTREMOS";
-}
-
-  return "NO_EXTREMA";
-}
-
-function pcShippingPerUnit(zone: ShippingZone, unitSubtotalTransfer: number) {
-  if (zone === "EXTREMOS") return 20000;
-  return unitSubtotalTransfer > 1_500_000 ? 15000 : 12000;
-}
-
-function componentShippingBySize(zone: ShippingZone, size: ComponentShippingSize) {
-  const table: Record<ComponentShippingSize, Record<"RM" | "NO_EXTREMA" | "EXTREMOS", number>> = {
-    SMALL: {
-      RM: 3990,
-      NO_EXTREMA: 5990,
-      EXTREMOS: 7990,
-    },
-    MEDIUM: {
-      RM: 4990,
-      NO_EXTREMA: 7990,
-      EXTREMOS: 9990,
-    },
-    LARGE: {
-      RM: 6990,
-      NO_EXTREMA: 10990,
-      EXTREMOS: 14990,
-    },
-    XL: {
-      RM: 8990,
-      NO_EXTREMA: 13990,
-      EXTREMOS: 17990,
-    },
-  };
-
-  const normalizedZone =
-    zone === "UNKNOWN" ? "NO_EXTREMA" : zone;
-
-  return table[size][normalizedZone];
-}
-
-function sizeRank(size: ComponentShippingSize) {
-  switch (size) {
-    case "SMALL":
-      return 1;
-    case "MEDIUM":
-      return 2;
-    case "LARGE":
-      return 3;
-    case "XL":
-      return 4;
-  }
-}
-
-function inferCartItemShippingSize(item: {
-  id?: string;
-  name?: string;
-}): ComponentShippingSize {
-  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
-
-  if (text.includes("monitor")) return "XL";
-
-  if (text.includes("gabinete") || text.includes("case")) {
-    if (
-      text.includes("mini itx") ||
-      text.includes("mini-itx") ||
-      text.includes("micro atx") ||
-      text.includes("micro-atx") ||
-      text.includes("matx")
-    ) {
-      return "LARGE";
-    }
-    return "XL";
-  }
-
-  if (
-    text.includes("rtx") ||
-    text.includes("radeon") ||
-    text.includes("rx ") ||
-    text.includes("rx-") ||
-    text.includes("gpu") ||
-    text.includes("tarjeta de video") ||
-    text.includes("placa madre") ||
-    text.includes("motherboard")
-  ) {
-    return "LARGE";
-  }
-
-  if (
-    text.includes("fuente") ||
-    text.includes("psu") ||
-    text.includes("cooler") ||
-    text.includes("disipador") ||
-    text.includes("ventilador") ||
-    text.includes("teclado") ||
-    text.includes("audifono") ||
-    text.includes("headset") ||
-    text.includes("webcam") ||
-    text.includes("microfono") ||
-    text.includes("mousepad")
-  ) {
-    return "MEDIUM";
-  }
-
-  if (
-    text.includes("mouse") ||
-    text.includes("ram") ||
-    text.includes("ssd") ||
-    text.includes("nvme") ||
-    text.includes("pasta termica") ||
-    text.includes("cpu") ||
-    text.includes("procesador")
-  ) {
-    return "SMALL";
-  }
-
-  return "MEDIUM";
-}
-
-function isPcItem(item: { id?: string; name?: string }) {
-  const text = `${normalizeText(item.id)} ${normalizeText(item.name)}`;
-
-  return (
-    text.includes("oficina-") ||
-    text.includes("entrada-") ||
-    text.includes("media-") ||
-    text.includes("ryzen") ||
-    text.includes("8600g") ||
-    text.includes("pc ")
-  );
-}
-
-function calculateShipping(params: {
-  deliveryType: string;
-  region?: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    priceTransfer: number;
-  }>;
-}) {
-  const { deliveryType, region, items } = params;
-  if (deliveryType !== "shipping") return 0;
-
-  const zone = zoneByRegion(region ?? "");
-
-  const pcItems = items.filter((item) => isPcItem(item));
-  if (pcItems.length > 0) {
-    return pcItems.reduce((acc, item) => {
-      const perUnit = pcShippingPerUnit(zone, item.priceTransfer);
-      return acc + perUnit * item.quantity;
-    }, 0);
-  }
-
-  const componentUnits = items.reduce((acc, item) => acc + item.quantity, 0);
-  if (componentUnits <= 0) return 0;
-
-  const biggestSize = items.reduce<ComponentShippingSize>((max, item) => {
-    const current = inferCartItemShippingSize(item);
-    return sizeRank(current) > sizeRank(max) ? current : max;
-  }, "SMALL");
-
-  const unitShipping = componentShippingBySize(zone, biggestSize);
-  return unitShipping * componentUnits;
-}
+import { calculateShippingCost } from "@/lib/shipping";
 
 export default function CheckoutSummary() {
   const { items, subtotalTransfer, subtotalCard } = useCart();
@@ -222,13 +21,14 @@ export default function CheckoutSummary() {
       ? "shipping"
       : "pickup";
 
-  const shipping = calculateShipping({
-    deliveryType,
+  const shipping = calculateShippingCost({
+    deliveryType: deliveryType === "shipping" ? "shipping" : "pickup",
     region: envio?.region,
     items: items.map((it) => ({
-      id: it.id,
-      name: it.name,
       quantity: it.quantity,
+      kind: it.kind,
+      name: it.name,
+      slug: it.slug || it.id,
       priceTransfer: it.priceTransfer,
     })),
   });

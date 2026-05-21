@@ -71,7 +71,13 @@ export async function POST(req: NextRequest) {
       ? `${siteUrl}/api/mercadopago/webhook`
       : "https://www.rekabyte.cl/api/mercadopago/webhook";
 
-    const items = order.items.map((item) => ({
+    const items: Array<{
+      id?: string;
+      title: string;
+      quantity: number;
+      unit_price: number;
+      currency_id: "CLP";
+    }> = order.items.map((item) => ({
       id: item.productId,
       title: item.productName,
       quantity: Number(item.quantity),
@@ -79,15 +85,38 @@ export async function POST(req: NextRequest) {
       currency_id: "CLP",
     }));
 
-// TEMPORAL DEBUG: no enviar shipping como item a Mercado Pago
-// if ((order.shippingCost ?? 0) > 0) {
-//   items.push({
-//     title: "Costo de envío",
-//     quantity: 1,
-//     unit_price: Number(order.shippingCost),
-//     currency_id: "CLP",
-//   } as any);
-// }
+    if ((order.shippingCost ?? 0) > 0) {
+      items.push({
+        title: "Envío",
+        quantity: 1,
+        unit_price: Number(order.shippingCost),
+        currency_id: "CLP",
+      });
+    }
+
+    const mpItemsTotal = items.reduce(
+      (acc, item) => acc + Number(item.unit_price) * Number(item.quantity),
+      0
+    );
+    const orderTotal = Number(order.total);
+
+    if (mpItemsTotal !== orderTotal) {
+      console.error("[MP create-preference] Totales no coinciden", {
+        orderId: order.id,
+        mpItemsTotal,
+        orderTotal,
+        shippingCost: order.shippingCost,
+      });
+
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "No se pudo crear la preferencia porque el total de Mercado Pago no coincide con el total del pedido.",
+        },
+        { status: 400 }
+      );
+    }
 
     const preferenceBody: Record<string, any> = {
       items,
@@ -97,12 +126,6 @@ export async function POST(req: NextRequest) {
       },
       external_reference: order.id,
       notification_url: webhookUrl,
-
-
-
-
-
-
       metadata: {
         order_id: order.id,
         checkout_token: order.checkoutToken ?? null,
@@ -110,33 +133,43 @@ export async function POST(req: NextRequest) {
       // statement_descriptor: "REKABYTE",
     };
 
-if (!isLocal) {
-  const successUrl = `${siteUrl}/checkout/success?source=mercadopago&status=success&orderId=${encodeURIComponent(order.id)}`;
+    if (!isLocal) {
+      const successUrl = `${siteUrl}/checkout/success?source=mercadopago&status=success&orderId=${encodeURIComponent(
+        order.id
+      )}`;
 
-  const pendingUrl = `${siteUrl}/checkout/success?source=mercadopago&status=pending&orderId=${encodeURIComponent(order.id)}`;
+      const pendingUrl = `${siteUrl}/checkout/success?source=mercadopago&status=pending&orderId=${encodeURIComponent(
+        order.id
+      )}`;
 
-  const failureUrl = `${siteUrl}/checkout/success?source=mercadopago&status=failure&orderId=${encodeURIComponent(order.id)}`;
+      const failureUrl = `${siteUrl}/checkout/success?source=mercadopago&status=failure&orderId=${encodeURIComponent(
+        order.id
+      )}`;
 
-  preferenceBody.back_urls = {
-    success: successUrl,
-    pending: pendingUrl,
-    failure: failureUrl,
-  };
+      preferenceBody.back_urls = {
+        success: successUrl,
+        pending: pendingUrl,
+        failure: failureUrl,
+      };
 
-  preferenceBody.redirect_urls = {
-    success: successUrl,
-    pending: pendingUrl,
-    failure: failureUrl,
-  };
+      preferenceBody.redirect_urls = {
+        success: successUrl,
+        pending: pendingUrl,
+        failure: failureUrl,
+      };
 
-  preferenceBody.auto_return = "approved";
-}
+      preferenceBody.auto_return = "approved";
+    }
 
     console.log("[MP create-preference] siteUrl:", siteUrl);
     console.log("[MP create-preference] webhookUrl:", webhookUrl);
     console.log("[MP create-preference] external_reference:", order.id);
-
-    console.log("[MP create-preference] preferenceBody:", JSON.stringify(preferenceBody, null, 2));
+    console.log("[MP create-preference] mpItemsTotal:", mpItemsTotal);
+    console.log("[MP create-preference] orderTotal:", orderTotal);
+    console.log(
+      "[MP create-preference] preferenceBody:",
+      JSON.stringify(preferenceBody, null, 2)
+    );
 
     const mpResp = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
