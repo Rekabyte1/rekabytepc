@@ -16,6 +16,11 @@ export type CartItem = {
   image?: string;
   priceTransfer: number;
   priceCard: number;
+  originalPriceTransfer?: number;
+  originalPriceCard?: number;
+  saleLabel?: string | null;
+  salePercent?: number | null;
+  saleEndsAt?: string | null;
   quantity: number;
   stock?: number | null;
   kind?: "PREBUILT_PC" | "UNIT_PRODUCT";
@@ -76,6 +81,13 @@ function normalizeStoredItems(raw: unknown): CartItem[] {
         image: item.image ? String(item.image) : undefined,
         priceTransfer: Number(item.priceTransfer ?? item.price ?? 0),
         priceCard: Number(item.priceCard ?? item.price ?? 0),
+        originalPriceTransfer:
+          item.originalPriceTransfer == null ? undefined : Number(item.originalPriceTransfer),
+        originalPriceCard:
+          item.originalPriceCard == null ? undefined : Number(item.originalPriceCard),
+        saleLabel: item.saleLabel ? String(item.saleLabel) : null,
+        salePercent: item.salePercent == null ? null : Number(item.salePercent),
+        saleEndsAt: item.saleEndsAt ? String(item.saleEndsAt) : null,
         quantity,
         stock:
           item.stock == null || Number.isNaN(Number(item.stock))

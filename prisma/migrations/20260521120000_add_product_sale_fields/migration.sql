@@ -1,0 +1,7 @@
+ALTER TABLE "Product"
+  ADD COLUMN "saleEnabled" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN "salePercent" INTEGER,
+  ADD COLUMN "saleStartsAt" TIMESTAMPTZ(6),
+  ADD COLUMN "saleEndsAt" TIMESTAMPTZ(6),
+  ADD COLUMN "saleLabel" TEXT,
+  ADD COLUMN "salePriority" INTEGER DEFAULT 0;

@@ -63,6 +63,15 @@ model Product {
   manufacturerPdfUrl String?
   badge              String?
   featured           Boolean         @default(false)
+
+  // Cyber/ofertas temporales
+  saleEnabled        Boolean         @default(false)
+  salePercent        Int?
+  saleStartsAt       DateTime?       @db.Timestamptz(6)
+  saleEndsAt         DateTime?       @db.Timestamptz(6)
+  saleLabel          String?
+  salePriority       Int?            @default(0)
+
   sortOrder          Int             @default(0)
   createdAt          DateTime        @default(now()) @db.Timestamptz(6)
   updatedAt          DateTime        @updatedAt @db.Timestamptz(6)
@@ -102,14 +111,22 @@ model Order {
 }
 
 model OrderItem {
-  id          String  @id @default(cuid())
-  orderId     String
-  productId   String
-  productName String
-  unitPrice   Int
-  quantity    Int
-  order       Order   @relation(fields: [orderId], references: [id])
-  product     Product @relation(fields: [productId], references: [id])
+  id             String   @id @default(cuid())
+  orderId        String
+  productId      String
+  productName    String
+
+  // Snapshot histórico Cyber/ofertas
+  unitBasePrice  Int
+  unitPrice      Int
+  quantity       Int
+  saleWasActive  Boolean  @default(false)
+  salePercent    Int?
+  saleLabel      String?
+  saleEndsAt     DateTime? @db.Timestamptz(6)
+
+  order          Order    @relation(fields: [orderId], references: [id])
+  product        Product  @relation(fields: [productId], references: [id])
 }
 
 model Payment {

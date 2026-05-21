@@ -30,6 +30,11 @@ type ProductApiResponse = {
         stock: number | null;
         imageUrl?: string | null;
         kind?: "PREBUILT_PC" | "UNIT_PRODUCT";
+        pricing?: {
+          transfer: { base: number; final: number; discountPercent: number | null; active: boolean };
+          card: { base: number; final: number; discountPercent: number | null; active: boolean };
+          sale: { active: boolean; label: string | null; endsAt: string | null };
+        };
       }
     | null;
   error?: string;
@@ -96,6 +101,11 @@ export default function AddToCartButton({
       image: product.imageUrl ?? undefined,
       priceTransfer: product.priceTransfer ?? product.price ?? 0,
       priceCard: product.priceCard ?? product.price ?? 0,
+originalPriceTransfer: product.pricing?.transfer.base ?? undefined,
+originalPriceCard: product.pricing?.card.base ?? undefined,
+saleLabel: product.pricing?.sale.label ?? undefined,
+salePercent: product.pricing?.transfer.discountPercent ?? undefined,
+saleEndsAt: product.pricing?.sale.endsAt ?? undefined,
       stock: product.stock ?? null,
       kind: product.kind,
     };

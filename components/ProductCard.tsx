@@ -65,6 +65,14 @@ export default function ProductCard({ p }: Props) {
   const isOut = stock <= 0;
 
   const slug = p.slug ?? p.id;
+  const pricing = (p as any)?.pricing;
+  const transferBase = pricing?.transfer?.base ?? p.priceTransfer;
+  const transferFinal = pricing?.transfer?.final ?? p.priceTransfer;
+  const cardBase = pricing?.card?.base ?? p.priceCard;
+  const cardFinal = pricing?.card?.final ?? p.priceCard;
+  const saleActive = Boolean(pricing?.sale?.active);
+  const saleLabel = pricing?.sale?.label ?? "Oferta";
+  const salePercent = pricing?.transfer?.discountPercent;
 
   const handleAdd = () => {
     if (isOut) return;
@@ -109,6 +117,11 @@ export default function ProductCard({ p }: Props) {
             {isOut ? "Agotado" : "Disponible"}
           </span>
         </div>
+        {saleActive ? (
+          <div className="absolute right-3 top-3 rounded-full bg-fuchsia-600 px-3 py-1 text-xs font-extrabold text-white">
+            {saleLabel} {salePercent ? `-${salePercent}%` : ""}
+          </div>
+        ) : null}
       </div>
 
       <div className="p-5">
@@ -124,12 +137,19 @@ export default function ProductCard({ p }: Props) {
 
           <div className="mt-4">
             <div className="text-[13px] text-neutral-400">desde</div>
-            <div className="mt-1 text-2xl font-extrabold text-white">
-              {CLP(p.priceTransfer)}
-            </div>
-            <div className="mt-1 text-xs text-neutral-400">
-              otros medios: {CLP(p.priceCard)}
-            </div>
+            {saleActive ? (
+              <>
+                <div className="mt-1 text-sm text-neutral-500 line-through">{CLP(transferBase)}</div>
+                <div className="mt-1 text-2xl font-extrabold text-white">{CLP(transferFinal)}</div>
+                <div className="mt-1 text-xs text-neutral-500 line-through">otros medios: {CLP(cardBase)}</div>
+                <div className="mt-1 text-xs text-neutral-300">otros medios: {CLP(cardFinal)}</div>
+              </>
+            ) : (
+              <>
+                <div className="mt-1 text-2xl font-extrabold text-white">{CLP(transferFinal)}</div>
+                <div className="mt-1 text-xs text-neutral-400">otros medios: {CLP(cardFinal)}</div>
+              </>
+            )}
           </div>
         </div>
 

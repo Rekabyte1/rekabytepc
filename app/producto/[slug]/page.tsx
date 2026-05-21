@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import AddToCartButton from "@/components/AddToCartButton";
+import SaleCountdown from "@/components/SaleCountdown";
+import { buildPriceView } from "@/lib/pricing";
 
 type PageProps = {
   params: { slug: string };
@@ -42,6 +44,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   const specs = normalizeSpecs(dbProduct.specs);
   const inStock = (dbProduct.stock ?? 0) > 0;
+  const pricing = buildPriceView(dbProduct);
 
   return (
     <main className="rb-container mx-auto max-w-7xl px-4 py-10 text-neutral-100">
@@ -64,6 +67,11 @@ export default async function ProductPage({ params }: PageProps) {
 
         <aside className="rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5 md:p-6">
           <div className="mb-3 flex flex-wrap items-center gap-2">
+            {pricing.sale.active ? (
+              <span className="rounded-full bg-fuchsia-600 px-3 py-1 text-xs font-extrabold text-white">
+                {pricing.sale.label ?? "Oferta"} -{pricing.transfer.discountPercent}%
+              </span>
+            ) : null}
             {dbProduct.brand ? (
               <span className="rounded-full border border-lime-500/30 bg-lime-500/10 px-3 py-1 text-xs font-extrabold text-lime-300">
                 {dbProduct.brand}
@@ -93,14 +101,31 @@ export default async function ProductPage({ params }: PageProps) {
 
           <div className="mt-6 rounded-2xl border border-neutral-800 bg-black/30 p-4">
             <p className="text-sm text-neutral-400">Pago con transferencia</p>
-            <p className="text-3xl font-extrabold text-lime-400">
-              {formatPrice(dbProduct.priceTransfer || dbProduct.price)}
-            </p>
+            {pricing.transfer.active ? (
+              <>
+                <p className="text-sm text-neutral-500 line-through">
+                  {formatPrice(pricing.transfer.base)}
+                </p>
+                <p className="text-3xl font-extrabold text-lime-400">
+                  {formatPrice(pricing.transfer.final)}
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-extrabold text-lime-400">
+                {formatPrice(pricing.transfer.final)}
+              </p>
+            )}
 
             <p className="mt-3 text-sm text-neutral-400">Otros medios de pago</p>
-            <p className="text-xl font-bold text-white">
-              {formatPrice(dbProduct.priceCard || dbProduct.price)}
-            </p>
+            {pricing.card.active ? (
+              <>
+                <p className="text-sm text-neutral-500 line-through">{formatPrice(pricing.card.base)}</p>
+                <p className="text-xl font-bold text-white">{formatPrice(pricing.card.final)}</p>
+              </>
+            ) : (
+              <p className="text-xl font-bold text-white">{formatPrice(pricing.card.final)}</p>
+            )}
+            {pricing.sale.active ? <SaleCountdown endsAt={pricing.sale.endsAt} /> : null}
           </div>
 
           <div className="mt-6 grid gap-3">

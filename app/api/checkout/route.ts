@@ -3,12 +3,58 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendNewOrderAdminEmail, sendOrderCreatedEmail } from "@/lib/email";
-import { DocumentType, ProductCategory, ProductKind } from "@prisma/client";
+import { resolvePricingSnapshot } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 type CheckoutDocumentUI = "boleta" | "factura";
+type DocumentType = "BOLETA" | "FACTURA";
+type ProductKind = "PREBUILT_PC" | "UNIT_PRODUCT";
+type ProductCategory =
+  | "PREBUILT_PC"
+  | "CPU"
+  | "MOTHERBOARD"
+  | "GPU"
+  | "RAM"
+  | "STORAGE"
+  | "CASE"
+  | "PSU"
+  | "CPU_COOLER"
+  | "CASE_FAN"
+  | "THERMAL_PASTE"
+  | "CABLE"
+  | "MONITOR"
+  | "PERIPHERAL"
+  | "ACCESSORY"
+  | "STREAMING"
+  | "OTHER";
+
+const DocumentType = { BOLETA: "BOLETA", FACTURA: "FACTURA" } as const;
+const ProductKind = { PREBUILT_PC: "PREBUILT_PC", UNIT_PRODUCT: "UNIT_PRODUCT" } as const;
+const ProductCategory = {
+  PREBUILT_PC: "PREBUILT_PC",
+  CPU: "CPU",
+  MOTHERBOARD: "MOTHERBOARD",
+  GPU: "GPU",
+  RAM: "RAM",
+  STORAGE: "STORAGE",
+  CASE: "CASE",
+  PSU: "PSU",
+  CPU_COOLER: "CPU_COOLER",
+  CASE_FAN: "CASE_FAN",
+  THERMAL_PASTE: "THERMAL_PASTE",
+  CABLE: "CABLE",
+  MONITOR: "MONITOR",
+  PERIPHERAL: "PERIPHERAL",
+  ACCESSORY: "ACCESSORY",
+  STREAMING: "STREAMING",
+  OTHER: "OTHER",
+} as const;
+
+type TransactionClient = Parameters<
+  Exclude<Parameters<typeof prisma.$transaction>[0], any[]>
+>[0];
 
 type CheckoutPayload = {
   checkoutToken: string;
@@ -380,7 +426,7 @@ async function trySendConfirmationEmailOnce(params: {
     paymentDueAtISO: fresh.paymentDueAt
       ? new Date(fresh.paymentDueAt).toISOString()
       : null,
-    items: params.items.map((it) => ({
+    items: params.items.map((it: (typeof params.items)[number]) => ({
       name: it.productName,
       qty: it.quantity,
       unitPrice: Number(it.unitPrice),
@@ -516,7 +562,7 @@ export async function POST(req: NextRequest) {
           orderId: existing.id,
           customerEmail,
           customerName,
-          items: existing.items.map((it) => ({
+          items: existing.items.map((it: (typeof existing.items)[number]) => ({
             productName: it.productName,
             unitPrice: Number(it.unitPrice),
             quantity: Number(it.quantity),
@@ -560,6 +606,11 @@ export async function POST(req: NextRequest) {
         price: true,
         priceCard: true,
         priceTransfer: true,
+        saleEnabled: true,
+        salePercent: true,
+        saleStartsAt: true,
+        saleEndsAt: true,
+        saleLabel: true,
         kind: true,
         category: true,
         subcategory: true,
@@ -573,9 +624,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const productMap = new Map(products.map((p) => [p.slug, p]));
+    const productMap = new Map<string, (typeof products)[number]>(
+      products.map((p: (typeof products)[number]) => [p.slug, p])
+    );
 
     let subtotal = 0;
+    let hasPriceUpdates = false;
 
     for (const item of items) {
       const slug = safeStr(item.productSlug);
@@ -597,14 +651,33 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const unitPrice = payWithCard
-        ? (product.priceCard ?? 0) || product.price
-        : (product.priceTransfer ?? 0) || product.price;
+      const snapshot = resolvePricingSnapshot(
+        product,
+        payWithCard ? "card" : "transfer",
+        new Date()
+      );
+      const unitPrice = snapshot.unitPrice;
+      const clientUnitPriceRaw = payWithCard
+        ? Number((item as any).priceCard ?? NaN)
+        : Number((item as any).priceTransfer ?? NaN);
+      if (Number.isFinite(clientUnitPriceRaw) && clientUnitPriceRaw !== unitPrice) {
+        hasPriceUpdates = true;
+      }
+      console.info("[checkout.pricing]", {
+        productId: product.id,
+        slug: product.slug,
+        paymentMethod: payWithCard ? "card" : "transfer",
+        unitBasePrice: snapshot.unitBasePrice,
+        unitPrice: snapshot.unitPrice,
+        saleWasActive: snapshot.saleWasActive,
+        saleLabel: snapshot.saleLabel,
+        salePercent: snapshot.salePercent,
+      });
 
       subtotal += unitPrice * quantity;
     }
 
-    const itemsDetailed = items.map((item) => {
+    const itemsDetailed = items.map((item: (typeof items)[number]) => {
       const slug = safeStr(item.productSlug);
       const product = productMap.get(slug)!;
 
@@ -628,7 +701,7 @@ export async function POST(req: NextRequest) {
 
     const total = subtotal + shippingCost;
 
-    const created = await prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx: TransactionClient) => {
       let addressRecord: { id: string } | null = null;
 
       const shippingMethod = normalizeShipping(deliveryType);
@@ -685,17 +758,25 @@ export async function POST(req: NextRequest) {
         const product = productMap.get(slug)!;
         const quantity = Math.max(1, Number(item.quantity ?? 1));
 
-        const unitPrice = payWithCard
-          ? (product.priceCard ?? 0) || product.price
-          : (product.priceTransfer ?? 0) || product.price;
+        const snapshot = resolvePricingSnapshot(
+          product,
+          payWithCard ? "card" : "transfer",
+          new Date()
+        );
+        const unitPrice = snapshot.unitPrice;
 
         await tx.orderItem.create({
           data: {
             orderId: order.id,
             productId: product.id,
             productName: product.name,
+            unitBasePrice: snapshot.unitBasePrice,
             unitPrice,
             quantity,
+            saleWasActive: snapshot.saleWasActive,
+            salePercent: snapshot.salePercent,
+            saleLabel: snapshot.saleLabel,
+            saleEndsAt: snapshot.saleEndsAt ? new Date(snapshot.saleEndsAt) : null,
           },
         });
 
@@ -728,10 +809,19 @@ export async function POST(req: NextRequest) {
 
       const orderItems = await tx.orderItem.findMany({
         where: { orderId: order.id },
-        select: { productName: true, unitPrice: true, quantity: true },
+        select: {
+          productName: true,
+          unitBasePrice: true,
+          unitPrice: true,
+          quantity: true,
+          saleWasActive: true,
+          salePercent: true,
+          saleLabel: true,
+          saleEndsAt: true,
+        },
       });
 
-      return { order, shipment, orderItems };
+      return { order, shipment, orderItems, hasPriceUpdates };
     });
 
     try {
@@ -739,7 +829,7 @@ export async function POST(req: NextRequest) {
         orderId: created.order.id,
         customerEmail,
         customerName,
-        items: created.orderItems.map((it) => ({
+        items: created.orderItems.map((it: (typeof created.orderItems)[number]) => ({
           productName: it.productName,
           unitPrice: Number(it.unitPrice),
           quantity: Number(it.quantity),
@@ -761,7 +851,7 @@ export async function POST(req: NextRequest) {
         subtotal: created.order.subtotal,
         shippingCost: created.order.shippingCost,
         createdAtISO: new Date(created.order.createdAt).toISOString(),
-        items: created.orderItems.map((it) => ({
+        items: created.orderItems.map((it: (typeof created.orderItems)[number]) => ({
           name: it.productName,
           qty: Number(it.quantity),
           unitPrice: Number(it.unitPrice),
@@ -784,6 +874,10 @@ export async function POST(req: NextRequest) {
         orderId: created.order.id,
         order: created.order,
         shipment: created.shipment,
+        pricingUpdated: created.hasPriceUpdates,
+        pricingWarning: created.hasPriceUpdates
+          ? "El precio de uno o más productos fue actualizado porque la oferta terminó."
+          : null,
         niceOrderNumber: orderNumberNice(created.order.id),
         shippingCost,
         paymentDueAt: created.order.paymentDueAt
