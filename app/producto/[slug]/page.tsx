@@ -10,6 +10,11 @@ type PageProps = {
   params: { slug: string };
 };
 
+type BreadcrumbItem = {
+  label: string;
+  href?: string;
+};
+
 function formatPrice(value: number | null | undefined) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -24,6 +29,98 @@ function normalizeSpecs(specs: unknown): Array<[string, string]> {
     key,
     String(value ?? ""),
   ]);
+}
+
+function categoryLabel(category?: string | null) {
+  const map: Record<string, string> = {
+    PSU: "Fuentes de poder",
+    CASE: "Gabinetes",
+    MOTHERBOARD: "Placas madre",
+    GPU: "Tarjetas de video",
+    CPU: "Procesadores",
+    RAM: "Memorias RAM",
+    STORAGE: "Almacenamiento",
+    CPU_COOLER: "Coolers CPU",
+    CASE_FAN: "Ventiladores",
+    THERMAL_PASTE: "Pasta térmica",
+    CABLE: "Cables",
+  };
+  return map[String(category ?? "")] ?? "Componentes";
+}
+
+function buildBreadcrumb(params: {
+  kind?: string | null;
+  category?: string | null;
+  productName: string;
+}): BreadcrumbItem[] {
+  const { kind, category, productName } = params;
+  const cat = String(category ?? "");
+  const k = String(kind ?? "");
+
+  const home: BreadcrumbItem = { label: "Home", href: "/" };
+
+  if (cat === "PERIPHERAL") {
+    return [
+      home,
+      { label: "Gaming y Streaming", href: "/gaming-streaming" },
+      { label: "Periféricos", href: "/gaming-streaming/perifericos" },
+      { label: productName },
+    ];
+  }
+
+  if (cat === "STREAMING") {
+    return [
+      home,
+      { label: "Gaming y Streaming", href: "/gaming-streaming" },
+      { label: "Streaming", href: "/gaming-streaming/streaming" },
+      { label: productName },
+    ];
+  }
+
+  if (cat === "MONITOR") {
+    return [
+      home,
+      { label: "Gaming y Streaming", href: "/gaming-streaming" },
+      { label: "Monitores", href: "/gaming-streaming/monitores" },
+      { label: productName },
+    ];
+  }
+
+  const isComponent =
+    cat === "PSU" ||
+    cat === "CASE" ||
+    cat === "MOTHERBOARD" ||
+    cat === "GPU" ||
+    cat === "CPU" ||
+    cat === "RAM" ||
+    cat === "STORAGE" ||
+    cat === "CPU_COOLER" ||
+    cat === "CASE_FAN" ||
+    cat === "THERMAL_PASTE" ||
+    cat === "CABLE";
+
+  if (isComponent) {
+    return [
+      home,
+      { label: "Componentes", href: "/componentes" },
+      { label: categoryLabel(cat), href: "/componentes" },
+      { label: productName },
+    ];
+  }
+
+  if (k === "PREBUILT_PC" || cat === "PREBUILT_PC") {
+    return [
+      home,
+      { label: "Setup Gamer", href: "/setup-gamer" },
+      { label: productName },
+    ];
+  }
+
+  return [
+    home,
+    { label: "Componentes", href: "/componentes" },
+    { label: productName },
+  ];
 }
 
 export default async function ProductPage({ params }: PageProps) {
@@ -46,18 +143,32 @@ export default async function ProductPage({ params }: PageProps) {
   const inStock = (dbProduct.stock ?? 0) > 0;
   const pricing = buildPriceView(dbProduct);
 
+  const breadcrumb = buildBreadcrumb({
+    kind: dbProduct.kind,
+    category: dbProduct.category,
+    productName: dbProduct.name,
+  });
+
   return (
     <main className="rb-container mx-auto max-w-7xl px-4 py-10 text-neutral-100">
       <div className="mb-4 text-xs text-neutral-500">
-        <Link href="/" className="hover:text-neutral-200">
-          Home
-        </Link>{" "}
-        <span className="mx-1">/</span>
-        <Link href="/componentes" className="hover:text-neutral-200">
-          Componentes
-        </Link>{" "}
-        <span className="mx-1">/</span>
-        <span className="text-neutral-300">{dbProduct.name}</span>
+        {breadcrumb.map((item, idx) => {
+          const isLast = idx === breadcrumb.length - 1;
+          return (
+            <span key={`${item.label}-${idx}`}>
+              {idx > 0 ? <span className="mx-1">/</span> : null}
+              {item.href && !isLast ? (
+                <Link href={item.href} className="hover:text-neutral-200">
+                  {item.label}
+                </Link>
+              ) : (
+                <span className={isLast ? "text-neutral-300" : "hover:text-neutral-200"}>
+                  {item.label}
+                </span>
+              )}
+            </span>
+          );
+        })}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -119,11 +230,17 @@ export default async function ProductPage({ params }: PageProps) {
             <p className="mt-3 text-sm text-neutral-400">Otros medios de pago</p>
             {pricing.card.active ? (
               <>
-                <p className="text-sm text-neutral-500 line-through">{formatPrice(pricing.card.base)}</p>
-                <p className="text-xl font-bold text-white">{formatPrice(pricing.card.final)}</p>
+                <p className="text-sm text-neutral-500 line-through">
+                  {formatPrice(pricing.card.base)}
+                </p>
+                <p className="text-xl font-bold text-white">
+                  {formatPrice(pricing.card.final)}
+                </p>
               </>
             ) : (
-              <p className="text-xl font-bold text-white">{formatPrice(pricing.card.final)}</p>
+              <p className="text-xl font-bold text-white">
+                {formatPrice(pricing.card.final)}
+              </p>
             )}
             {pricing.sale.active ? <SaleCountdown endsAt={pricing.sale.endsAt} /> : null}
           </div>
