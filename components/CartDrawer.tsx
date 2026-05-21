@@ -79,76 +79,133 @@ export default function CartDrawer() {
             </div>
           ) : (
             <ul className="cd-list">
-              {items.map((it) => (
-                <li key={it.id} className="cd-item">
-                  <div className="cd-row">
-                    <div className="cd-thumb">
-                      {it.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.image} alt={it.name} draggable={false} />
-                      ) : (
-                        <div className="cd-thumb-fallback" />
-                      )}
-                    </div>
+              {items.map((it) => {
+                const originalTransfer = it.originalPriceTransfer;
+                const originalCard = it.originalPriceCard;
 
-                    <div className="cd-main">
-                      <div className="cd-name" title={it.name}>
-                        {it.name}
+                const transferOnSale =
+                  typeof originalTransfer === "number" &&
+                  originalTransfer > it.priceTransfer;
+                const cardOnSale =
+                  typeof originalCard === "number" &&
+                  originalCard > it.priceCard;
+
+                const hasSaleVisual = transferOnSale || cardOnSale;
+                const saleBadge = it.saleLabel ?? "Cyber";
+                const salePct =
+                  typeof it.salePercent === "number" && it.salePercent > 0
+                    ? `-${it.salePercent}%`
+                    : "";
+
+                return (
+                  <li key={it.id} className="cd-item">
+                    <div className="cd-row">
+                      <div className="cd-thumb">
+                        {it.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={it.image} alt={it.name} draggable={false} />
+                        ) : (
+                          <div className="cd-thumb-fallback" />
+                        )}
                       </div>
 
-                      <div className="cd-prices">
-                        <div className="cd-price-col">
-                          <div className="cd-price-label">Transferencia</div>
-                          <div className="cd-price-val">{CLP(it.priceTransfer)}</div>
+                      <div className="cd-main">
+                        <div className="cd-name-wrap">
+                          <div className="cd-name" title={it.name}>
+                            {it.name}
+                          </div>
+                          {hasSaleVisual ? (
+                            <span className="cd-sale-badge">
+                              {saleBadge} {salePct}
+                            </span>
+                          ) : null}
                         </div>
-                        <div className="cd-price-col">
-                          <div className="cd-price-label">Otros medios</div>
-                          <div className="cd-price-val">{CLP(it.priceCard)}</div>
-                        </div>
-                      </div>
 
-                      <div className="cd-controls">
-                        <div className="cd-stepper" aria-label="Cantidad">
+                        <div className="cd-prices">
+                          <div className="cd-price-col">
+                            <div className="cd-price-label">Transferencia</div>
+                            {transferOnSale ? (
+                              <>
+                                <div className="cd-price-old">
+                                  {CLP(originalTransfer ?? it.priceTransfer)}
+                                </div>
+                                <div className="cd-price-val cd-price-val--sale">
+                                  {CLP(it.priceTransfer)}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="cd-price-val">{CLP(it.priceTransfer)}</div>
+                            )}
+                          </div>
+                          <div className="cd-price-col">
+                            <div className="cd-price-label">Otros medios</div>
+                            {cardOnSale ? (
+                              <>
+                                <div className="cd-price-old">
+                                  {CLP(originalCard ?? it.priceCard)}
+                                </div>
+                                <div className="cd-price-val">{CLP(it.priceCard)}</div>
+                              </>
+                            ) : (
+                              <div className="cd-price-val">{CLP(it.priceCard)}</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="cd-controls">
+                          <div className="cd-stepper" aria-label="Cantidad">
+                            <button
+                              type="button"
+                              className="cd-stepper-btn"
+                              onClick={() => setQty(it.id, it.quantity - 1)}
+                              aria-label="Restar"
+                            >
+                              −
+                            </button>
+                            <div className="cd-stepper-val">{it.quantity}</div>
+                            <button
+                              type="button"
+                              className="cd-stepper-btn"
+                              onClick={() => setQty(it.id, it.quantity + 1)}
+                              aria-label="Sumar"
+                            >
+                              +
+                            </button>
+                          </div>
+
                           <button
                             type="button"
-                            className="cd-stepper-btn"
-                            onClick={() => setQty(it.id, it.quantity - 1)}
-                            aria-label="Restar"
+                            className="cd-remove"
+                            onClick={() => removeItem(it.id)}
                           >
-                            −
-                          </button>
-                          <div className="cd-stepper-val">{it.quantity}</div>
-                          <button
-                            type="button"
-                            className="cd-stepper-btn"
-                            onClick={() => setQty(it.id, it.quantity + 1)}
-                            aria-label="Sumar"
-                          >
-                            +
+                            Eliminar
                           </button>
                         </div>
+                      </div>
 
-                        <button
-                          type="button"
-                          className="cd-remove"
-                          onClick={() => removeItem(it.id)}
-                        >
-                          Eliminar
-                        </button>
+                      <div className="cd-totals">
+                        {transferOnSale ? (
+                          <div className="cd-total-old">
+                            {CLP((originalTransfer ?? it.priceTransfer) * it.quantity)}
+                          </div>
+                        ) : null}
+                        <div className="cd-total-transfer">
+                          {CLP(it.priceTransfer * it.quantity)}
+                        </div>
+
+                        {cardOnSale ? (
+                          <div className="cd-total-card-old">
+                            {CLP((originalCard ?? it.priceCard) * it.quantity)}
+                          </div>
+                        ) : null}
+                        <div className="cd-total-card">
+                          {CLP(it.priceCard * it.quantity)}
+                        </div>
                       </div>
                     </div>
-
-                    <div className="cd-totals">
-                      <div className="cd-total-transfer">
-                        {CLP(it.priceTransfer * it.quantity)}
-                      </div>
-                      <div className="cd-total-card">
-                        {CLP(it.priceCard * it.quantity)}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -273,6 +330,12 @@ export default function CartDrawer() {
             min-width: 0;
           }
 
+          .cd-name-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
           .cd-name {
             color: #fff;
             font-weight: 900;
@@ -281,6 +344,19 @@ export default function CartDrawer() {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 100%;
+          }
+          .cd-sale-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 900;
+            background: rgba(217, 70, 239, 0.2);
+            color: #f5d0fe;
+            border: 1px solid rgba(217, 70, 239, 0.35);
+            white-space: nowrap;
           }
 
           .cd-prices {
@@ -301,11 +377,21 @@ export default function CartDrawer() {
             font-size: 11px;
             font-weight: 800;
           }
+          .cd-price-old {
+            margin-top: 2px;
+            color: #737373;
+            font-size: 11px;
+            text-decoration: line-through;
+            font-weight: 700;
+          }
           .cd-price-val {
             margin-top: 2px;
             color: #e5e7eb;
             font-size: 12px;
             font-weight: 900;
+          }
+          .cd-price-val--sale {
+            color: #b6ff2e;
           }
 
           .cd-controls {
@@ -369,6 +455,13 @@ export default function CartDrawer() {
             text-align: right;
             padding-left: 6px;
             white-space: nowrap;
+          }
+          .cd-total-old,
+          .cd-total-card-old {
+            color: #737373;
+            font-size: 11px;
+            text-decoration: line-through;
+            font-weight: 700;
           }
           .cd-total-transfer {
             color: #b6ff2e;

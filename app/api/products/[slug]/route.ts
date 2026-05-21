@@ -1,6 +1,7 @@
 // app/api/products/[slug]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildPriceView } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,12 @@ export async function GET(_req: NextRequest, context: any) {
         priceTransfer: true,
         stock: true,
         imageUrl: true,
+        saleEnabled: true,
+        salePercent: true,
+        saleStartsAt: true,
+        saleEndsAt: true,
+        saleLabel: true,
+        salePriority: true,
       },
     });
 
@@ -40,12 +47,19 @@ export async function GET(_req: NextRequest, context: any) {
       );
     }
 
+    const pricing = buildPriceView(product);
+
     return NextResponse.json(
       {
         ok: true,
-        product,
+        product: {
+          ...product,
+          priceTransfer: pricing.transfer.final,
+          priceCard: pricing.card.final,
+          pricing,
+        },
       },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {
     console.error("Error en /api/products/[slug]:", err);

@@ -31,9 +31,23 @@ type ProductApiResponse = {
         imageUrl?: string | null;
         kind?: "PREBUILT_PC" | "UNIT_PRODUCT";
         pricing?: {
-          transfer: { base: number; final: number; discountPercent: number | null; active: boolean };
-          card: { base: number; final: number; discountPercent: number | null; active: boolean };
-          sale: { active: boolean; label: string | null; endsAt: string | null };
+          transfer: {
+            base: number;
+            final: number;
+            discountPercent: number | null;
+            active: boolean;
+          };
+          card: {
+            base: number;
+            final: number;
+            discountPercent: number | null;
+            active: boolean;
+          };
+          sale: {
+            active: boolean;
+            label: string | null;
+            endsAt: string | null;
+          };
         };
       }
     | null;
@@ -94,21 +108,57 @@ export default function AddToCartButton({
   function buildCartPayload() {
     if (!product) return null;
 
-    return {
+    const transferFinal =
+      product.pricing?.transfer.final ??
+      product.priceTransfer ??
+      product.price ??
+      0;
+
+    const cardFinal =
+      product.pricing?.card.final ??
+      product.priceCard ??
+      product.price ??
+      0;
+
+    const transferBase =
+      product.pricing?.transfer.base ??
+      product.priceTransfer ??
+      product.price ??
+      transferFinal;
+
+    const cardBase =
+      product.pricing?.card.base ??
+      product.priceCard ??
+      product.price ??
+      cardFinal;
+
+    const payload = {
       id: product.slug,
       slug: product.slug,
       name: product.name || name || product.slug,
       image: product.imageUrl ?? undefined,
-      priceTransfer: product.priceTransfer ?? product.price ?? 0,
-      priceCard: product.priceCard ?? product.price ?? 0,
-originalPriceTransfer: product.pricing?.transfer.base ?? undefined,
-originalPriceCard: product.pricing?.card.base ?? undefined,
-saleLabel: product.pricing?.sale.label ?? undefined,
-salePercent: product.pricing?.transfer.discountPercent ?? undefined,
-saleEndsAt: product.pricing?.sale.endsAt ?? undefined,
+      priceTransfer: transferFinal,
+      priceCard: cardFinal,
+      originalPriceTransfer: transferBase > transferFinal ? transferBase : undefined,
+      originalPriceCard: cardBase > cardFinal ? cardBase : undefined,
+      saleLabel: product.pricing?.sale.label ?? undefined,
+      salePercent: product.pricing?.transfer.discountPercent ?? undefined,
+      saleEndsAt: product.pricing?.sale.endsAt ?? undefined,
       stock: product.stock ?? null,
       kind: product.kind,
     };
+
+    console.log("[PRODUCT RAW]", product);
+
+    console.log("[PRODUCT PRICING]", product.pricing);
+
+    console.log("[TRANSFER FINAL]", product.pricing?.transfer?.final);
+
+    console.log("[CARD FINAL]", product.pricing?.card?.final);
+
+    console.log("[PAYLOAD FINAL]", payload);
+
+    return payload;
   }
 
   function handleAdd() {
