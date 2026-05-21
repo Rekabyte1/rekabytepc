@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 function orderNumberNice(id: string) {
   const clean = String(id || "").trim();
@@ -61,6 +62,7 @@ function CopyAllTransferButton({ value }: { value: string }) {
 
 export default function SuccessClient() {
   const sp = useSearchParams();
+  const { status: sessionStatus } = useSession();
 
   const orderId = sp.get("orderId") ?? "";
   const pm = (sp.get("pm") ?? "").toLowerCase(); // transferencia | card
@@ -73,6 +75,7 @@ export default function SuccessClient() {
 
   const isTransfer = pm === "transferencia";
   const isMercadoPago = source === "mercadopago" || (!isTransfer && pm !== "transferencia");
+  const isLoggedUser = sessionStatus === "authenticated";
 
   const deliveryLabel =
     dt === "shipping" ? "Despacho a domicilio" : "Retiro en tienda";
@@ -238,14 +241,30 @@ Correo: contacto@rekabyte.cl`,
             </div>
           )}
 
-        <div className="cs-actions">
-          <Link href="/cuenta/panel?tab=compras" className="rb-btn">
-            Ver mis compras
-          </Link>
-          <Link href="/" className="rb-btn rb-btn--ghost">
-            Volver al inicio
-          </Link>
-        </div>
+        {!isLoggedUser ? (
+          <>
+            <div className="cs-guest-note">
+              Te enviamos el detalle del pedido a tu correo.
+            </div>
+            <div className="cs-actions">
+              <Link href="/" className="rb-btn">
+                Volver al inicio
+              </Link>
+              <Link href="/auth/registro" className="rb-btn rb-btn--ghost">
+                Crear cuenta
+              </Link>
+            </div>
+          </>
+        ) : (
+          <div className="cs-actions">
+            <Link href="/cuenta/panel?tab=compras" className="rb-btn">
+              Ver mis compras
+            </Link>
+            <Link href="/" className="rb-btn rb-btn--ghost">
+              Volver al inicio
+            </Link>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -344,48 +363,46 @@ Correo: contacto@rekabyte.cl`,
         }
 
         .cs-panel {
-          margin-top: 12px;
-          border: 1px solid rgba(182, 255, 46, 0.25);
-          background: rgba(182, 255, 46, 0.06);
+          margin-top: 14px;
+          border: 1px solid rgba(182, 255, 46, 0.2);
+          background: rgba(182, 255, 46, 0.05);
           border-radius: 14px;
           padding: 12px;
         }
 
         .cs-panel-error {
-          border-color: rgba(239, 68, 68, 0.25);
-          background: rgba(239, 68, 68, 0.06);
+          border: 1px solid rgba(239, 68, 68, 0.25);
+          background: rgba(239, 68, 68, 0.08);
         }
 
         .cs-panel-title {
-          color: #e5e7eb;
-          font-weight: 900;
+          color: #fff;
           font-size: 14px;
-          margin-bottom: 10px;
+          font-weight: 900;
+          margin-bottom: 8px;
         }
 
         .cs-transfer-box {
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(20, 20, 20, 0.4);
+          border: 1px dashed rgba(255, 255, 255, 0.18);
+          background: rgba(10, 10, 10, 0.45);
           border-radius: 12px;
-          padding: 12px;
-          margin-top: 10px;
+          padding: 10px;
         }
 
         .cs-transfer-box pre {
           margin: 0;
-          font-size: 12px;
-          line-height: 1.65;
-          color: #e5e7eb;
-          font-weight: 700;
           white-space: pre-wrap;
-          word-break: break-word;
+          color: #e5e7eb;
+          font-size: 13px;
+          line-height: 1.5;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
 
         .cs-note {
           margin-top: 10px;
-          color: #c4c4c4;
-          font-size: 12px;
-          line-height: 1.55;
+          color: #a3a3a3;
+          font-size: 13px;
+          line-height: 1.5;
         }
 
         .cs-strong {
@@ -393,11 +410,31 @@ Correo: contacto@rekabyte.cl`,
           font-weight: 900;
         }
 
-        .cs-actions {
-          display: flex;
-          gap: 10px;
+        .cs-guest-note {
           margin-top: 14px;
-          flex-wrap: wrap;
+          color: #d4d4d4;
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .cs-actions {
+          margin-top: 14px;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+
+        @media (min-width: 640px) {
+          .cs-actions {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        .cs-actions :global(.rb-btn) {
+          width: 100%;
+          justify-content: center;
+          text-align: center;
         }
       `}</style>
     </main>
