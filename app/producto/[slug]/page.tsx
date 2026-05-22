@@ -13,6 +13,21 @@ type PageProps = {
   params: { slug: string };
 };
 
+type ProductSeoInput = {
+  slug: string;
+  name: string;
+  brand?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
+  shortDescription?: string | null;
+  description?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  imageUrl?: string | null;
+  images?: string[] | null;
+  specs?: unknown;
+};
+
 function formatPrice(value: number | null | undefined) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -41,6 +56,133 @@ function extractPremiumSections(specs: unknown): PremiumSection[] {
   return raw as PremiumSection[];
 }
 
+function detectProductType(input: {
+  name: string;
+  category?: string | null;
+  subcategory?: string | null;
+  specs?: unknown;
+}) {
+  const haystack = `${input.name} ${input.category ?? ""} ${
+    input.subcategory ?? ""
+  } ${JSON.stringify(input.specs ?? {})}`.toLowerCase();
+
+  const isMouse =
+    /\bmouse\b|\brat[oó]n\b|\blamzu\b|\bpaw3950\b/.test(haystack);
+  const isKeyboard =
+    /\bteclado\b|\bkeyboard\b|\brapid trigger\b|\bhall effect\b|\bx68he\b/.test(
+      haystack
+    );
+
+  if (isMouse) return "mouse";
+  if (isKeyboard) return "keyboard";
+  return "peripheral";
+}
+
+function buildSeoSubtitle(input: {
+  name: string;
+  category?: string | null;
+  subcategory?: string | null;
+  specs?: unknown;
+}) {
+  const type = detectProductType(input);
+
+  if (type === "mouse") {
+    return "Mouse gamer ultraligero inalámbrico orientado a esports, FPS competitivos y setups de alto rendimiento.";
+  }
+
+  if (type === "keyboard") {
+    return "Teclado magnético gaming con Rapid Trigger, switches Hall Effect y respuesta rápida para competitivo.";
+  }
+
+  return "Periférico gamer seleccionado para mejorar rendimiento, comodidad y experiencia de juego.";
+}
+
+function buildAutoSeoTitle(input: ProductSeoInput) {
+  const type = detectProductType(input);
+  const cleanName = input.name.trim();
+
+  if (type === "mouse") {
+    return `${cleanName} - Mouse Gamer Ultraligero 8K | RekaByte Chile`;
+  }
+
+  if (type === "keyboard") {
+    return `${cleanName} - Teclado Magnético Rapid Trigger | RekaByte Chile`;
+  }
+
+  const brandChunk = input.brand ? `${input.brand} ` : "";
+  return `${cleanName} - ${brandChunk}Periférico Gamer | RekaByte Chile`;
+}
+
+function pickSpecsSnippets(specs: unknown) {
+  if (!specs || typeof specs !== "object" || Array.isArray(specs)) return [];
+  const entries = Object.entries(specs as Record<string, unknown>);
+  const wanted = [
+    "peso",
+    "weight",
+    "polling",
+    "8k",
+    "sensor",
+    "paw",
+    "hall",
+    "rapid",
+    "switch",
+    "wireless",
+    "inalambr",
+  ];
+
+  const snippets: string[] = [];
+  for (const [k, v] of entries) {
+    const key = String(k).toLowerCase();
+    const value = String(v ?? "");
+    if (!value) continue;
+    if (wanted.some((w) => key.includes(w) || value.toLowerCase().includes(w))) {
+      snippets.push(`${k}: ${value}`);
+    }
+    if (snippets.length >= 2) break;
+  }
+
+  return snippets;
+}
+
+function buildAutoSeoDescription(input: ProductSeoInput) {
+  const type = detectProductType(input);
+  const countryChunk = "en Chile";
+  const brandChunk = input.brand ? `${input.brand} ` : "";
+  const short = input.shortDescription?.trim() || input.description?.trim() || "";
+  const specsBits = pickSpecsSnippets(input.specs);
+  const specsText = specsBits.length ? ` ${specsBits.join(", ")}.` : "";
+
+  if (type === "mouse") {
+    return `Compra el ${input.name} ${countryChunk}. ${brandChunk}mouse gamer ultraligero orientado a FPS y esports competitivos.${specsText}${
+      short ? ` ${short}` : ""
+    }`.trim();
+  }
+
+  if (type === "keyboard") {
+    return `Compra el ${input.name} ${countryChunk}. Teclado magnético gaming con Rapid Trigger, switches Hall Effect y enfoque competitivo.${specsText}${
+      short ? ` ${short}` : ""
+    }`.trim();
+  }
+
+  return `Compra ${input.name} ${countryChunk}. ${brandChunk}periférico gamer seleccionado para rendimiento, comodidad y experiencia premium.${specsText}${
+    short ? ` ${short}` : ""
+  }`.trim();
+}
+
+function resolveSeo(input: ProductSeoInput) {
+  const title = input.seoTitle?.trim() || buildAutoSeoTitle(input);
+  const description =
+    input.seoDescription?.trim() || buildAutoSeoDescription(input);
+  const canonical = `https://www.rekabyte.cl/producto/${input.slug}`;
+
+  const ogImage =
+    input.images && input.images.length > 0
+      ? input.images[0]
+      : input.imageUrl || undefined;
+
+  return { title, description, canonical, ogImage };
+}
+
 export default async function ProductPage({ params }: PageProps) {
   const dbProduct = await prisma.product.findUnique({
     where: { slug: params.slug },
@@ -61,6 +203,13 @@ export default async function ProductPage({ params }: PageProps) {
   const premiumSections = extractPremiumSections(dbProduct.specs);
   const inStock = (dbProduct.stock ?? 0) > 0;
   const pricing = buildPriceView(dbProduct);
+
+  const seoSubtitle = buildSeoSubtitle({
+    name: dbProduct.name,
+    category: dbProduct.category as string | null,
+    subcategory: dbProduct.subcategory as string | null,
+    specs: dbProduct.specs,
+  });
 
   return (
     <main className="rb-container mx-auto max-w-7xl px-4 py-10 text-neutral-100">
@@ -104,6 +253,11 @@ export default async function ProductPage({ params }: PageProps) {
             {dbProduct.name}
           </h1>
 
+          {/* Subtítulo SEO visible (premium, secundario al H1) */}
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-300 md:text-[15px]">
+            {seoSubtitle}
+          </p>
+
           <div className="mt-4 space-y-2 text-sm text-neutral-400">
             {dbProduct.sku ? <p>Código: {dbProduct.sku}</p> : null}
             <p>
@@ -146,12 +300,12 @@ export default async function ProductPage({ params }: PageProps) {
                 {formatPrice(pricing.card.final)}
               </p>
             )}
-
             {pricing.sale.active ? <SaleCountdown endsAt={pricing.sale.endsAt} /> : null}
           </div>
 
           <div className="mt-6 grid gap-3">
             <AddToCartButton slug={dbProduct.slug} name={dbProduct.name} />
+
             <AddToCartButton
               slug={dbProduct.slug}
               name={dbProduct.name}
@@ -238,13 +392,18 @@ export async function generateMetadata({ params }: PageProps) {
   const dbProduct = await prisma.product.findUnique({
     where: { slug: params.slug },
     select: {
+      slug: true,
       name: true,
+      brand: true,
+      category: true,
+      subcategory: true,
       description: true,
       shortDescription: true,
       seoTitle: true,
       seoDescription: true,
       imageUrl: true,
       images: true,
+      specs: true,
       isActive: true,
     },
   });
@@ -253,26 +412,41 @@ export async function generateMetadata({ params }: PageProps) {
     return { title: "Producto no encontrado" };
   }
 
-  const ogImage =
-    dbProduct.images && dbProduct.images.length > 0
-      ? dbProduct.images[0]
-      : dbProduct.imageUrl || undefined;
+  const seo = resolveSeo({
+    slug: dbProduct.slug,
+    name: dbProduct.name,
+    brand: dbProduct.brand,
+    category: dbProduct.category as string | null,
+    subcategory: dbProduct.subcategory as string | null,
+    description: dbProduct.description,
+    shortDescription: dbProduct.shortDescription,
+    seoTitle: dbProduct.seoTitle,
+    seoDescription: dbProduct.seoDescription,
+    imageUrl: dbProduct.imageUrl,
+    images: dbProduct.images as string[] | null,
+    specs: dbProduct.specs,
+  });
 
   return {
-    title: dbProduct.seoTitle ?? `${dbProduct.name} – RekaByte`,
-    description:
-      dbProduct.seoDescription ??
-      dbProduct.shortDescription ??
-      dbProduct.description ??
-      dbProduct.name,
+    title: seo.title,
+    description: seo.description,
+    alternates: {
+      canonical: seo.canonical,
+    },
     openGraph: {
-      title: dbProduct.seoTitle ?? `${dbProduct.name} – RekaByte`,
-      description:
-        dbProduct.seoDescription ??
-        dbProduct.shortDescription ??
-        dbProduct.description ??
-        dbProduct.name,
-      images: ogImage ? [{ url: ogImage }] : [],
+      title: seo.title,
+      description: seo.description,
+      url: seo.canonical,
+      siteName: "RekaByte",
+      locale: "es_CL",
+      type: "website",
+      images: seo.ogImage ? [{ url: seo.ogImage }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo.title,
+      description: seo.description,
+      images: seo.ogImage ? [seo.ogImage] : [],
     },
   };
 }
