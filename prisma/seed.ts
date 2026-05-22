@@ -1,6 +1,12 @@
 // prisma/seed.ts
 import "dotenv/config";
-import { PrismaClient, ProductCategory, ProductKind, SetupCategory, SetupTier } from "@prisma/client";
+import {
+  PrismaClient,
+  ProductCategory,
+  ProductKind,
+  SetupCategory,
+  SetupTier,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { products } from "../data/products";
 
@@ -19,41 +25,11 @@ async function main() {
   for (const p of products) {
     const existing = await prisma.product.findUnique({
       where: { slug: p.slug },
-      select: { slug: true },
+      select: { id: true, slug: true },
     });
 
-    if (existing) {
-      // ============================================
-      // 🔒 PRODUCTO EXISTENTE → NO TOCAR DATOS COMERCIALES
-      // ============================================
-      await prisma.product.update({
-        where: { slug: p.slug },
-        data: {
-          // SOLO DATOS TÉCNICOS / ESTRUCTURA
-
-          kind: p.kind as ProductKind,
-          category: p.category as ProductCategory,
-          subcategory: p.subcategory ?? null,
-          brand: p.brand ?? null,
-          sku: p.sku ?? null,
-
-          setupTier: (p.setupTier as SetupTier | undefined) ?? null,
-          setupCategory: (p.setupCategory as SetupCategory | undefined) ?? null,
-
-          // Puedes decidir si esto lo maneja código o BD
-          specs: p.specs ?? undefined,
-
-          // 🔧 IMPORTANTE: estas líneas puedes comentarlas si quieres que la BD mande también en imágenes
-          imageUrl: p.imageUrl ?? null,
-          images: p.images ?? [],
-
-          manufacturerPdfUrl: p.manufacturerPdfUrl ?? null,
-        },
-      });
-    } else {
-      // ============================================
-      // 🆕 PRODUCTO NUEVO → CREAR DESDE CÓDIGO
-      // ============================================
+    if (!existing) {
+      // 1) Producto nuevo: crear con todos los datos del seed
       await prisma.product.create({
         data: {
           name: p.name,
@@ -92,10 +68,44 @@ async function main() {
           sortOrder: p.sortOrder ?? 0,
         },
       });
+
+      console.log(`Created product: ${p.slug}`);
+      continue;
     }
+
+    // 2) Producto existente: actualizar solo campos seguros editoriales/técnicos
+    // NO tocar campos comerciales/operativos
+    await prisma.product.update({
+      where: { slug: p.slug },
+      data: {
+        name: p.name,
+
+        description: p.description ?? p.shortDescription ?? null,
+        shortDescription: p.shortDescription ?? null,
+
+        specs: p.specs ?? undefined,
+
+        imageUrl: p.imageUrl ?? null,
+        images: p.images ?? [],
+
+        seoTitle: p.seoTitle ?? null,
+        seoDescription: p.seoDescription ?? null,
+        manufacturerPdfUrl: p.manufacturerPdfUrl ?? null,
+
+        brand: p.brand ?? null,
+        sku: p.sku ?? null,
+
+        category: p.category as ProductCategory,
+        subcategory: p.subcategory ?? null,
+        kind: p.kind as ProductKind,
+      },
+    });
+
+    console.log(`Updated safe fields only: ${p.slug}`);
+    console.log(`Skipped commercial fields: ${p.slug}`);
   }
 
-  console.log(`Seed terminado. ${products.length} producto(s) sincronizados.`);
+  console.log(`Seed terminado. ${products.length} producto(s) procesados.`);
 }
 
 main()

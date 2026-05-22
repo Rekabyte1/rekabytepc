@@ -4,15 +4,13 @@ import { prisma } from "@/lib/prisma";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import AddToCartButton from "@/components/AddToCartButton";
 import SaleCountdown from "@/components/SaleCountdown";
+import PremiumProductSections, {
+  type PremiumSection,
+} from "@/components/PremiumProductSections";
 import { buildPriceView } from "@/lib/pricing";
 
 type PageProps = {
   params: { slug: string };
-};
-
-type BreadcrumbItem = {
-  label: string;
-  href?: string;
 };
 
 function formatPrice(value: number | null | undefined) {
@@ -25,102 +23,22 @@ function formatPrice(value: number | null | undefined) {
 
 function normalizeSpecs(specs: unknown): Array<[string, string]> {
   if (!specs || typeof specs !== "object" || Array.isArray(specs)) return [];
-  return Object.entries(specs as Record<string, unknown>).map(([key, value]) => [
-    key,
-    String(value ?? ""),
-  ]);
+  return Object.entries(specs as Record<string, unknown>)
+    .filter(([rawKey, value]) => {
+      const key = String(rawKey).trim().toLowerCase();
+      if (key === "premiumsections") return false;
+      if (value === null || value === undefined) return false;
+      if (typeof value === "object") return false;
+      return true;
+    })
+    .map(([key, value]) => [key, String(value)]);
 }
 
-function categoryLabel(category?: string | null) {
-  const map: Record<string, string> = {
-    PSU: "Fuentes de poder",
-    CASE: "Gabinetes",
-    MOTHERBOARD: "Placas madre",
-    GPU: "Tarjetas de video",
-    CPU: "Procesadores",
-    RAM: "Memorias RAM",
-    STORAGE: "Almacenamiento",
-    CPU_COOLER: "Coolers CPU",
-    CASE_FAN: "Ventiladores",
-    THERMAL_PASTE: "Pasta térmica",
-    CABLE: "Cables",
-  };
-  return map[String(category ?? "")] ?? "Componentes";
-}
-
-function buildBreadcrumb(params: {
-  kind?: string | null;
-  category?: string | null;
-  productName: string;
-}): BreadcrumbItem[] {
-  const { kind, category, productName } = params;
-  const cat = String(category ?? "");
-  const k = String(kind ?? "");
-
-  const home: BreadcrumbItem = { label: "Home", href: "/" };
-
-  if (cat === "PERIPHERAL") {
-    return [
-      home,
-      { label: "Gaming y Streaming", href: "/gaming-streaming" },
-      { label: "Periféricos", href: "/gaming-streaming/perifericos" },
-      { label: productName },
-    ];
-  }
-
-  if (cat === "STREAMING") {
-    return [
-      home,
-      { label: "Gaming y Streaming", href: "/gaming-streaming" },
-      { label: "Streaming", href: "/gaming-streaming/streaming" },
-      { label: productName },
-    ];
-  }
-
-  if (cat === "MONITOR") {
-    return [
-      home,
-      { label: "Gaming y Streaming", href: "/gaming-streaming" },
-      { label: "Monitores", href: "/gaming-streaming/monitores" },
-      { label: productName },
-    ];
-  }
-
-  const isComponent =
-    cat === "PSU" ||
-    cat === "CASE" ||
-    cat === "MOTHERBOARD" ||
-    cat === "GPU" ||
-    cat === "CPU" ||
-    cat === "RAM" ||
-    cat === "STORAGE" ||
-    cat === "CPU_COOLER" ||
-    cat === "CASE_FAN" ||
-    cat === "THERMAL_PASTE" ||
-    cat === "CABLE";
-
-  if (isComponent) {
-    return [
-      home,
-      { label: "Componentes", href: "/componentes" },
-      { label: categoryLabel(cat), href: "/componentes" },
-      { label: productName },
-    ];
-  }
-
-  if (k === "PREBUILT_PC" || cat === "PREBUILT_PC") {
-    return [
-      home,
-      { label: "Setup Gamer", href: "/setup-gamer" },
-      { label: productName },
-    ];
-  }
-
-  return [
-    home,
-    { label: "Componentes", href: "/componentes" },
-    { label: productName },
-  ];
+function extractPremiumSections(specs: unknown): PremiumSection[] {
+  if (!specs || typeof specs !== "object" || Array.isArray(specs)) return [];
+  const raw = (specs as Record<string, unknown>).premiumSections;
+  if (!Array.isArray(raw)) return [];
+  return raw as PremiumSection[];
 }
 
 export default async function ProductPage({ params }: PageProps) {
@@ -140,35 +58,22 @@ export default async function ProductPage({ params }: PageProps) {
       : [];
 
   const specs = normalizeSpecs(dbProduct.specs);
+  const premiumSections = extractPremiumSections(dbProduct.specs);
   const inStock = (dbProduct.stock ?? 0) > 0;
   const pricing = buildPriceView(dbProduct);
-
-  const breadcrumb = buildBreadcrumb({
-    kind: dbProduct.kind,
-    category: dbProduct.category,
-    productName: dbProduct.name,
-  });
 
   return (
     <main className="rb-container mx-auto max-w-7xl px-4 py-10 text-neutral-100">
       <div className="mb-4 text-xs text-neutral-500">
-        {breadcrumb.map((item, idx) => {
-          const isLast = idx === breadcrumb.length - 1;
-          return (
-            <span key={`${item.label}-${idx}`}>
-              {idx > 0 ? <span className="mx-1">/</span> : null}
-              {item.href && !isLast ? (
-                <Link href={item.href} className="hover:text-neutral-200">
-                  {item.label}
-                </Link>
-              ) : (
-                <span className={isLast ? "text-neutral-300" : "hover:text-neutral-200"}>
-                  {item.label}
-                </span>
-              )}
-            </span>
-          );
-        })}
+        <Link href="/" className="hover:text-neutral-200">
+          Home
+        </Link>{" "}
+        <span className="mx-1">/</span>
+        <Link href="/componentes" className="hover:text-neutral-200">
+          Componentes
+        </Link>{" "}
+        <span className="mx-1">/</span>
+        <span className="text-neutral-300">{dbProduct.name}</span>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -188,7 +93,6 @@ export default async function ProductPage({ params }: PageProps) {
                 {dbProduct.brand}
               </span>
             ) : null}
-
             {dbProduct.badge ? (
               <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-extrabold text-white">
                 {dbProduct.badge}
@@ -242,12 +146,12 @@ export default async function ProductPage({ params }: PageProps) {
                 {formatPrice(pricing.card.final)}
               </p>
             )}
+
             {pricing.sale.active ? <SaleCountdown endsAt={pricing.sale.endsAt} /> : null}
           </div>
 
           <div className="mt-6 grid gap-3">
             <AddToCartButton slug={dbProduct.slug} name={dbProduct.name} />
-
             <AddToCartButton
               slug={dbProduct.slug}
               name={dbProduct.name}
@@ -276,23 +180,54 @@ export default async function ProductPage({ params }: PageProps) {
         </p>
       </section>
 
-      {specs.length > 0 && (
-        <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/55 p-6">
-          <h2 className="text-xl font-extrabold text-white">Especificaciones</h2>
+      {premiumSections.length > 0 ? (
+        <PremiumProductSections sections={premiumSections} />
+      ) : null}
 
-          <div className="mt-5 overflow-hidden rounded-2xl border border-neutral-800">
-            {specs.map(([label, value], idx) => (
-              <div
-                key={label}
-                className={`grid grid-cols-1 gap-2 border-b border-neutral-800 px-4 py-3 md:grid-cols-[260px_1fr] ${
-                  idx === specs.length - 1 ? "border-b-0" : ""
-                }`}
-              >
-                <div className="text-sm font-bold text-neutral-300">{label}</div>
-                <div className="text-sm text-white">{value}</div>
+      {specs.length > 0 && (
+        <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4 md:p-5">
+          <details className="group rounded-xl border border-lime-500/20 bg-black/20 open:border-lime-400/30">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-white marker:content-none">
+              <h2 className="text-sm font-bold tracking-wide text-neutral-200 md:text-base">
+                Especificaciones técnicas
+              </h2>
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-lime-500/30 bg-lime-500/10 text-lime-300 transition-transform duration-300 group-open:rotate-180">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </span>
+            </summary>
+
+            <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-open:grid-rows-[1fr]">
+              <div className="overflow-hidden">
+                <div className="mt-1 overflow-hidden rounded-b-xl border-t border-lime-500/10">
+                  {specs.map(([label, value], idx) => (
+                    <div
+                      key={label}
+                      className={`grid grid-cols-1 gap-2 border-b border-neutral-800/80 px-4 py-3 md:grid-cols-[220px_1fr] ${
+                        idx === specs.length - 1 ? "border-b-0" : ""
+                      }`}
+                    >
+                      <div className="text-xs font-bold uppercase tracking-wide text-neutral-400 md:text-sm">
+                        {label}
+                      </div>
+                      <div className="text-sm text-neutral-100">{value}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          </details>
         </section>
       )}
     </main>

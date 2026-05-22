@@ -1,4 +1,43 @@
 // data/products.ts
+type PremiumHighlight = {
+  label: string;
+  text: string;
+};
+
+type PremiumSectionHero = {
+  type: "hero";
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  image?: string;
+  highlights?: PremiumHighlight[];
+};
+
+type PremiumSectionSplit = {
+  type: "split";
+  title: string;
+  description?: string;
+  image?: string;
+  reverse?: boolean;
+};
+
+type PremiumSectionGridItem = {
+  title: string;
+  description?: string;
+  image?: string;
+};
+
+type PremiumSectionGrid = {
+  type: "grid";
+  items: PremiumSectionGridItem[];
+};
+
+type PremiumSection =
+  | PremiumSectionHero
+  | PremiumSectionSplit
+  | PremiumSectionGrid;
+
+type ProductSpecs = Record<string, string | PremiumSection[]>;
 
 export type SeedProduct = {
   slug: string;
@@ -45,7 +84,7 @@ export type SeedProduct = {
   stock?: number;
   isActive?: boolean;
 
-  specs?: Record<string, string>;
+  specs?: ProductSpecs;
   manufacturerPdfUrl?: string | null;
 
   seoTitle?: string | null;
@@ -1181,6 +1220,63 @@ export const products: SeedProduct[] = [
     Bateria: "Hasta 80 horas aprox.",
     Formato: "Simétrico",
     Uso: "Gaming competitivo / esports",
+
+premiumSections: [
+  {
+    type: "hero",
+    eyebrow: "LAMZU MAYA X",
+    title: "ULTRA LIGHTWEIGHT. MAX PERFORMANCE.",
+    description:
+      "Diseñado para competitivo: menos peso, más control y una respuesta preparada para sesiones intensas de FPS.",
+    image: "/products/mouse-lamzu-maya-x-black/premium/hero.jpg",
+    highlights: [
+      { label: "47g", text: "Ultraligero" },
+      { label: "PAW3950", text: "Sensor flagship" },
+      { label: "8K", text: "Polling rate" },
+      { label: "80H", text: "Batería aprox." },
+    ],
+  },
+
+  {
+    type: "split",
+    title: "SENSOR PIXART PAW3950",
+    description:
+      "Precisión profesional diseñada para tracking competitivo, movimientos rápidos y control absoluto en escenarios de alta exigencia.",
+    image: "/products/mouse-lamzu-maya-x-black/premium/sensor.jpg",
+    reverse: false,
+  },
+
+  {
+    type: "grid",
+    items: [
+      {
+        title: "47 gramos",
+        description:
+          "Construcción ultraligera pensada para flicks rápidos y menor fatiga.",
+        image: "/products/mouse-lamzu-maya-x-black/premium/weight.jpg",
+      },
+      {
+        title: "Hasta 80 horas",
+        description:
+          "Autonomía optimizada para sesiones largas de gaming competitivo.",
+        image: "/products/mouse-lamzu-maya-x-black/premium/battery.jpg",
+      },
+      {
+        title: "8K Polling Rate",
+        description:
+           "Respuesta inalámbrica de baja latencia para movimientos precisos y competitivos.",
+        image: "/products/mouse-lamzu-maya-x-black/premium/wireless.jpg",
+      },
+      {
+        title: "Forma simétrica",
+        description:
+          "Diseñado para claw, fingertip y movimientos rápidos con control preciso.",
+        image: "/products/mouse-lamzu-maya-x-black/premium/shape.jpg",
+      },
+    ],
+  },
+],
+    
   },
   manufacturerPdfUrl: null,
   seoTitle: "Mouse Lamzu Maya X Wireless Black | RekaByte Chile",
