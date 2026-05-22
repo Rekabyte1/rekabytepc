@@ -39,68 +39,33 @@ export default function ProductImageGallery({
       </div>
 
       {safeImages.length > 1 && (
-        <>
-          {/* MOBILE: fila horizontal */}
-          <div className="md:hidden">
-            <div className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {safeImages.map((img, idx) => {
-                const isActive = img === selectedImage;
+        <div className="grid grid-cols-4 gap-3">
+          {safeImages.slice(0, 8).map((img, idx) => {
+            const isActive = img === selectedImage;
 
-                return (
-                  <div key={`${img}-${idx}`} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedImage(img)}
-                      aria-label={`Ver imagen ${idx + 1} de ${productName}`}
-                      className={`group relative h-24 w-24 overflow-hidden rounded-xl border bg-gradient-to-b from-neutral-900/75 to-black/85 transition-all duration-300 ${
-                        isActive
-                          ? "border-lime-400/80 ring-2 ring-lime-400/25 shadow-[0_0_0_1px_rgba(163,230,53,0.3),0_12px_26px_rgba(132,204,22,0.18)]"
-                          : "border-neutral-700/70 hover:border-lime-400/45 hover:shadow-[0_12px_26px_rgba(0,0,0,0.35)]"
-                      }`}
-                    >
-                      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(163,230,53,0.1),transparent_52%)] opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
-                      <Image
-                        src={img}
-                        alt={`${productName} ${idx + 1}`}
-                        fill
-                        className="object-contain p-2"
-                      />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* DESKTOP: grilla */}
-          <div className="hidden grid-cols-4 gap-3 md:grid">
-            {safeImages.slice(0, 8).map((img, idx) => {
-              const isActive = img === selectedImage;
-
-              return (
-                <button
-                  key={`${img}-${idx}`}
-                  type="button"
-                  onClick={() => setSelectedImage(img)}
-                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
-                  className={`group relative aspect-square overflow-hidden rounded-xl border bg-gradient-to-b from-neutral-900/75 to-black/85 transition-all duration-300 ${
-                    isActive
-                      ? "border-lime-400/80 ring-2 ring-lime-400/25 shadow-[0_0_0_1px_rgba(163,230,53,0.3),0_14px_30px_rgba(132,204,22,0.18)]"
-                      : "border-neutral-700/70 hover:border-lime-400/45 hover:shadow-[0_12px_28px_rgba(0,0,0,0.35)]"
-                  }`}
-                >
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(163,230,53,0.1),transparent_52%)] opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
-                  <Image
-                    src={img}
-                    alt={`${productName} ${idx + 1}`}
-                    fill
-                    className="object-contain p-2"
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </>
+            return (
+              <button
+                key={`${img}-${idx}`}
+                type="button"
+                onClick={() => setSelectedImage(img)}
+                aria-label={`Ver imagen ${idx + 1} de ${productName}`}
+                className={`group relative aspect-square w-full overflow-hidden rounded-xl border bg-gradient-to-b from-neutral-900/75 to-black/85 transition-all duration-300 ${
+                  isActive
+                    ? "border-lime-400/80 ring-2 ring-lime-400/25 shadow-[0_0_0_1px_rgba(163,230,53,0.3),0_14px_30px_rgba(132,204,22,0.18)]"
+                    : "border-neutral-700/70 hover:border-lime-400/45 hover:shadow-[0_12px_28px_rgba(0,0,0,0.35)]"
+                }`}
+              >
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(163,230,53,0.1),transparent_52%)] opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
+                <Image
+                  src={img}
+                  alt={`${productName} ${idx + 1}`}
+                  fill
+                  className="object-contain p-2"
+                />
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );
