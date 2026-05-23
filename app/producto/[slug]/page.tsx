@@ -78,23 +78,34 @@ function detectProductType(input: {
   return "peripheral";
 }
 
+// ✅ CAMBIO 1: subtítulo SEO basado en contenido real
 function buildSeoSubtitle(input: {
-  name: string;
-  category?: string | null;
-  subcategory?: string | null;
-  specs?: unknown;
+  shortDescription?: string | null;
+  description?: string | null;
 }) {
-  const type = detectProductType(input);
+  const cleanText = (value: string) =>
+    value
+      .replace(/\s+/g, " ")
+      .replace(/\s+([,.;:!?])/g, "$1")
+      .trim();
 
-  if (type === "mouse") {
-    return "Mouse gamer ultraligero inalámbrico orientado a esports, FPS competitivos y setups de alto rendimiento.";
-  }
+  const summarize = (value: string, maxLength = 180) => {
+    const normalized = cleanText(value);
+    if (!normalized) return "";
+    if (normalized.length <= maxLength) return normalized;
+    const cut = normalized.slice(0, maxLength);
+    const lastSpace = cut.lastIndexOf(" ");
+    const base = (lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim();
+    return `${base}…`;
+  };
 
-  if (type === "keyboard") {
-    return "Teclado magnético gaming con Rapid Trigger, switches Hall Effect y respuesta rápida para competitivo.";
-  }
+  const short = cleanText(input.shortDescription ?? "");
+  if (short) return summarize(short, 180);
 
-  return "Periférico gamer seleccionado para mejorar rendimiento, comodidad y experiencia de juego.";
+  const description = cleanText(input.description ?? "");
+  if (description) return summarize(description, 180);
+
+  return "Producto gamer seleccionado por RekaByte para rendimiento, calidad y experiencia premium.";
 }
 
 function buildAutoSeoTitle(input: ProductSeoInput) {
@@ -204,11 +215,10 @@ export default async function ProductPage({ params }: PageProps) {
   const inStock = (dbProduct.stock ?? 0) > 0;
   const pricing = buildPriceView(dbProduct);
 
+  // ✅ CAMBIO 2: llamada actualizada
   const seoSubtitle = buildSeoSubtitle({
-    name: dbProduct.name,
-    category: dbProduct.category as string | null,
-    subcategory: dbProduct.subcategory as string | null,
-    specs: dbProduct.specs,
+    shortDescription: dbProduct.shortDescription,
+    description: dbProduct.description,
   });
 
   return (
@@ -303,18 +313,19 @@ export default async function ProductPage({ params }: PageProps) {
             {pricing.sale.active ? <SaleCountdown endsAt={pricing.sale.endsAt} /> : null}
           </div>
 
-         <div className="mt-6 grid gap-3">
-  <AddToCartButton slug={dbProduct.slug} name={dbProduct.name} />
+          <div className="mt-6 grid gap-3">
+            <AddToCartButton slug={dbProduct.slug} name={dbProduct.name} />
 
-  {inStock ? (
-    <AddToCartButton
-      slug={dbProduct.slug}
-      name={dbProduct.name}
-      mode="buy_now"
-      className="!bg-lime-400 !text-black hover:!bg-lime-300 disabled:!bg-neutral-700 disabled:!text-neutral-400"
-    />
-  ) : null}
-</div>
+            {inStock ? (
+              <AddToCartButton
+                slug={dbProduct.slug}
+                name={dbProduct.name}
+                mode="buy_now"
+                className="!bg-lime-400 !text-black hover:!bg-lime-300 disabled:!bg-neutral-700 disabled:!text-neutral-400"
+              />
+            ) : null}
+          </div>
+
           {dbProduct.manufacturerPdfUrl ? (
             <a
               href={dbProduct.manufacturerPdfUrl}

@@ -2,6 +2,33 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type AdminReportsProduct = {
+  id: string;
+  name: string;
+  sku: string | null;
+  category: string;
+  isActive: boolean;
+  stock: number | null;
+  price: number;
+  priceCard: number;
+  priceTransfer: number;
+  orderItems: Array<{
+    quantity: number;
+    unitPrice: number;
+    orderId: string;
+    order: {
+      status: string;
+      createdAt: Date;
+    };
+  }>;
+};
+
+type AdminPaymentSalesRow = {
+  paymentMethod: string;
+  _count: { _all: number };
+  _sum: { total: number | null };
+};
+
 const SOLD_STATUSES = ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "COMPLETED"] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -229,8 +256,7 @@ export default async function AdminReportesPage() {
     }),
   ]);
 
-  const productStats: ProductInsight[] = products.map((product) => {
-    const soldItems = product.orderItems.filter((item) =>
+const productStats: ProductInsight[] = products.map((product: AdminReportsProduct) => {    const soldItems = product.orderItems.filter((item) =>
       SOLD_STATUSES.includes(item.order.status as (typeof SOLD_STATUSES)[number])
     );
 

@@ -3,6 +3,54 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type AdminInventoryProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string | null;
+  category: string;
+  subcategory: string | null;
+  brand: string | null;
+  stock: number | null;
+  isActive: boolean;
+  priceTransfer: number;
+  priceCard: number;
+  inventoryItems: Array<{
+    id: string;
+    internalSku: string;
+    minStock: number;
+    targetStock: number;
+    lastNetCost: number;
+    lastTaxRate: number;
+    lastCostWithTax: number;
+    notes: string | null;
+    purchases: Array<{
+      purchaseDate: Date;
+      quantity: number;
+      unitNetCost: number;
+      unitCostWithTax: number;
+      totalCost: number;
+      supplier: { name: string };
+    }>;
+  }>;
+};
+
+type AdminInventoryRow = {
+  product: AdminInventoryProduct;
+  inventory: AdminInventoryProduct["inventoryItems"][number] | null;
+  lastPurchase:
+    | AdminInventoryProduct["inventoryItems"][number]["purchases"][number]
+    | null;
+  stock: number;
+  cost: number;
+  capital: number;
+  transferMargin: number | null;
+  cardMargin: number | null;
+  status: string;
+  transferMarginAmount: number;
+  cardMarginAmount: number;
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   PREBUILT_PC: "PCs armados",
   CPU: "Procesadores",
@@ -125,7 +173,7 @@ export default async function AdminInventarioPage() {
     },
   });
 
-  const rows = products.map((product) => {
+  const rows: AdminInventoryRow[] = products.map((product: AdminInventoryProduct) => {
     const inventory = product.inventoryItems[0] ?? null;
     const lastPurchase = inventory?.purchases[0] ?? null;
 
@@ -318,14 +366,21 @@ export default async function AdminInventarioPage() {
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/producto/${row.product.slug}`}
-                      target="_blank"
-                      className="inline-flex rounded-xl border border-lime-400/30 bg-lime-400/10 px-3 py-2 font-extrabold text-lime-200 hover:bg-lime-400/15"
+                      className="inline-flex items-center rounded-xl border border-lime-400/25 bg-lime-400/10 px-3 py-1.5 font-bold text-lime-200 hover:bg-lime-400/15"
                     >
-                      Ver
+                      Ver PDP
                     </Link>
                   </td>
                 </tr>
               ))}
+
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={13} className="px-4 py-8 text-center text-neutral-500">
+                    No hay productos cargados.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -343,27 +398,26 @@ function KpiCard({
   label: string;
   value: string | number;
   hint: string;
-  tone: string;
+  tone?: string;
 }) {
   return (
-    <article className="rounded-3xl border border-neutral-800 bg-neutral-950/60 p-4">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-neutral-500">
-        {label}
-      </p>
-      <div className={`mt-3 text-3xl font-black ${tone}`}>{value}</div>
-      <p className="mt-2 text-xs leading-5 text-neutral-500">{hint}</p>
+    <article className="rounded-2xl border border-neutral-800 bg-black/30 p-4">
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-neutral-500">{label}</p>
+      <p className={`mt-2 text-2xl font-black ${tone ?? "text-white"}`}>{value}</p>
+      <p className="mt-1 text-xs text-neutral-500">{hint}</p>
     </article>
   );
 }
 
-function Badge({ tone, children }: { tone: string; children: React.ReactNode }) {
+function Badge({
+  tone,
+  children,
+}: {
+  tone: string;
+  children: React.ReactNode;
+}) {
   return (
-    <span
-      className={[
-        "inline-flex rounded-full border px-2 py-1 text-[11px] font-extrabold",
-        tone,
-      ].join(" ")}
-    >
+    <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${tone}`}>
       {children}
     </span>
   );

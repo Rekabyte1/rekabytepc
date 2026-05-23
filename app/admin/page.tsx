@@ -3,6 +3,15 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type AdminLatestOrder = {
+  id: string;
+  createdAt: Date;
+  status: string;
+  paymentMethod: string;
+  contactName: string;
+  contactEmail: string;
+  total: number;
+};
 const ACTIVE_PROCESSED_STATUSES = ["PREPARING", "SHIPPED", "DELIVERED", "COMPLETED"] as const;
 const PREPARE_STATUSES = ["PAID", "PREPARING"] as const;
 const CONFIRMED_SALE_STATUSES = ["PAID", "PREPARING", "SHIPPED", "DELIVERED", "COMPLETED"] as const;
@@ -451,7 +460,7 @@ export default async function AdminDashboardPage() {
             <div className="p-6 text-sm text-neutral-400">No hay pedidos registrados.</div>
           ) : (
             <div className="divide-y divide-neutral-900">
-              {latestOrders.map((order) => (
+              {latestOrders.map((order: AdminLatestOrder) => (
                 <div key={order.id} className="p-4 hover:bg-white/[0.03]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
