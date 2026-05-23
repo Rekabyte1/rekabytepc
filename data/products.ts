@@ -1174,6 +1174,62 @@ export const products: SeedProduct[] = [
     Bateria: "Hasta 80 horas aprox.",
     Formato: "Simétrico",
     Uso: "Gaming competitivo / esports",
+    premiumSections: [
+  {
+    type: "hero",
+    eyebrow: "LAMZU MAYA X",
+    title: "ULTRA LIGHTWEIGHT. MAX PERFORMANCE.",
+    description:
+      "Diseñado para competitivo: menos peso, más control y una respuesta preparada para sesiones intensas de FPS.",
+    image: "/products/mouse-lamzu-maya-x-grey/premium/hero.jpg",
+    highlights: [
+      { label: "47g", text: "Ultraligero" },
+      { label: "PAW3950", text: "Sensor flagship" },
+      { label: "8K", text: "Polling rate" },
+      { label: "80H", text: "Batería aprox." },
+    ],
+  },
+
+  {
+    type: "split",
+    title: "SENSOR PIXART PAW3950",
+    description:
+      "Precisión profesional diseñada para tracking competitivo, movimientos rápidos y control absoluto en escenarios de alta exigencia.",
+    image: "/products/mouse-lamzu-maya-x-grey/premium/sensor.jpg",
+    reverse: false,
+  },
+
+  {
+    type: "grid",
+    items: [
+      {
+        title: "47 gramos",
+        description:
+          "Construcción ultraligera pensada para flicks rápidos y menor fatiga.",
+        image: "/products/mouse-lamzu-maya-x-grey/premium/weight.jpg",
+      },
+      {
+        title: "Hasta 80 horas",
+        description:
+          "Autonomía optimizada para sesiones largas de gaming competitivo.",
+        image: "/products/mouse-lamzu-maya-x-grey/premium/battery.jpg",
+      },
+      {
+        title: "8K Polling Rate",
+        description:
+           "Respuesta inalámbrica de baja latencia para movimientos precisos y competitivos.",
+        image: "/products/mouse-lamzu-maya-x-grey/premium/wireless.jpg",
+      },
+      {
+        title: "Forma simétrica",
+        description:
+          "Diseñado para claw, fingertip y movimientos rápidos con control preciso.",
+        image: "/products/mouse-lamzu-maya-x-grey/premium/shape.jpg",
+      },
+    ],
+  },
+],
+
   },
   manufacturerPdfUrl: null,
   seoTitle: "Mouse Lamzu Maya X Wireless Grey | RekaByte Chile",

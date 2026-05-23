@@ -17,18 +17,16 @@ export default function ProductImageGallery({
 
   if (!safeImages.length) {
     return (
-      <div className="flex h-[360px] max-h-[420px] items-center justify-center rounded-2xl border border-neutral-700/70 bg-gradient-to-b from-neutral-900/80 to-black/80 text-neutral-500 shadow-[0_20px_55px_rgba(0,0,0,0.45)] md:h-[440px] lg:h-auto lg:aspect-square">
+      <div className="flex h-[360px] items-center justify-center rounded-2xl border border-neutral-700/70 bg-black text-neutral-500 md:h-[440px] lg:aspect-square lg:h-auto">
         Sin imagen
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      {/* Imagen principal grande */}
-      <div className="relative mb-4 h-[360px] max-h-[420px] overflow-hidden rounded-[1.35rem] border border-lime-400/15 bg-gradient-to-b from-neutral-900/80 via-neutral-950/85 to-black/90 shadow-[0_28px_75px_rgba(0,0,0,0.55)] md:h-[440px] md:max-h-[440px] lg:h-auto lg:max-h-none lg:aspect-square">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(163,230,53,0.14),transparent_48%),linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(0,0,0,0.28)_100%)]" />
-        <div className="pointer-events-none absolute inset-x-[12%] top-[30%] h-[42%] rounded-full bg-lime-400/12 blur-[72px]" />
+    <div className="w-full min-w-0">
+      <div className="relative mb-4 h-[360px] overflow-hidden rounded-2xl border border-lime-400/20 bg-gradient-to-b from-neutral-900 via-black to-black shadow-[0_28px_75px_rgba(0,0,0,0.55)] md:h-[440px] lg:aspect-square lg:h-auto">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(163,230,53,0.14),transparent_48%)]" />
 
         <Image
           src={selectedImage}
@@ -36,37 +34,39 @@ export default function ProductImageGallery({
           fill
           className="object-contain p-3 md:p-4"
           priority
+          sizes="(max-width: 1024px) 100vw, 55vw"
         />
       </div>
 
-      {/* Miniaturas selector */}
       {safeImages.length > 1 && (
-        <div className="flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {safeImages.slice(0, 10).map((img, idx) => {
-            const isActive = img === selectedImage;
+        <div className="w-full overflow-x-auto overflow-y-hidden pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-nowrap gap-3">
+            {safeImages.slice(0, 10).map((img, idx) => {
+              const isActive = img === selectedImage;
 
-            return (
-              <button
-                key={`${img}-${idx}`}
-                type="button"
-                onClick={() => setSelectedImage(img)}
-                aria-label={`Ver imagen ${idx + 1} de ${productName}`}
-                className={`group relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-xl border bg-gradient-to-b from-neutral-900/75 to-black/85 transition-all duration-300 sm:h-[84px] sm:w-[84px] md:h-[96px] md:w-[96px] lg:h-[116px] lg:w-[116px] ${
-                  isActive
-                    ? "border-lime-400/80 ring-2 ring-lime-400/25 shadow-[0_0_0_1px_rgba(163,230,53,0.3),0_10px_22px_rgba(132,204,22,0.16)]"
-                    : "border-neutral-700/70 hover:border-lime-400/45 hover:shadow-[0_10px_20px_rgba(0,0,0,0.32)]"
-                }`}
-              >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(163,230,53,0.1),transparent_52%)] opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
-                <Image
-                  src={img}
-                  alt={`${productName} ${idx + 1}`}
-                  fill
-                  className="object-contain p-2"
-                />
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={`${img}-${idx}`}
+                  type="button"
+                  onClick={() => setSelectedImage(img)}
+                  aria-label={`Ver imagen ${idx + 1} de ${productName}`}
+                  className={`relative h-20 w-20 flex-[0_0_5rem] overflow-hidden rounded-xl border bg-gradient-to-b from-neutral-900 to-black transition-all duration-300 sm:h-24 sm:w-24 sm:flex-[0_0_6rem] lg:h-28 lg:w-28 lg:flex-[0_0_7rem] ${
+                    isActive
+                      ? "border-lime-400 ring-2 ring-lime-400/25 shadow-[0_0_24px_rgba(163,230,53,0.18)]"
+                      : "border-neutral-700 hover:border-lime-400/60"
+                  }`}
+                >
+                  <Image
+                    src={img}
+                    alt={`${productName} ${idx + 1}`}
+                    fill
+                    className="object-contain p-2"
+                    sizes="112px"
+                  />
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
