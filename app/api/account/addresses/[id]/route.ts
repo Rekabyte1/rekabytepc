@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+type AddressTx = {
+  address: typeof prisma.address;
+};
+
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
@@ -42,7 +46,7 @@ export async function PUT(req: Request, ctx: { params: { id: string } }) {
     if (!city && !commune) return jsonError("Debes ingresar ciudad o comuna.");
 
     const updated = await prisma
-      .$transaction(async (tx) => {
+      .$transaction(async (tx: AddressTx) => {
         const existing = await tx.address.findFirst({
           where: { id, userId },
         });
@@ -72,7 +76,7 @@ export async function PUT(req: Request, ctx: { params: { id: string } }) {
           },
         });
       })
-      .catch((e) => {
+      .catch((e: { message?: string }) => {
         if (String(e?.message) === "NOT_FOUND") return null;
         throw e;
       });

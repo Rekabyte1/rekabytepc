@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+type AddressTx = {
+  address: typeof prisma.address;
+};
+
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
     if (!region) return jsonError("Región es requerida.");
     if (!city && !commune) return jsonError("Debes ingresar ciudad o comuna.");
 
-    const created = await prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx: AddressTx) => {
       if (makeDefault) {
         await tx.address.updateMany({
           where: { userId, isDefault: true },

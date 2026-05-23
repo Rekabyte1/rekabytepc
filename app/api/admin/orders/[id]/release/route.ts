@@ -9,6 +9,10 @@ import {
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
+type ReleaseTx = {
+  order: typeof prisma.order;
+  product: typeof prisma.product;
+};
 
 function isAdmin(req: NextRequest): boolean {
   const token = req.cookies.get("admin_token")?.value;
@@ -29,7 +33,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   const { id: orderId } = await ctx.params;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: ReleaseTx) => {
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: true },
@@ -134,8 +138,9 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     });
 
     if (result.ok && "restockedProductIds" in result && result.restockedProductIds?.length) {
+      const ids = result.restockedProductIds as string[];
       await Promise.all(
-        [...new Set(result.restockedProductIds)].map((id: string) =>
+        [...new Set(ids)].map((id) =>
           dispatchStockAlertsForProduct(id).catch(() => null)
         )
       );
