@@ -3,6 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type BySlugItem = {
+  slug: string;
+  name: string;
+  priceTransfer: number | null;
+  priceCard: number | null;
+  stock: number | null;
+  imageUrl: string | null;
+  isActive: boolean;
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -26,7 +36,7 @@ export async function POST(req: Request) {
     });
 
     // Normalizamos a lo que consume el front
-    const normalized = items.map((p) => ({
+    const normalized = items.map((p: BySlugItem) => ({
       slug: p.slug,
       title: p.name, // 👈 CLAVE: el front usa "title"
       priceTransfer: p.priceTransfer ?? 0,

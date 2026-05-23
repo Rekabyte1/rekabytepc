@@ -28,6 +28,98 @@ type ProductSeoInput = {
   specs?: unknown;
 };
 
+type BreadcrumbItem = { label: string; href: string };
+
+function appUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://www.rekabyte.cl";
+}
+
+function toAbsoluteUrl(url: string | null | undefined) {
+  if (!url) return null;
+  const trimmed = String(url).trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("/")) return `${appUrl()}${trimmed}`;
+  return `${appUrl()}/${trimmed}`;
+}
+
+function buildSemanticBreadcrumb(product: {
+  category?: string | null;
+  subcategory?: string | null;
+  brand?: string | null;
+  name: string;
+}): BreadcrumbItem[] {
+  const category = String(product.category ?? "").trim().toUpperCase();
+  const subcategory = String(product.subcategory ?? "").trim().toUpperCase();
+  const text = `${product.name} ${product.brand ?? ""} ${subcategory}`.toLowerCase();
+
+  const componentMap: Record<string, string> = {
+    CPU: "Procesadores",
+    MOTHERBOARD: "Placas madre",
+    GPU: "Tarjetas gráficas",
+    RAM: "Memorias RAM",
+    STORAGE: "Almacenamiento",
+    CASE: "Gabinetes",
+    PSU: "Fuentes de poder",
+    CPU_COOLER: "Refrigeración CPU",
+    CASE_FAN: "Ventiladores",
+    THERMAL_PASTE: "Pasta térmica",
+    CABLE: "Cables",
+    MONITOR: "Monitores",
+  };
+
+  const peripheralSubMap: Record<string, string> = {
+    MOUSE: "Mouse",
+    KEYBOARD: "Teclados",
+    MOUSEPAD: "Mousepads",
+    HEADSET: "Audífonos",
+    SPEAKER: "Parlantes",
+    SPEAKERS: "Parlantes",
+    WEBCAM: "Webcams",
+    MICROPHONE: "Micrófonos",
+  };
+
+  const isPeripheralAccessory =
+    category === "PERIPHERAL" ||
+    category === "ACCESSORY" ||
+    peripheralSubMap[subcategory] !== undefined ||
+    text.includes("mouse") ||
+    text.includes("teclado") ||
+    text.includes("keyboard") ||
+    text.includes("audif") ||
+    text.includes("headset") ||
+    text.includes("parlante") ||
+    text.includes("speaker") ||
+    text.includes("webcam") ||
+    text.includes("microfono") ||
+    text.includes("microphone");
+
+  if (category === "STREAMING") {
+    return [
+      { label: "Gaming y Streaming", href: "/gaming-streaming" },
+      { label: "Streaming", href: "/gaming-streaming" },
+    ];
+  }
+
+  if (isPeripheralAccessory) {
+    const subLabel = peripheralSubMap[subcategory];
+    return [
+      { label: "Gaming y Streaming", href: "/gaming-streaming" },
+      { label: "Periféricos", href: "/gaming-streaming" },
+      ...(subLabel ? [{ label: subLabel, href: "/gaming-streaming" }] : []),
+    ];
+  }
+
+  if (componentMap[category]) {
+    return [
+      { label: "Componentes", href: "/componentes" },
+      { label: componentMap[category], href: "/componentes" },
+    ];
+  }
+
+  return [{ label: "Componentes", href: "/componentes" }];
+}
+
 function formatPrice(value: number | null | undefined) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -78,7 +170,6 @@ function detectProductType(input: {
   return "peripheral";
 }
 
-// ✅ CAMBIO 1: subtítulo SEO basado en contenido real
 function buildSeoSubtitle(input: {
   shortDescription?: string | null;
   description?: string | null;
@@ -106,6 +197,44 @@ function buildSeoSubtitle(input: {
   if (description) return summarize(description, 180);
 
   return "Producto gamer seleccionado por RekaByte para rendimiento, calidad y experiencia premium.";
+}
+
+function scoreRelatedProduct(
+  base: {
+    brand?: string | null;
+    category?: string | null;
+    subcategory?: string | null;
+    name: string;
+  },
+  candidate: {
+    brand?: string | null;
+    category?: string | null;
+    subcategory?: string | null;
+    name: string;
+  }
+) {
+  let score = 0;
+  const norm = (v: string | null | undefined) =>
+    String(v ?? "").trim().toLowerCase();
+
+  if (norm(base.brand) && norm(base.brand) === norm(candidate.brand)) score += 10;
+  if (norm(base.subcategory) && norm(base.subcategory) === norm(candidate.subcategory))
+    score += 8;
+  if (norm(base.category) && norm(base.category) === norm(candidate.category)) score += 5;
+
+  const baseName = norm(base.name);
+  const candidateName = norm(candidate.name);
+  if (baseName && candidateName) {
+    const baseTokens = baseName.split(/[\s-]+/).filter((t) => t.length >= 3);
+    const candidateTokens = new Set(
+      candidateName.split(/[\s-]+/).filter((t) => t.length >= 3)
+    );
+    for (const token of baseTokens) {
+      if (candidateTokens.has(token)) score += 2;
+    }
+  }
+
+  return score;
 }
 
 function buildAutoSeoTitle(input: ProductSeoInput) {
@@ -214,24 +343,161 @@ export default async function ProductPage({ params }: PageProps) {
   const premiumSections = extractPremiumSections(dbProduct.specs);
   const inStock = (dbProduct.stock ?? 0) > 0;
   const pricing = buildPriceView(dbProduct);
+  const canonicalUrl = `${appUrl()}/producto/${dbProduct.slug}`;
+  const primaryImage = images[0] ?? null;
+  const absolutePrimaryImage = toAbsoluteUrl(primaryImage);
+  const absoluteImages = images
+    .map((img) => toAbsoluteUrl(img))
+    .filter(Boolean) as string[];
 
-  // ✅ CAMBIO 2: llamada actualizada
+  const breadcrumbItems = buildSemanticBreadcrumb({
+    category: dbProduct.category as string | null,
+    subcategory: dbProduct.subcategory,
+    brand: dbProduct.brand,
+    name: dbProduct.name,
+  });
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: appUrl(),
+      },
+      ...breadcrumbItems.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 2,
+        name: item.label,
+        item: `${appUrl()}${item.href}`,
+      })),
+      {
+        "@type": "ListItem",
+        position: breadcrumbItems.length + 2,
+        name: dbProduct.name,
+        item: canonicalUrl,
+      },
+    ],
+  };
+
+  const productSchema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: dbProduct.name,
+    description:
+      dbProduct.shortDescription?.trim() ||
+      dbProduct.description?.trim() ||
+      "Producto disponible en RekaByte Chile.",
+    url: canonicalUrl,
+    image: absoluteImages.length
+      ? absoluteImages
+      : absolutePrimaryImage
+      ? [absolutePrimaryImage]
+      : [],
+    category: dbProduct.category,
+    offers: {
+      "@type": "Offer",
+      price: String(pricing.transfer.final ?? 0),
+      priceCurrency: "CLP",
+      availability: inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url: canonicalUrl,
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
+
+  if (dbProduct.brand?.trim()) {
+    productSchema.brand = {
+      "@type": "Brand",
+      name: dbProduct.brand.trim(),
+    };
+  }
+
+  if (dbProduct.sku?.trim()) {
+    productSchema.sku = dbProduct.sku.trim();
+  }
+
   const seoSubtitle = buildSeoSubtitle({
     shortDescription: dbProduct.shortDescription,
     description: dbProduct.description,
   });
 
+  const relatedCandidates = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      id: { not: dbProduct.id },
+      OR: [
+        { brand: dbProduct.brand ?? undefined },
+        { subcategory: dbProduct.subcategory ?? undefined },
+        { category: dbProduct.category },
+      ],
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      brand: true,
+      category: true,
+      subcategory: true,
+      shortDescription: true,
+      imageUrl: true,
+      images: true,
+      stock: true,
+      priceTransfer: true,
+      priceCard: true,
+      price: true,
+    },
+    take: 16,
+  });
+
+  const relatedProducts = relatedCandidates
+    .map((p) => ({
+      ...p,
+      score: scoreRelatedProduct(
+        {
+          brand: dbProduct.brand,
+          category: dbProduct.category as string | null,
+          subcategory: dbProduct.subcategory,
+          name: dbProduct.name,
+        },
+        {
+          brand: p.brand,
+          category: p.category as string | null,
+          subcategory: p.subcategory,
+          name: p.name,
+        }
+      ),
+    }))
+    .sort((a, b) => b.score - a.score || (b.stock ?? 0) - (a.stock ?? 0))
+    .slice(0, 4);
+
   return (
     <main className="rb-container mx-auto max-w-7xl px-4 py-10 text-neutral-100">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+
       <div className="mb-4 text-xs text-neutral-500">
         <Link href="/" className="hover:text-neutral-200">
           Home
         </Link>{" "}
         <span className="mx-1">/</span>
-        <Link href="/componentes" className="hover:text-neutral-200">
-          Componentes
-        </Link>{" "}
-        <span className="mx-1">/</span>
+        {breadcrumbItems.map((item) => (
+          <span key={`${item.href}-${item.label}`}>
+            <Link href={item.href} className="hover:text-neutral-200">
+              {item.label}
+            </Link>{" "}
+            <span className="mx-1">/</span>
+          </span>
+        ))}
         <span className="text-neutral-300">{dbProduct.name}</span>
       </div>
 
@@ -263,7 +529,6 @@ export default async function ProductPage({ params }: PageProps) {
             {dbProduct.name}
           </h1>
 
-          {/* Subtítulo SEO visible (premium, secundario al H1) */}
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-300 md:text-[15px]">
             {seoSubtitle}
           </p>
@@ -348,6 +613,76 @@ export default async function ProductPage({ params }: PageProps) {
 
       {premiumSections.length > 0 ? (
         <PremiumProductSections sections={premiumSections} />
+      ) : null}
+
+      {relatedProducts.length > 0 ? (
+        <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4 md:p-5">
+          <h2 className="text-xl font-extrabold text-white">También te puede interesar</h2>
+          <p className="mt-2 text-sm text-neutral-400">
+            Más periféricos premium para tu setup y productos relacionados por marca,
+            categoría y subcategoría.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {relatedProducts.map((p) => {
+              const pImages =
+                p.images && p.images.length > 0
+                  ? p.images
+                  : p.imageUrl
+                  ? [p.imageUrl]
+                  : [];
+              const pImage = pImages[0] ?? "/placeholder.jpg";
+              const pPricing = buildPriceView({
+                ...dbProduct,
+                ...p,
+              } as any);
+              const pInStock = (p.stock ?? 0) > 0;
+
+              return (
+                <Link
+                  key={p.id}
+                  href={`/producto/${p.slug}`}
+                  className="group rounded-xl border border-neutral-800 bg-neutral-900/70 p-3 transition hover:border-lime-400/60"
+                >
+                  <div className="relative mb-3 overflow-hidden rounded-lg border border-neutral-800 bg-black/30">
+                    <img
+                      src={pImage}
+                      alt={p.name}
+                      className="h-36 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
+                  </div>
+
+                  {p.brand ? (
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+                      {p.brand}
+                    </p>
+                  ) : null}
+
+                  <h3 className="mt-1 line-clamp-2 text-sm font-bold text-white">{p.name}</h3>
+
+                  {p.shortDescription ? (
+                    <p className="mt-2 line-clamp-2 text-xs text-neutral-400">
+                      {p.shortDescription}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-extrabold text-lime-400">
+                      {formatPrice(pPricing.transfer.final)}
+                    </p>
+                    <span
+                      className={`text-[11px] font-bold ${
+                        pInStock ? "text-lime-300" : "text-red-400"
+                      }`}
+                    >
+                      {pInStock ? "Con stock" : "Sin stock"}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       ) : null}
 
       {specs.length > 0 && (

@@ -1,7 +1,6 @@
 // app/api/admin/orders/[id]/status/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { OrderStatus } from "@prisma/client";
 import { sendOrderStatusUpdateEmail } from "@/lib/resend";
 
 // Lista de estados permitidos
@@ -14,6 +13,15 @@ const ALLOWED_STATUSES = [
   "COMPLETED",
   "CANCELLED",
 ] as const;
+
+type OrderStatusValue =
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "PREPARING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "COMPLETED"
+  | "CANCELLED";
 
 type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
 
@@ -78,7 +86,7 @@ export async function PATCH(
     const order = await prisma.order.update({
       where: { id },
       data: {
-        status: status as OrderStatus,
+        status: status as OrderStatusValue,
         notes: noteInternal,
       },
       select: {

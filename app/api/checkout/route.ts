@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendNewOrderAdminEmail, sendOrderCreatedEmail } from "@/lib/email";
-import { DocumentType, ProductCategory, ProductKind } from "@prisma/client";
+import { ProductCategory, ProductKind } from "@prisma/client";
 import { resolvePricingSnapshot } from "@/lib/pricing";
 import { calculateShippingCost } from "@/lib/shipping";
 
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 type CheckoutPaymentUI = "transferencia" | "webpay" | "mercadopago";
 type CheckoutDocumentUI = "boleta" | "factura";
+type DocumentTypeValue = "BOLETA" | "FACTURA";
 
 type CheckoutPayload = {
   checkoutToken: string;
@@ -52,9 +53,9 @@ function normalizeShipping(deliveryType: "pickup" | "shipping") {
   return deliveryType === "pickup" ? ("PICKUP" as const) : ("DELIVERY" as const);
 }
 
-function normalizeDocumentType(doc?: CheckoutDocumentUI): DocumentType {
+function normalizeDocumentType(doc?: CheckoutDocumentUI): DocumentTypeValue {
   const d = safeStr(doc).toLowerCase();
-  return d === "factura" ? DocumentType.FACTURA : DocumentType.BOLETA;
+  return d === "factura" ? "FACTURA" : "BOLETA";
 }
 
 async function trySendConfirmationEmailOnce(params: {
@@ -213,7 +214,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (documentType === DocumentType.FACTURA) {
+    if (documentType === "FACTURA") {
       const inv: any = invoiceDataRaw || {};
       const razon = safeStr(
         inv?.razonSocial ?? inv?.razon_social ?? inv?.razon ?? ""
@@ -441,7 +442,7 @@ export async function POST(req: NextRequest) {
           paymentDueAt,
           documentType,
           invoiceData:
-            documentType === DocumentType.FACTURA
+            documentType === "FACTURA"
               ? (invoiceDataRaw as any)
               : null,
         },
