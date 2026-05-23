@@ -28,6 +28,15 @@ type CustomerRow = {
   suggestion: string;
 };
 
+type AdminUserLite = {
+  id: string;
+  name: string;
+  lastName: string | null;
+  email: string;
+  phone: string | null;
+  createdAt: Date;
+};
+
 function CLP(value: number) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -144,7 +153,9 @@ export default async function AdminClientesPage({
     }),
   ]);
 
-  const userById = new Map(users.map((user) => [user.id, user]));
+  const userById = new Map<string, AdminUserLite>(
+    users.map((user: AdminUserLite) => [user.id, user])
+  );
   const grouped = new Map<string, CustomerRow>();
 
   for (const order of orders) {
@@ -321,9 +332,9 @@ export default async function AdminClientesPage({
               className="mt-1 w-full rounded-xl border border-neutral-800 bg-black/25 px-3 py-2 text-sm text-neutral-200 outline-none focus:border-lime-400/40"
             >
               <option value="">Todos</option>
-              {typeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              {typeOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </select>
@@ -331,121 +342,98 @@ export default async function AdminClientesPage({
 
           <button
             type="submit"
-            className="h-[42px] rounded-xl bg-lime-400 px-4 text-sm font-extrabold text-black hover:bg-lime-300"
+            className="rounded-xl border border-lime-400/35 bg-lime-400/10 px-4 py-2 text-xs font-black uppercase tracking-wide text-lime-200 hover:bg-lime-400/15"
           >
             Aplicar
           </button>
 
           <Link
             href="/admin/clientes"
-            className="inline-flex h-[42px] items-center rounded-xl border border-neutral-800 bg-black/20 px-4 text-sm font-extrabold text-neutral-200 hover:bg-black/30"
+            className="rounded-xl border border-neutral-700 bg-black/30 px-4 py-2 text-xs font-black uppercase tracking-wide text-neutral-300 hover:border-neutral-500"
           >
             Limpiar
           </Link>
         </div>
       </form>
 
-      <section className="mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/60">
-        <div className="flex flex-col gap-2 border-b border-neutral-800 p-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">
-              Matriz de clientes
-            </p>
-            <h2 className="mt-2 text-xl font-black text-white">Compradores y contactos</h2>
-            <p className="mt-2 text-sm text-neutral-400">
-              Mostrando {sortedRows.length} de {rows.length} clientes/contactos.
-            </p>
-          </div>
+      <section className="mt-6 overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950/60">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1200px] w-full text-left">
+            <thead className="bg-black/35 text-[11px] uppercase tracking-wide text-neutral-400">
+              <tr>
+                <Th>Cliente</Th>
+                <Th>Fuente</Th>
+                <Th>Estado</Th>
+                <Th>Compras conf.</Th>
+                <Th>Órdenes</Th>
+                <Th>Gasto total</Th>
+                <Th>Ticket prom.</Th>
+                <Th>Primera compra</Th>
+                <Th>Última compra</Th>
+                <Th>Inactividad</Th>
+                <Th>Sugerencia</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.map((row) => (
+                <tr key={row.key} className="border-t border-neutral-800/80 align-top">
+                  <Td>
+                    <div className="font-semibold text-white">{row.name}</div>
+                    <div className="text-xs text-neutral-400">{row.email}</div>
+                    <div className="text-xs text-neutral-500">{row.phone || "Sin teléfono"}</div>
+                    {row.lastOrderId ? (
+                      <Link
+                        href={`/admin/pedidos/${row.lastOrderId}`}
+                        className="mt-1 inline-block text-[11px] font-bold text-lime-300 hover:text-lime-200"
+                      >
+                        Último pedido →
+                      </Link>
+                    ) : null}
+                  </Td>
 
-          <p className="text-xs text-neutral-500">
-            Solo lectura. No modifica usuarios, pedidos ni datos personales.
-          </p>
-        </div>
+                  <Td>
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${sourceTone(
+                        row.source
+                      )}`}
+                    >
+                      {row.source}
+                    </span>
+                  </Td>
 
-        {sortedRows.length === 0 ? (
-          <div className="p-6 text-sm text-neutral-400">
-            No hay clientes para los filtros seleccionados.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-xs">
-              <thead className="border-b border-neutral-800 bg-black/20">
-                <tr>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Cliente</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Origen</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Tipo</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Pedidos</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Confirmados</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Gastado</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Ticket prom.</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Última compra</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Inactividad</th>
-                  <th className="px-4 py-3 text-left font-extrabold text-neutral-300">Sugerencia</th>
-                  <th className="px-4 py-3 text-right font-extrabold text-neutral-300">Ver</th>
+                  <Td>
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${customerTone(
+                        row.customerType
+                      )}`}
+                    >
+                      {row.customerType}
+                    </span>
+                  </Td>
+
+                  <Td>{row.confirmedOrdersCount}</Td>
+                  <Td>{row.ordersCount}</Td>
+                  <Td className="font-semibold text-lime-200">{CLP(row.totalSpent)}</Td>
+                  <Td>{row.confirmedOrdersCount > 0 ? CLP(row.averageTicket) : "—"}</Td>
+                  <Td>{dateLabel(row.firstOrderAt)}</Td>
+                  <Td>{dateLabel(row.lastOrderAt)}</Td>
+                  <Td>{daysSince(row.lastOrderAt)}</Td>
+                  <Td>
+                    <p className="max-w-xs text-xs leading-5 text-neutral-300">{row.suggestion}</p>
+                  </Td>
                 </tr>
-              </thead>
+              ))}
 
-              <tbody>
-                {sortedRows.map((row) => (
-                  <tr key={row.key} className="border-t border-neutral-900 hover:bg-white/[0.03]">
-                    <td className="min-w-[260px] px-4 py-3">
-                      <div className="font-bold text-neutral-100">{row.name}</div>
-                      <div className="mt-1 text-[11px] text-neutral-500">{row.email}</div>
-                      {row.phone ? (
-                        <div className="mt-1 text-[11px] text-neutral-600">{row.phone}</div>
-                      ) : null}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <Badge tone={sourceTone(row.source)}>{row.source}</Badge>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <Badge tone={customerTone(row.customerType)}>{row.customerType}</Badge>
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-extrabold text-neutral-100">
-                      {row.ordersCount}
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-extrabold text-neutral-100">
-                      {row.confirmedOrdersCount}
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-extrabold text-neutral-100">
-                      {CLP(row.totalSpent)}
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-extrabold text-neutral-100">
-                      {CLP(row.averageTicket)}
-                    </td>
-
-                    <td className="px-4 py-3 text-neutral-300">{dateLabel(row.lastOrderAt)}</td>
-
-                    <td className="px-4 py-3 text-neutral-300">{daysSince(row.lastOrderAt)}</td>
-
-                    <td className="min-w-[280px] px-4 py-3 text-neutral-400">
-                      {row.suggestion}
-                    </td>
-
-                    <td className="px-4 py-3 text-right">
-                      {row.lastOrderId ? (
-                        <Link
-                          href={`/admin/pedidos/${row.lastOrderId}`}
-                          className="inline-flex rounded-xl border border-lime-400/30 bg-lime-400/10 px-3 py-2 font-extrabold text-lime-200 hover:bg-lime-400/15"
-                        >
-                          Último pedido
-                        </Link>
-                      ) : (
-                        <span className="text-neutral-600">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              {sortedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="px-4 py-10 text-center text-sm text-neutral-500">
+                    No hay clientes para mostrar con los filtros actuales.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   );
@@ -460,28 +448,27 @@ function KpiCard({
   label: string;
   value: string | number;
   hint: string;
-  tone: string;
+  tone?: string;
 }) {
   return (
-    <article className="rounded-3xl border border-neutral-800 bg-neutral-950/60 p-4">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-neutral-500">
-        {label}
-      </p>
-      <div className={`mt-3 text-3xl font-black ${tone}`}>{value}</div>
-      <p className="mt-2 text-xs leading-5 text-neutral-500">{hint}</p>
+    <article className="rounded-2xl border border-neutral-800 bg-black/30 p-4">
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-neutral-500">{label}</p>
+      <p className={`mt-2 text-2xl font-black ${tone ?? "text-white"}`}>{value}</p>
+      <p className="mt-1 text-xs text-neutral-500">{hint}</p>
     </article>
   );
 }
 
-function Badge({ tone, children }: { tone: string; children: React.ReactNode }) {
-  return (
-    <span
-      className={[
-        "inline-flex rounded-full border px-2 py-1 text-[11px] font-extrabold",
-        tone,
-      ].join(" ")}
-    >
-      {children}
-    </span>
-  );
+function Th({ children }: { children: React.ReactNode }) {
+  return <th className="px-4 py-3 font-black">{children}</th>;
+}
+
+function Td({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <td className={`px-4 py-3 ${className}`}>{children}</td>;
 }
