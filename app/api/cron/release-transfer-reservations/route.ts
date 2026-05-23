@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  dispatchStockAlertsForProduct,
+  incrementProductStockAndDispatchIfRestocked,
+} from "@/lib/stockAlerts";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +55,7 @@ export async function GET(req: Request) {
 
     let processed = 0;
     const processedIds: string[] = [];
+    const restockedProductIds = new Set<string>();
 
     for (const row of expired) {
       const orderId = row.id;
@@ -76,11 +81,12 @@ export async function GET(req: Request) {
 
         // Devolver stock (solo productos con stock != null)
         for (const it of fresh.items) {
-          // No asumimos stock: null significa "no trackea stock"
-          await tx.product.updateMany({
-            where: { id: it.productId, stock: { not: null } },
-            data: { stock: { increment: it.quantity } },
+          const result = await incrementProductStockAndDispatchIfRestocked({
+            tx,
+            productId: String(it.productId),
+            quantity: Number(it.quantity || 0),
           });
+          if (result.restocked) restockedProductIds.add(String(it.productId));
         }
 
         // Cancelar + marcar liberación
@@ -101,6 +107,12 @@ export async function GET(req: Request) {
         processedIds.push(orderId);
       }
     }
+
+    await Promise.all(
+      [...restockedProductIds].map((id) =>
+        dispatchStockAlertsForProduct(id).catch(() => null)
+      )
+    );
 
     return NextResponse.json({ ok: true, processed, processedIds });
   } catch (err: any) {

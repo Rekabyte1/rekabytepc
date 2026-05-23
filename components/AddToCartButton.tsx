@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "./CartContext";
+import StockAlertModal from "@/components/StockAlertModal";
 
 type AddToCartButtonProps = {
   /**
@@ -67,6 +68,7 @@ export default function AddToCartButton({
 
   const [product, setProduct] = useState<ProductApiResponse["product"]>(null);
   const [loading, setLoading] = useState(true);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,16 +150,6 @@ export default function AddToCartButton({
       kind: product.kind,
     };
 
-    console.log("[PRODUCT RAW]", product);
-
-    console.log("[PRODUCT PRICING]", product.pricing);
-
-    console.log("[TRANSFER FINAL]", product.pricing?.transfer?.final);
-
-    console.log("[CARD FINAL]", product.pricing?.card?.final);
-
-    console.log("[PAYLOAD FINAL]", payload);
-
     return payload;
   }
 
@@ -201,15 +193,36 @@ export default function AddToCartButton({
   else if (!available) label = "Agotado";
 
   return (
-    <button
-      type="button"
-      className={`rb-btn w-full ${className} ${
-        disabled ? "opacity-60 cursor-not-allowed" : ""
-      }`}
-      disabled={disabled}
-      onClick={handleClick}
-    >
-      {children ?? label}
-    </button>
+    <>
+      <button
+        type="button"
+        className={`rb-btn w-full ${className} ${
+          disabled ? "opacity-60 cursor-not-allowed" : ""
+        }`}
+        disabled={disabled}
+        onClick={handleClick}
+      >
+        {children ?? label}
+      </button>
+
+      {!loading && product && !available ? (
+        <button
+          type="button"
+          onClick={() => setAlertOpen(true)}
+          className="mt-2 w-full rounded-full border border-lime-400/40 bg-lime-400/10 px-4 py-2 text-sm font-semibold text-lime-300 hover:bg-lime-400/15"
+        >
+          Notifícame cuando vuelva stock
+        </button>
+      ) : null}
+
+      {product ? (
+        <StockAlertModal
+          open={alertOpen}
+          onClose={() => setAlertOpen(false)}
+          productId={product.id}
+          productName={product.name || name || product.slug}
+        />
+      ) : null}
+    </>
   );
 }

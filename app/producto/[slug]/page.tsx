@@ -303,17 +303,18 @@ export default async function ProductPage({ params }: PageProps) {
             {pricing.sale.active ? <SaleCountdown endsAt={pricing.sale.endsAt} /> : null}
           </div>
 
-          <div className="mt-6 grid gap-3">
-            <AddToCartButton slug={dbProduct.slug} name={dbProduct.name} />
+         <div className="mt-6 grid gap-3">
+  <AddToCartButton slug={dbProduct.slug} name={dbProduct.name} />
 
-            <AddToCartButton
-              slug={dbProduct.slug}
-              name={dbProduct.name}
-              mode="buy_now"
-              className="!bg-lime-400 !text-black hover:!bg-lime-300 disabled:!bg-neutral-700 disabled:!text-neutral-400"
-            />
-          </div>
-
+  {inStock ? (
+    <AddToCartButton
+      slug={dbProduct.slug}
+      name={dbProduct.name}
+      mode="buy_now"
+      className="!bg-lime-400 !text-black hover:!bg-lime-300 disabled:!bg-neutral-700 disabled:!text-neutral-400"
+    />
+  ) : null}
+</div>
           {dbProduct.manufacturerPdfUrl ? (
             <a
               href={dbProduct.manufacturerPdfUrl}

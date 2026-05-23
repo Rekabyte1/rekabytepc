@@ -1,6 +1,10 @@
 // app/api/admin/orders/[id]/release/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  dispatchStockAlertsForProduct,
+  incrementProductStockAndDispatchIfRestocked,
+} from "@/lib/stockAlerts";
 
 export const dynamic = "force-dynamic";
 
@@ -88,16 +92,18 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       }
 
       // 1) Devolver stock
+      const restockedProductIds = new Set<string>();
       for (const it of order.items) {
         const qty = Number(it.quantity || 0);
         if (qty <= 0) continue;
 
-        await tx.product.updateMany({
-          where: { id: it.productId, stock: { not: null } },
-          data: {
-            stock: { increment: qty },
-          },
+        const result = await incrementProductStockAndDispatchIfRestocked({
+          tx,
+          productId: String(it.productId),
+          quantity: qty,
         });
+
+        if (result.restocked) restockedProductIds.add(String(it.productId));
       }
 
       // 2) Cancelar pedido + marcar liberación
@@ -123,8 +129,17 @@ export async function POST(req: NextRequest, ctx: Ctx) {
         ok: true as const,
         status: 200 as const,
         updated,
+        restockedProductIds: [...restockedProductIds],
       };
     });
+
+    if (result.ok && "restockedProductIds" in result && result.restockedProductIds?.length) {
+      await Promise.all(
+        [...new Set(result.restockedProductIds)].map((id: string) =>
+          dispatchStockAlertsForProduct(id).catch(() => null)
+        )
+      );
+    }
 
     return NextResponse.json(result, { status: result.status });
   } catch (e) {

@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { OrderStatus } from "@prisma/client";
 import crypto from "crypto";
+import {
+  dispatchStockAlertsForProduct,
+  incrementProductStockAndDispatchIfRestocked,
+} from "@/lib/stockAlerts";
 
 export const dynamic = "force-dynamic";
 
@@ -169,6 +173,7 @@ export async function POST(req: NextRequest) {
     const amount = Number(paymentData?.transaction_amount || 0);
     const paymentStatus = mapPaymentStatus(mpStatus);
 
+    const restockedProductIds = new Set<string>();
     await prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id: externalReference },
@@ -251,12 +256,14 @@ export async function POST(req: NextRequest) {
           for (const item of order.items) {
             const qty = Number(item.quantity || 0);
             if (qty <= 0) continue;
-            await tx.product.updateMany({
-              where: { id: item.productId, stock: { not: null } },
-              data: {
-                stock: { increment: qty },
-              },
+
+            const result = await incrementProductStockAndDispatchIfRestocked({
+              tx,
+              productId: String(item.productId),
+              quantity: qty,
             });
+
+            if (result.restocked) restockedProductIds.add(String(item.productId));
           }
         }
 
@@ -276,25 +283,21 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      // 5) Otros estados no destructivos: solo dejar registro
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          notes: appendWebhookNote(
-            order.notes,
-            `Mercado Pago informó estado no manejado explícitamente: ${mpStatus}.`
-          ),
-        },
-      });
+      // 5) Estado no contemplado: no tocamos stock ni status
+      return;
     });
 
-    return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (error) {
-    console.error("Error POST /api/mercadopago/webhook:", error);
-    return NextResponse.json({ ok: true }, { status: 200 });
-  }
-}
+    if (restockedProductIds.size) {
+      await Promise.all(
+        [...restockedProductIds].map((id) =>
+          dispatchStockAlertsForProduct(id).catch(() => null)
+        )
+      );
+    }
 
-export async function GET() {
-  return NextResponse.json({ ok: true }, { status: 200 });
+    return NextResponse.json({ ok: true }, { status: 200 });
+  } catch (error: any) {
+    console.error("[MP webhook] error:", error?.message || error);
+    return NextResponse.json({ ok: false, error: "Webhook error" }, { status: 500 });
+  }
 }

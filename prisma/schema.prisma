@@ -80,6 +80,25 @@ model Product {
   setupCategory      SetupCategory?
   inventoryItems     InventoryItem[]
   orderItems         OrderItem[]
+  stockAlerts        StockAlert[]
+}
+
+model StockAlert {
+  id        String           @id @default(cuid())
+  productId String
+  email     String
+  status    StockAlertStatus @default(PENDING)
+
+  createdAt DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime         @updatedAt @db.Timestamptz(6)
+  sentAt    DateTime?        @db.Timestamptz(6)
+
+  lastError String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, email])
+  @@index([status, createdAt])
 }
 
 model Order {
@@ -285,4 +304,9 @@ enum ShipmentStatus {
   READY
   ON_ROUTE
   DELIVERED
+}
+
+enum StockAlertStatus {
+  PENDING
+  SENT
 }
