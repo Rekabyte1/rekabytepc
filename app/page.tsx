@@ -139,10 +139,8 @@ export default async function Home() {
 
   return (
     <main className="pb-14">
-  <section className="pt-6">
-    <div className="mx-auto max-w-[1800px] space-y-6 px-4 sm:px-6">
-      
-
+      <section className="pt-6 px-4 sm:px-6">
+        <div className="mx-auto max-w-[1800px] space-y-6">
           <HeroSlider slides={slides} intervalMs={5000} />
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -208,71 +206,71 @@ export default async function Home() {
         </div>
       </section>
 
-<section className="rb-container mt-11">
-  <div className="mx-auto max-w-[1500px] rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 md:p-7">
-    <div className="grid gap-4 lg:grid-cols-[0.95fr_2.05fr] lg:items-stretch">
-      <div className="rounded-2xl border border-neutral-800 bg-black/25 p-5">
-        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">Encuentra tu setup</p>
-        <h2 className="mt-2 text-3xl font-black text-white leading-tight">Desde Spawn hasta Clutch.</h2>
-        <p className="mt-3 text-sm leading-6 text-neutral-300">Elige según tu estilo, nivel y experiencia.</p>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        {[
-          {
-            tier: "spawn",
-            title: "Spawn",
-            copy: "Tu primer setup gamer empieza aquí.",
-            accent: "from-lime-400/35 via-lime-300/10 to-black/70",
-            glow: "shadow-[inset_0_0_0_1px_rgba(163,230,53,0.22),0_0_26px_rgba(163,230,53,0.14)]",
-            textGlow: "drop-shadow-[0_0_10px_rgba(163,230,53,0.24)]",
-            image: "/banners/spawn.jpg",
-          },
-          {
-            tier: "loadout",
-            title: "Loadout",
-            copy: "Equilibrio entre rendimiento y comodidad.",
-            accent: "from-cyan-400/32 via-lime-300/8 to-black/72",
-            glow: "shadow-[inset_0_0_0_1px_rgba(34,211,238,0.24),0_0_26px_rgba(34,211,238,0.12)]",
-            textGlow: "drop-shadow-[0_0_10px_rgba(34,211,238,0.24)]",
-            image: "/banners/loadout.jpg",
-          },
-          {
-            tier: "clutch",
-            title: "Clutch",
-            copy: "Precisión y respuesta para jugar en serio.",
-            accent: "from-fuchsia-500/34 via-purple-500/14 to-black/70",
-            glow: "shadow-[inset_0_0_0_1px_rgba(217,70,239,0.24),0_0_28px_rgba(217,70,239,0.14)]",
-            textGlow: "drop-shadow-[0_0_10px_rgba(217,70,239,0.26)]",
-            image: "/banners/clutch.jpg",
-          },
-        ].map((card) => (
-          <Link
-            key={card.tier}
-            href={`/setup-gamer?tier=${card.tier}`}
-            className={`group relative min-h-[220px] overflow-hidden rounded-2xl border border-neutral-800 md:min-h-[250px] lg:min-h-[280px] ${card.glow}`}
-          >
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-95 transition duration-500 group-hover:scale-105"
-              style={{ backgroundImage: `url(${card.image})` }}
-            />
-            <div className={`absolute inset-0 bg-gradient-to-r ${card.accent}`} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-            <div className="relative z-10 flex h-full items-end p-4 md:p-5">
-              <div>
-                <h3 className={`text-[30px] font-black text-white leading-none md:text-[34px] ${card.textGlow}`}>{card.title}</h3>
-                <p className="mt-2 max-w-[22ch] text-sm text-neutral-100">{card.copy}</p>
-                <span className="mt-3 inline-flex items-center text-sm font-extrabold text-lime-300">Explorar →</span>
-              </div>
+      <section className="mt-11 px-4 sm:px-6">
+        <div className="mx-auto max-w-[1500px] rounded-3xl border border-neutral-800 bg-neutral-950/55 p-6 md:p-7">
+          <div className="grid gap-4 lg:grid-cols-[0.95fr_2.05fr] lg:items-stretch">
+            <div className="rounded-2xl border border-neutral-800 bg-black/25 p-5">
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">Encuentra tu setup</p>
+              <h2 className="mt-2 text-3xl font-black text-white leading-tight">Desde Spawn hasta Clutch.</h2>
+              <p className="mt-3 text-sm leading-6 text-neutral-300">Elige según tu estilo, nivel y experiencia.</p>
             </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  </div>
-</section>
 
-      <section className="rb-container mt-12">
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                {
+                  tier: "spawn",
+                  title: "Spawn",
+                  copy: "Tu primer setup gamer empieza aquí.",
+                  accent: "from-lime-400/35 via-lime-300/10 to-black/70",
+                  glow: "shadow-[inset_0_0_0_1px_rgba(163,230,53,0.22),0_0_26px_rgba(163,230,53,0.14)]",
+                  textGlow: "drop-shadow-[0_0_10px_rgba(163,230,53,0.24)]",
+                  image: "/banners/spawn.jpg",
+                },
+                {
+                  tier: "loadout",
+                  title: "Loadout",
+                  copy: "Equilibrio entre rendimiento y comodidad.",
+                  accent: "from-cyan-400/32 via-lime-300/8 to-black/72",
+                  glow: "shadow-[inset_0_0_0_1px_rgba(34,211,238,0.24),0_0_26px_rgba(34,211,238,0.12)]",
+                  textGlow: "drop-shadow-[0_0_10px_rgba(34,211,238,0.24)]",
+                  image: "/banners/loadout.jpg",
+                },
+                {
+                  tier: "clutch",
+                  title: "Clutch",
+                  copy: "Precisión y respuesta para jugar en serio.",
+                  accent: "from-fuchsia-500/34 via-purple-500/14 to-black/70",
+                  glow: "shadow-[inset_0_0_0_1px_rgba(217,70,239,0.24),0_0_28px_rgba(217,70,239,0.14)]",
+                  textGlow: "drop-shadow-[0_0_10px_rgba(217,70,239,0.26)]",
+                  image: "/banners/clutch.jpg",
+                },
+              ].map((card) => (
+                <Link
+                  key={card.tier}
+                  href={`/setup-gamer?tier=${card.tier}`}
+                  className={`group relative min-h-[220px] overflow-hidden rounded-2xl border border-neutral-800 md:min-h-[250px] lg:min-h-[280px] ${card.glow}`}
+                >
+                  <div
+                    className="absolute inset-0 bg-cover bg-center opacity-95 transition duration-500 group-hover:scale-105"
+                    style={{ backgroundImage: `url(${card.image})` }}
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-r ${card.accent}`} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+                  <div className="relative z-10 flex h-full items-end p-4 md:p-5">
+                    <div>
+                      <h3 className={`text-[30px] font-black text-white leading-none md:text-[34px] ${card.textGlow}`}>{card.title}</h3>
+                      <p className="mt-2 max-w-[22ch] text-sm text-neutral-100">{card.copy}</p>
+                      <span className="mt-3 inline-flex items-center text-sm font-extrabold text-lime-300">Explorar →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-12 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px] rounded-3xl border border-neutral-800 bg-neutral-950/55 p-5">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
@@ -290,7 +288,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="rb-container mt-7">
+      <section className="mt-7 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px] grid gap-2 md:grid-cols-5">
           {[
             { icon: "▣", label: "Stock real en Chile", sub: "Productos listos para despacho" },
@@ -312,7 +310,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="rb-container mt-7">
+      <section className="mt-7 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px]">
           <div className="mb-3">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">Aprende antes de elegir</p>
@@ -341,7 +339,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="rb-container mt-9">
+      <section className="mt-9 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px] grid gap-5 lg:grid-cols-2">
           <Link
             href="/gaming-streaming/streaming"
@@ -391,7 +389,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="rb-container mt-9">
+      <section className="mt-9 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px] rounded-3xl border border-neutral-800 bg-neutral-950/45 p-4 md:p-5">
           <div className="mb-3">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-500">PC Gamer</p>
@@ -436,29 +434,25 @@ export default async function Home() {
             <p className="text-sm text-neutral-400">Aún no hay PCs armados destacados.</p>
           )}
         </div>
-            <div className="rounded-3xl border border-neutral-800 bg-neutral-950/70 p-6 md:p-8">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">RekaByte Setup Store</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-5xl">
-              Periféricos gamer, setups y rendimiento real.
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-neutral-300 md:text-base">
-              Teclados, mouse, streaming y setups seleccionados para mejorar tu experiencia desde el primer uso.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/gaming-streaming/perifericos" className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-extrabold text-black hover:bg-lime-300">
-                Ver periféricos
-              </Link>
-              <Link href="/setup-gamer" className="rounded-xl border border-lime-400/30 bg-lime-400/10 px-5 py-3 text-sm font-extrabold text-lime-300 hover:bg-lime-400/20">
-                Explorar Setup Gamer
-              </Link>
-            </div>
+
+        <div className="mx-auto mt-6 max-w-[1500px] rounded-3xl border border-neutral-800 bg-neutral-950/70 p-6 md:p-8">
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">RekaByte Setup Store</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-5xl">
+            Periféricos gamer, setups y rendimiento real.
+          </h1>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-neutral-300 md:text-base">
+            Teclados, mouse, streaming y setups seleccionados para mejorar tu experiencia desde el primer uso.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/gaming-streaming/perifericos" className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-extrabold text-black hover:bg-lime-300">
+              Ver periféricos
+            </Link>
+            <Link href="/setup-gamer" className="rounded-xl border border-lime-400/30 bg-lime-400/10 px-5 py-3 text-sm font-extrabold text-lime-300 hover:bg-lime-400/20">
+              Explorar Setup Gamer
+            </Link>
           </div>
+        </div>
       </section>
     </main>
   );
 }
-
-
-
-
-
