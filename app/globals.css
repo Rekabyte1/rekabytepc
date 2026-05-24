@@ -6,8 +6,7 @@
 *,*::before,*::after{box-sizing:border-box}
 html,body{
   margin:0;padding:0;background:#0a0a0a;color:#e5e7eb;line-height:1.45;
-  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji"
-}
+font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";}
 a{color:#b6ff2e;text-decoration:none}
 a:hover{color:#d7ff54}
 
@@ -15,6 +14,39 @@ a:hover{color:#d7ff54}
 img, video, canvas, svg { display:block; max-width:100%; height:auto; }
 * { min-width: 0; }
 html, body { overflow-x: hidden; }
+
+/* ===== Tipografía premium (solo fuente, sin alterar layout/spacing) ===== */
+
+/* Inter base en navegación, body y UI general */
+body,
+input,
+select,
+textarea,
+button,
+.rb-topbar,
+.rb-nav,
+.rb-main,
+.product-card,
+.product-card p,
+.product-card span,
+.product-card li {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+/* Sora para títulos/CTAs importantes */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.hero-title,
+.section-title,
+.rb-btn,
+.btn-primary,
+[data-cta="primary"] {
+  font-family: var(--font-sora), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
 
 /* ===== Contenedor ===== */
 .rb-container{max-width:1200px;margin:0 auto;padding:0 16px}

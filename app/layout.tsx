@@ -1,10 +1,23 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { Inter, Sora } from "next/font/google";
 import Providers from "./providers";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sora",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -33,7 +46,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="h-full bg-neutral-950">
-      <body className="min-h-screen bg-neutral-950 text-white antialiased overflow-x-hidden">
+      <body
+        className={`${inter.variable} ${sora.variable} min-h-screen bg-neutral-950 text-white antialiased overflow-x-hidden`}
+      >
         <Providers>
           <Header />
 

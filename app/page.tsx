@@ -134,9 +134,8 @@ export default async function Home() {
     },
   });
 
-  const pillButtonClass =
-    "group inline-flex items-center gap-2 rounded-full border border-lime-400/30 bg-lime-400/10 px-5 py-2.5 text-sm font-extrabold text-lime-300 transition-all duration-300 hover:-translate-y-[1px] hover:border-lime-300/50 hover:bg-lime-400/20 hover:text-lime-200";
-
+ const pillButtonClass =
+  "group inline-flex items-center gap-2 rounded-full border border-lime-400/30 bg-lime-400/10 px-5 py-2.5 text-sm font-display font-extrabold text-lime-300 transition-all duration-300 hover:-translate-y-[1px] hover:border-lime-300/50 hover:bg-lime-400/20 hover:text-lime-200";
   return (
     <main className="pb-14">
       <section className="pt-6 px-4 sm:px-6">
@@ -211,8 +210,7 @@ export default async function Home() {
           <div className="grid gap-4 lg:grid-cols-[0.95fr_2.05fr] lg:items-stretch">
             <div className="rounded-2xl border border-neutral-800 bg-black/25 p-5">
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">Encuentra tu setup</p>
-              <h2 className="mt-2 text-3xl font-black text-white leading-tight">Desde Spawn hasta Clutch.</h2>
-              <p className="mt-3 text-sm leading-6 text-neutral-300">Elige según tu estilo, nivel y experiencia.</p>
+<h2 className="mt-2 text-3xl font-display font-black text-white leading-tight">Desde Spawn hasta Clutch.</h2>              <p className="mt-3 text-sm leading-6 text-neutral-300">Elige según tu estilo, nivel y experiencia.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -258,8 +256,7 @@ export default async function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
                   <div className="relative z-10 flex h-full items-end p-4 md:p-5">
                     <div>
-                      <h3 className={`text-[30px] font-black text-white leading-none md:text-[34px] ${card.textGlow}`}>{card.title}</h3>
-                      <p className="mt-2 max-w-[22ch] text-sm text-neutral-100">{card.copy}</p>
+<h3 className={`text-[30px] font-display font-black text-white leading-none md:text-[34px] ${card.textGlow}`}>{card.title}</h3>                      <p className="mt-2 max-w-[22ch] text-sm text-neutral-100">{card.copy}</p>
                       <span className="mt-3 inline-flex items-center text-sm font-extrabold text-lime-300">Explorar →</span>
                     </div>
                   </div>
@@ -275,8 +272,7 @@ export default async function Home() {
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-400">Periféricos destacados</p>
-              <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">Lo más recomendado para tu setup</h2>
-            </div>
+<h2 className="mt-2 text-2xl font-display font-black text-white md:text-3xl">Lo más recomendado para tu setup</h2>            </div>
             <Link href="/gaming-streaming/perifericos" className={pillButtonClass}>Ver periféricos →</Link>
           </div>
           <PremiumHorizontalCarousel
@@ -291,8 +287,8 @@ export default async function Home() {
       <section className="mt-7 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px] grid gap-2 md:grid-cols-5">
           {[
-            { icon: "▣", label: "Stock real en Chile", sub: "Productos listos para despacho" },
-            { icon: "◍", label: "Atención por WhatsApp", sub: "Respuesta rápida" },
+            { icon: "▣", label: "Stock real en Chile", sub: "Productos con entrega inmediata" },
+            { icon: "◍", label: "Atención por WhatsApp", sub: "Personalizada" },
             { icon: "◈", label: "Pago seguro", sub: "Transferencias y tarjeta" },
             { icon: "⬢", label: "Garantía de 6 meses", sub: "Respaldo en productos" },
             { icon: "⇢", label: "Despacho disponible", sub: "Cobertura nacional" },
@@ -354,8 +350,7 @@ export default async function Home() {
               <div className="relative z-10 flex h-full items-end justify-between gap-4 p-6">
                 <div className="max-w-md">
                   <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">Creator Setup</p>
-                  <h3 className="mt-2 text-3xl font-black text-white">Streaming</h3>
-                  <p className="mt-2 text-sm text-neutral-200">
+<h3 className="mt-2 text-3xl font-display font-black text-white">Streaming</h3>                  <p className="mt-2 text-sm text-neutral-200">
                     Todo para crear, transmitir y elevar tu contenido al siguiente nivel.
                   </p>
                 </div>
@@ -377,8 +372,7 @@ export default async function Home() {
               <div className="relative z-10 flex h-full items-end justify-between gap-4 p-6">
                 <div className="max-w-md">
                   <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-lime-300">Setup Essentials</p>
-                  <h3 className="mt-2 text-3xl font-black text-white">Componentes</h3>
-                  <p className="mt-2 text-sm text-neutral-200">
+<h3 className="mt-2 text-3xl font-display font-black text-white">Componentes</h3>                  <p className="mt-2 text-sm text-neutral-200">
                     Mejora tu rendimiento y construye un setup sólido con piezas clave.
                   </p>
                 </div>
@@ -392,8 +386,7 @@ export default async function Home() {
       <section className="mt-9 px-4 sm:px-6">
         <div className="mx-auto max-w-[1500px] rounded-3xl border border-neutral-800 bg-neutral-950/45 p-4 md:p-5">
           <div className="mb-3">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-neutral-500">PC Gamer</p>
-          </div>
+<p className="text-xs font-display font-extrabold uppercase tracking-[0.2em] text-neutral-500">PC Gamer</p>          </div>
 
           {featuredBuilds.length > 0 ? (
             <Link
@@ -410,8 +403,7 @@ export default async function Home() {
               </div>
 
               <div>
-                <h4 className="text-xl font-black text-white">{featuredBuilds[0].name}</h4>
-                <p className="mt-1 line-clamp-2 text-sm text-neutral-300">
+<h4 className="text-xl font-display font-black text-white">{featuredBuilds[0].name}</h4>                <p className="mt-1 line-clamp-2 text-sm text-neutral-300">
                   {featuredBuilds[0].shortDescription || "PC Gamer listo para jugar desde el primer día."}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3 text-xs text-neutral-400">
@@ -425,9 +417,9 @@ export default async function Home() {
 
               <div className="flex flex-col items-start gap-3 md:items-end">
                 <p className="text-3xl font-black text-lime-300">{clp(featuredBuilds[0].priceTransfer || featuredBuilds[0].price)}</p>
-                <span className="inline-flex items-center rounded-full border border-lime-400/30 bg-lime-400/10 px-4 py-2 text-sm font-extrabold text-lime-300">
-                  Ver PC Gamer →
-                </span>
+              <span className="inline-flex items-center rounded-full border border-lime-400/30 bg-lime-400/10 px-4 py-2 text-sm font-display font-extrabold text-lime-300">
+                Ver PC Gamer →
+                </span>              
               </div>
             </Link>
           ) : (
@@ -444,12 +436,12 @@ export default async function Home() {
             Teclados, mouse, streaming y setups seleccionados para mejorar tu experiencia desde el primer uso.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/gaming-streaming/perifericos" className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-extrabold text-black hover:bg-lime-300">
-              Ver periféricos
-            </Link>
-            <Link href="/setup-gamer" className="rounded-xl border border-lime-400/30 bg-lime-400/10 px-5 py-3 text-sm font-extrabold text-lime-300 hover:bg-lime-400/20">
-              Explorar Setup Gamer
-            </Link>
+<Link href="/gaming-streaming/perifericos" className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-display font-extrabold text-black hover:bg-lime-300">
+  Ver periféricos
+</Link>
+<Link href="/setup-gamer" className="rounded-xl border border-lime-400/30 bg-lime-400/10 px-5 py-3 text-sm font-display font-extrabold text-lime-300 hover:bg-lime-400/20">
+  Explorar Setup Gamer
+</Link>
           </div>
         </div>
       </section>
