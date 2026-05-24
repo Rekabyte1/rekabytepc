@@ -619,8 +619,8 @@ export default async function ProductPage({ params }: PageProps) {
         <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/40 p-4 md:p-5">
           <h2 className="text-xl font-extrabold text-white">También te puede interesar</h2>
           <p className="mt-2 text-sm text-neutral-400">
-            Más periféricos premium para tu setup y productos relacionados por marca,
-            categoría y subcategoría.
+            Más periféricos premium para tu setup y productos relacionados por marca y
+            categoría.
           </p>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -61,7 +61,7 @@ export default function TerminosPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-xl font-extrabold text-white">3. Stock, armado y preparación</h2>
+          <h2 className="text-xl font-extrabold text-white">3. Stock y preparación</h2>
           <ul className="list-disc space-y-2 pl-5">
             <li>
               El stock se confirma al momento de procesar el pedido. En caso de
@@ -71,14 +71,10 @@ export default function TerminosPage() {
             <li>
               {" "}
               <span className="font-semibold text-white">
-                equipos armados listos (entrega inmediata)
+                Los productos tienen (entrega inmediata)
               </span>
               . Sin perjuicio de lo anterior, un pedido puede requerir preparación
-              adicional (validación, pruebas, embalaje).
-            </li>
-            <li>
-              Los equipos pueden pasar por control de calidad y pruebas antes de ser
-              entregados o despachados.
+              adicional (validación y embalaje).
             </li>
           </ul>
         </section>
@@ -114,34 +110,12 @@ export default function TerminosPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-xl font-extrabold text-white">5. Cambios, upgrades y modificaciones</h2>
-          <ul className="list-disc space-y-2 pl-5">
-            <li>
-              Puedes realizar cambios/upgrades en tu equipo siempre que{" "}
-              <span className="font-semibold text-white">
-                no afecten el funcionamiento
-              </span>{" "}
-              ni generen riesgos eléctricos/mecánicos (por ejemplo: ampliación de RAM o
-              almacenamiento compatible).
-            </li>
-            <li>
-              Si luego de un upgrade/modificación el equipo presenta fallas y se determina
-              que el problema está relacionado al cambio realizado,{" "}
-              <span className="font-semibold text-white">
-                RekaByte no se hace responsable
-              </span>{" "}
-              por esa falla.
-            </li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-xl font-extrabold text-white">6. Garantías y devoluciones</h2>
+          <h2 className="text-xl font-extrabold text-white">5. Garantías y devoluciones</h2>
           <p>
             La garantía para comenzar es de{" "}
             <span className="font-semibold text-white">6 meses</span> y cubre{" "}
             <span className="font-semibold text-white">
-              exclusivamente fallas por componente defectuoso de fábrica
+              exclusivamente fallas de productos defectuosos de fábrica
             </span>{" "}
             (según evaluación técnica). El proceso completo está en{" "}
             <a href="/garantias" className="text-lime-400 hover:underline">
