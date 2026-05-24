@@ -293,7 +293,7 @@ export default async function Home() {
           {[
             { icon: "▣", label: "Stock real en Chile", sub: "Productos listos para despacho" },
             { icon: "◍", label: "Atención por WhatsApp", sub: "Respuesta rápida" },
-            { icon: "◈", label: "Pago seguro", sub: "Transferencias y pasarelas" },
+            { icon: "◈", label: "Pago seguro", sub: "Transferencias y tarjeta" },
             { icon: "⬢", label: "Garantía de 6 meses", sub: "Respaldo en productos" },
             { icon: "⇢", label: "Despacho disponible", sub: "Cobertura nacional" },
           ].map((item) => (
