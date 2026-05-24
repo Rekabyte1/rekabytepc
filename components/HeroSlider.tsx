@@ -97,8 +97,9 @@ export default function HeroSlider({
 
   if (len === 0) {
     return (
-      <section className={`w-full max-w-[1400px] mx-auto px-4 sm:px-6 ${className}`}>
-        <div className="relative aspect-[16/9] sm:aspect-[16/8] md:h-[440px] md:aspect-auto lg:h-[520px] overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
+      // Este es mi banner principal
+      <section className={`w-full max-w-[1800px] mx-auto px-4 sm:px-6 ${className}`}>
+        <div className="relative min-h-[240px] sm:min-h-[300px] md:min-h-[460px] lg:min-h-[560px] xl:min-h-[620px] overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
           <div className="flex h-full w-full items-center justify-center text-sm text-neutral-500">
             Sin banners disponibles
           </div>
@@ -108,15 +109,16 @@ export default function HeroSlider({
   }
 
   return (
+    // Este es mi banner principal
     <section
-      className={`w-full max-w-[1400px] mx-auto px-4 sm:px-6 ${className}`}
+      className={`w-full max-w-[1800px] mx-auto px-4 sm:px-6 ${className}`}
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       aria-roledescription="Carrusel"
     >
-      <div className="relative aspect-[16/9] sm:aspect-[16/8] md:h-[440px] md:aspect-auto lg:h-[520px] overflow-hidden rounded-2xl border border-neutral-800/60 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
+      <div className="relative min-h-[240px] sm:min-h-[300px] md:min-h-[460px] lg:min-h-[560px] xl:min-h-[620px] overflow-hidden rounded-2xl border border-neutral-800/60 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
         {safeSlides.map((slide, i) => {
           const isActive = i === index;
 
@@ -138,7 +140,7 @@ export default function HeroSlider({
               <img
                 src={slide.src}
                 alt={slide.alt ?? `Banner ${i + 1}`}
-                className="absolute inset-0 h-full w-full object-contain object-center md:object-cover"
+                className="absolute inset-0 h-full w-full object-cover object-center"
                 draggable={false}
               />
             </div>

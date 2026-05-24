@@ -20,21 +20,33 @@ type SetupProduct = {
   setupCategory: SetupCategory | null;
 };
 
-const TIER_META: Record<SetupTier, { title: string; copy: string; banner: string }> = {
+const TIER_META: Record<
+  SetupTier,
+  { title: string; copy: string; banner: string; accent: string; glow: string; textGlow: string }
+> = {
   SPAWN: {
     title: "Spawn",
     copy: "Tu primer setup gamer empieza aquí.",
     banner: "/banners/spawn.jpg",
+    accent: "from-lime-400/35 via-lime-300/10 to-black/70",
+    glow: "shadow-[inset_0_0_0_1px_rgba(163,230,53,0.22),0_0_26px_rgba(163,230,53,0.14)]",
+    textGlow: "drop-shadow-[0_0_10px_rgba(163,230,53,0.24)]",
   },
   LOADOUT: {
     title: "Loadout",
     copy: "Equilibrio entre rendimiento, comodidad y estética.",
     banner: "/banners/loadout.jpg",
+    accent: "from-cyan-400/32 via-lime-300/8 to-black/72",
+    glow: "shadow-[inset_0_0_0_1px_rgba(34,211,238,0.24),0_0_26px_rgba(34,211,238,0.12)]",
+    textGlow: "drop-shadow-[0_0_10px_rgba(34,211,238,0.24)]",
   },
   CLUTCH: {
     title: "Clutch",
     copy: "Precisión, respuesta y control para jugar en serio.",
     banner: "/banners/clutch.jpg",
+    accent: "from-fuchsia-500/34 via-purple-500/14 to-black/70",
+    glow: "shadow-[inset_0_0_0_1px_rgba(217,70,239,0.24),0_0_28px_rgba(217,70,239,0.14)]",
+    textGlow: "drop-shadow-[0_0_10px_rgba(217,70,239,0.26)]",
   },
 };
 
@@ -83,22 +95,26 @@ export default function SetupGamerExplorer({ products }: { products: SetupProduc
               key={key}
               type="button"
               onClick={() => setParam({ tier: key, category: "ALL" })}
-              className={`group relative overflow-hidden rounded-2xl border text-left transition ${
+              className={`group relative overflow-hidden rounded-2xl border text-left transition md:min-h-[260px] lg:min-h-[300px] ${
                 isActive
-                  ? "border-lime-400 ring-1 ring-lime-400"
+                  ? `border-lime-400 ring-1 ring-lime-400 ${TIER_META[key].glow}`
                   : "border-neutral-800 hover:border-neutral-700"
               }`}
             >
-              <div className="relative h-52 md:h-56">
+              <div className="relative h-56 md:h-[260px] lg:h-[300px]">
                 <img
                   src={TIER_META[key].banner}
                   alt={TIER_META[key].title}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  className="absolute inset-0 h-full w-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-[1.04]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />
-                <div className="absolute inset-x-0 bottom-0 p-5">
-                  <div className="text-xl font-black text-white">{TIER_META[key].title}</div>
-                  <p className="mt-1 text-sm text-neutral-200">{TIER_META[key].copy}</p>
+                <div className={`absolute inset-0 bg-gradient-to-r ${TIER_META[key].accent}`} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+                  <div className={`text-[30px] font-black leading-none text-white md:text-[34px] ${TIER_META[key].textGlow}`}>
+                    {TIER_META[key].title}
+                  </div>
+                  <p className="mt-2 max-w-[22ch] text-sm text-neutral-100">{TIER_META[key].copy}</p>
+                  <span className="mt-3 inline-flex items-center text-sm font-extrabold text-lime-300">Explorar →</span>
                 </div>
               </div>
             </button>
