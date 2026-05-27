@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "RekaByte",
-  description: "PCs armados",
+  description: "Teclados magnéticos, Mouse gamer y periféricos premium en Chile",
   metadataBase: new URL("https://www.rekabyte.cl"),
   alternates: {
     canonical: "https://www.rekabyte.cl",
