@@ -19,21 +19,21 @@ const COLS: Array<{
   {
     title: "Periféricos Gamer",
     links: [
-      { label: "Teclados", href: "/gaming-streaming/perifericos/teclado" },
-      { label: "Mouse", href: "/gaming-streaming/perifericos/mouse" },
-      { label: "Mousepads", href: "/gaming-streaming/perifericos/alfombrilla" },
+      { label: "Teclados", href: "/perifericos/teclados" },
+      { label: "Mouse", href: "/perifericos/mouse" },
+      { label: "Mousepads", href: "/perifericos/alfombrillas" },
       {
         label: "Combos teclado + mouse",
-        href: "/gaming-streaming/perifericos/kit-teclado-mouse",
+        href: "/perifericos/teclados",
       },
     ],
   },
   {
     title: "Más categorías",
     links: [
-      { label: "Audífonos", href: "/gaming-streaming/perifericos/audifonos" },
-       //{ label: "Monitores", href: "/gaming-streaming/monitores" },
-      { label: "Controles", href: "/gaming-streaming/consolas/acc" },
+      { label: "Audífonos", href: "/perifericos/audio" },
+      //{ label: "Monitores", href: "/perifericos/monitores" },
+      { label: "Controles", href: "/perifericos" },
     ],
   },
 ];
@@ -106,7 +106,7 @@ export default function GamingStreamingMenu({
 
           <div className="rb-mega-footer">
             <Link
-              href="/gaming-streaming/perifericos"
+              href="/perifericos"
               onClick={handleNavigate}
               className="rb-view-all"
             >
