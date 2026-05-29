@@ -64,74 +64,74 @@ export default function PremiumProductSections({
       {sections.map((section, index) => {
         if (section.type === "hero") {
           return (
-            <article
-              key={`premium-hero-${index}`}
-              className="relative overflow-hidden rounded-[2.4rem] border border-white/10 bg-gradient-to-b from-neutral-900/95 via-black to-neutral-950 px-7 py-14 shadow-[0_60px_150px_rgba(0,0,0,0.78)] md:px-12 md:py-20 lg:min-h-[760px] lg:px-16 lg:py-20"
-            >
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(132,204,22,0.18),transparent_40%),radial-gradient(circle_at_28%_22%,rgba(132,204,22,0.09),transparent_36%),linear-gradient(145deg,rgba(255,255,255,0.01)_0%,rgba(0,0,0,0.5)_72%)]" />
-              <GlowBackdrop />
+  <article
+    key={`premium-hero-${index}`}
+    className="relative overflow-hidden rounded-[2.4rem] border border-white/10 bg-gradient-to-b from-neutral-900/95 via-black to-neutral-950 px-7 py-14 shadow-[0_60px_150px_rgba(0,0,0,0.78)] md:px-12 md:py-20 lg:min-h-[760px] lg:px-16 lg:py-20"
+  >
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(132,204,22,0.18),transparent_40%),radial-gradient(circle_at_28%_22%,rgba(132,204,22,0.09),transparent_36%),linear-gradient(145deg,rgba(255,255,255,0.01)_0%,rgba(0,0,0,0.5)_72%)]" />
+    <GlowBackdrop />
 
-              <div className="relative z-10 grid grid-cols-1 gap-12 lg:grid-cols-[0.84fr_1.16fr] lg:items-center lg:gap-16">
-                <div className="space-y-8 md:space-y-10 lg:max-w-[38rem]">
-                  {section.eyebrow ? (
-                    <p className="text-xs font-semibold uppercase tracking-[0.36em] text-lime-300/90 md:text-sm">
-                      {section.eyebrow}
-                    </p>
-                  ) : null}
+    <div className="relative z-10 grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center lg:gap-14 xl:gap-20">
+      <div className="relative z-20 min-w-0 space-y-8 md:space-y-10 lg:max-w-[42rem]">
+        {section.eyebrow ? (
+          <p className="text-xs font-semibold uppercase tracking-[0.36em] text-lime-300/90 md:text-sm">
+            {section.eyebrow}
+          </p>
+        ) : null}
 
-                  <h2
-                    className="font-black uppercase tracking-[-0.01em] text-white"
-                    style={{
-                      fontSize: "clamp(1.8rem, 3.2vw, 3.5rem)",
-                      lineHeight: "1.1",
-                      maxWidth: "15ch",
-                    }}
-                  >
-                    {section.title}
-                  </h2>
+        <h2
+          className="font-black uppercase tracking-[-0.01em] text-white"
+          style={{
+            fontSize: "clamp(1.8rem, 3.2vw, 3.5rem)",
+            lineHeight: "1.1",
+            maxWidth: "15ch",
+          }}
+        >
+          {section.title}
+        </h2>
 
-                  {section.description ? (
-                    <p className="max-w-2xl text-base leading-[1.85] text-neutral-300 md:text-lg">
-                      {section.description}
-                    </p>
-                  ) : null}
+        {section.description ? (
+          <p className="max-w-2xl text-base leading-[1.85] text-neutral-300 md:text-lg">
+            {section.description}
+          </p>
+        ) : null}
 
-                  {!!section.highlights?.length && (
-                    <div className="grid max-w-[28rem] grid-cols-2 gap-4 pt-3 md:gap-5">
-                      {section.highlights.map((highlight, highlightIdx) => (
-                        <div
-                          key={`${highlight.label}-${highlightIdx}`}
-                          className="w-full min-w-0 rounded-2xl border border-lime-400/15 bg-black/25 px-4 py-4 backdrop-blur-md transition-all duration-500 hover:translate-y-[-2px] hover:border-lime-300/25"
-                        >
-                          <p className="text-2xl font-black leading-none text-lime-300 md:text-3xl">
-                            {highlight.label}
-                          </p>
-                          <p className="mt-2 text-[10px] uppercase tracking-[0.16em] leading-[1.45] text-neutral-300 md:text-[11px]">
-                            {highlight.text}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {section.image ? (
-                  <div className="relative min-h-[390px] overflow-visible md:min-h-[510px] lg:min-h-[660px]">
-                    <div className="pointer-events-none absolute inset-x-[5%] top-[24%] h-[52%] rounded-full bg-lime-400/14 blur-[95px]" />
-                    <div className="pointer-events-none absolute inset-x-[12%] bottom-[7%] h-[30%] rounded-full bg-black/35 blur-[48px]" />
-                    <Image
-                      src={section.image}
-                      alt={section.title}
-                      fill
-                      className="object-contain object-center p-1 md:p-2 lg:scale-[1.14]"
-                      sizes="(max-width: 1024px) 100vw, 56vw"
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
-                  </div>
-                ) : null}
+        {!!section.highlights?.length && (
+          <div className="grid max-w-[28rem] grid-cols-2 gap-4 pt-3 md:gap-5">
+            {section.highlights.map((highlight, highlightIdx) => (
+              <div
+                key={`${highlight.label}-${highlightIdx}`}
+                className="w-full min-w-0 rounded-2xl border border-lime-400/15 bg-black/25 px-4 py-4 backdrop-blur-md transition-all duration-500 hover:translate-y-[-2px] hover:border-lime-300/25"
+              >
+                <p className="text-2xl font-black leading-none text-lime-300 md:text-3xl">
+                  {highlight.label}
+                </p>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.16em] leading-[1.45] text-neutral-300 md:text-[11px]">
+                  {highlight.text}
+                </p>
               </div>
-            </article>
-          );
+            ))}
+          </div>
+        )}
+      </div>
+
+      {section.image ? (
+        <div className="relative z-10 min-h-[330px] overflow-hidden rounded-[2rem] md:min-h-[500px] lg:min-h-[620px]">
+          <div className="pointer-events-none absolute inset-x-[5%] top-[24%] h-[52%] rounded-full bg-lime-400/14 blur-[95px]" />
+          <div className="pointer-events-none absolute inset-x-[12%] bottom-[7%] h-[30%] rounded-full bg-black/35 blur-[48px]" />
+          <Image
+            src={section.image}
+            alt={section.title}
+            fill
+            className="object-contain object-center p-2 md:p-4 lg:p-6"
+            sizes="(max-width: 1024px) 100vw, 50vw"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+        </div>
+      ) : null}
+    </div>
+  </article>
+);
         }
 
         if (section.type === "split") {
