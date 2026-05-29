@@ -87,7 +87,7 @@ export default function SuccessClient() {
 RUT: 78.356.436-K
 Banco: Santander
 Tipo de cuenta: Cuenta corriente
-Número de cuenta: 0-000-3742916-3
+Número de cuenta: 0-000-3788682-3
 Correo: contacto@rekabyte.cl`,
     []
   );
