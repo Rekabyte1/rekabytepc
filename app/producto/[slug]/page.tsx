@@ -43,15 +43,49 @@ function toAbsoluteUrl(url: string | null | undefined) {
   return `${appUrl()}/${trimmed}`;
 }
 
+function buildProductSearchText(product: {
+  name: string;
+  brand?: string | null;
+  slug?: string | null;
+  shortDescription?: string | null;
+  description?: string | null;
+  specs?: unknown;
+}) {
+  return `${product.name} ${product.brand ?? ""} ${product.slug ?? ""} ${
+    product.shortDescription ?? ""
+  } ${product.description ?? ""} ${JSON.stringify(product.specs ?? {})}`.toLowerCase();
+}
+
+
 function buildSemanticBreadcrumb(product: {
   category?: string | null;
   subcategory?: string | null;
   brand?: string | null;
   name: string;
+  slug?: string | null;
+  description?: string | null;
+  shortDescription?: string | null;
+  specs?: unknown;
 }): BreadcrumbItem[] {
   const category = String(product.category ?? "").trim().toUpperCase();
   const subcategory = String(product.subcategory ?? "").trim().toUpperCase();
-  const text = `${product.name} ${product.brand ?? ""} ${subcategory}`.toLowerCase();
+  const nameAndSlug = `${product.name} ${product.slug ?? ""}`.toLowerCase();
+  const text = buildProductSearchText(product);
+
+  const isStreamingProduct =
+    category === "STREAMING" ||
+    subcategory === "MICROPHONE" ||
+    /\b(micr[oó]fonos?|microphones?|streaming)\b/.test(nameAndSlug);
+
+  const isMousepad =
+    subcategory === "MOUSEPAD" ||
+    /\b(mousepad|alfombrilla|deskmat|desk mat)\b/.test(text);
+
+  const isAudio =
+    subcategory === "HEADSET" ||
+    subcategory === "AUDIO" ||
+    subcategory === "SPEAKER" ||
+    /\b(aud[ií]fonos?|headset|parlantes?|speaker|audio)\b/.test(text);
 
   const componentMap: Record<string, string> = {
     CPU: "Procesadores",
@@ -68,46 +102,40 @@ function buildSemanticBreadcrumb(product: {
     MONITOR: "Monitores",
   };
 
-  const peripheralSubMap: Record<string, string> = {
-    MOUSE: "Mouse",
-    KEYBOARD: "Teclados",
-    MOUSEPAD: "Mousepads",
-    HEADSET: "Audífonos",
-    SPEAKER: "Parlantes",
-    SPEAKERS: "Parlantes",
-    WEBCAM: "Webcams",
-    MICROPHONE: "Micrófonos",
-  };
-
-  const isPeripheralAccessory =
-    category === "PERIPHERAL" ||
-    category === "ACCESSORY" ||
-    peripheralSubMap[subcategory] !== undefined ||
-    text.includes("mouse") ||
-    text.includes("teclado") ||
-    text.includes("keyboard") ||
-    text.includes("audif") ||
-    text.includes("headset") ||
-    text.includes("parlante") ||
-    text.includes("speaker") ||
-    text.includes("webcam") ||
-    text.includes("microfono") ||
-    text.includes("microphone");
-
-  if (category === "STREAMING") {
-    return [
-      { label: "Gaming y Streaming", href: "/gaming-streaming" },
-      { label: "Streaming", href: "/gaming-streaming" },
-    ];
+  if (isStreamingProduct) {
+    return [{ label: "Streaming", href: "/streaming" }];
   }
 
-  if (isPeripheralAccessory) {
-    const subLabel = peripheralSubMap[subcategory];
-    return [
-      { label: "Gaming y Streaming", href: "/gaming-streaming" },
-      { label: "Periféricos", href: "/gaming-streaming" },
-      ...(subLabel ? [{ label: subLabel, href: "/gaming-streaming" }] : []),
-    ];
+  if (category === "PERIPHERAL" || category === "ACCESSORY") {
+    if (isMousepad) {
+      return [
+        { label: "Periféricos", href: "/perifericos" },
+        { label: "Alfombrillas", href: "/perifericos/alfombrillas" },
+      ];
+    }
+
+    if (subcategory === "KEYBOARD" || text.includes("teclado") || text.includes("keyboard")) {
+      return [
+        { label: "Periféricos", href: "/perifericos" },
+        { label: "Teclados", href: "/perifericos/teclados" },
+      ];
+    }
+
+    if (subcategory === "MOUSE") {
+      return [
+        { label: "Periféricos", href: "/perifericos" },
+        { label: "Mouse", href: "/perifericos/mouse" },
+      ];
+    }
+
+    if (isAudio) {
+      return [
+        { label: "Periféricos", href: "/perifericos" },
+        { label: "Audio", href: "/perifericos/audio" },
+      ];
+    }
+
+    return [{ label: "Periféricos", href: "/perifericos" }];
   }
 
   if (componentMap[category]) {
