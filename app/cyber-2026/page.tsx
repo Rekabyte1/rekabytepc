@@ -342,15 +342,9 @@ export default async function Cyber2026Page({
       <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-950/55 p-5 md:p-7">
         <h2 className="text-xl md:text-2xl font-extrabold text-white">
           Cyber 2026 Chile en RekaByte
-        </h2>
-        <p className="mt-3 text-sm md:text-base leading-relaxed text-neutral-300">
-          Esta landing centraliza las ofertas activas de <strong>Cyber 2026 Chile</strong> en{" "}
-          <strong>RekaByte</strong>. Aquí verás automáticamente productos con oferta
-          Cyber: <strong>ofertas gamer</strong>, <strong>periféricos gamer</strong>,{" "}
-          <strong>teclados mecánicos</strong>, <strong>mouse gamer</strong>,{" "}
-          <strong>streaming</strong> y <strong>setup gamer</strong>.
-        </p>
-      </section>
+</h2> <p className="mt-3 text-sm md:text-base leading-relaxed text-neutral-300"> Descubre las mejores ofertas de <strong>Cyber 2026</strong> en{" "} 
+<strong>RekaByte</strong>. Encuentra descuentos especiales en{" "}
+ <strong>periféricos gamer</strong>, <strong>teclados mecánicos</strong>,{" "} <strong>mouse gamer</strong>, <strong>audio</strong>,{" "} <strong>streaming</strong> y accesorios para tu <strong>setup gamer</strong>. Las ofertas se actualizan automáticamente durante el evento y están sujetas a disponibilidad de stock. </p> </section>
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between gap-3">
