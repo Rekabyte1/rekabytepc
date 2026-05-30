@@ -16,14 +16,14 @@ function clp(value: number | null | undefined) {
 export default async function Home() {
   const slides = [
     {
-      src: "/banners/bannerprincipal.jpg",
-      alt: "Periféricos gamer, setups y rendimiento real",
-      href: "/gaming-streaming/perifericos",
-    },
-    {
       src: "/banners/cyber2026.jpg",
       alt: "Tecnología que se siente en cada partida",
       href: "/cyber-2026",
+    },
+        {
+      src: "/banners/LAMZU-MAYA-X.jpg",
+      alt: "Tecnología que se siente en cada partida",
+      href: "/perifericos?brand=lamzu",
     },
   ];
 
