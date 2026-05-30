@@ -159,7 +159,7 @@ export default function GameBuildCard({ build, gameTitle }: Props) {
     []
   );
 
-  const href = `/modelos/${encodeURIComponent(build.productSlug)}`;
+  const href = `/producto/${encodeURIComponent(build.productSlug)}`;
   const videoUrl = (build as any)?.videoUrl as string | undefined;
 
   const srcAt = (i: number) => (broken[i] ? "/pc1.jpg" : images[i] || "/pc1.jpg");

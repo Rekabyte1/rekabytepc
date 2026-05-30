@@ -390,7 +390,7 @@ export default async function Home() {
 
           {featuredBuilds.length > 0 ? (
             <Link
-              href={`/modelos/${featuredBuilds[0].slug}`}
+              href={`/producto/${featuredBuilds[0].slug}`}
               className="grid gap-4 rounded-2xl border border-neutral-800 bg-neutral-900/55 p-3 md:grid-cols-[1.2fr_1.8fr_0.9fr] md:items-center"
             >
               <div className="relative h-36 overflow-hidden rounded-xl border border-neutral-800">
