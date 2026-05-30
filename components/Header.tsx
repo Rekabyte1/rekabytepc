@@ -128,7 +128,7 @@ export default function Header() {
                 alt="RekaByte"
                 className="h-12 md:h-40 w-auto object-contain"
               />
-              <span className="rb-brand-name">RekaByte</span>
+            
             </Link>
 
             <form className="rb-search" onSubmit={handleSearchSubmit}>
