@@ -178,7 +178,7 @@ export default function Header() {
                 onClick={toggleMenuMobile}
                 type="button"
               >
-                Setup Gamer
+                Nivel Gamer
               </button>
 
               {isMobile ? (

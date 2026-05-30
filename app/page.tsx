@@ -166,7 +166,7 @@ export default async function Home() {
                 icon: "▦",
               },
               {
-                title: "Setup Gamer",
+                title: "Encuentra tu nivel",
                 href: "/setup-gamer",
                 text: "Spawn, Loadout o Clutch.",
                 image: "/banners/Setuphome.jpg",

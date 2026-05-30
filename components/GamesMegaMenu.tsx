@@ -23,11 +23,11 @@ export default function GamesMegaMenu({
           <ul>
             <li>
               <Link href="/setup-gamer" onClick={handleClick}>
-                Explorar Setup Gamer
+                Encuentra tu nivel
               </Link>
             </li>
           </ul>
-          <p className="rb-copy">Encuentra periféricos según tu nivel de setup.</p>
+          <p className="rb-copy">Encuentra periféricos según tu nivel de jugador.</p>
         </div>
       </div>
 
