@@ -99,8 +99,7 @@ export default function HeroSlider({
     return (
       // Este es mi banner principal
       <section className={`w-full max-w-[1800px] mx-auto px-4 sm:px-6 ${className}`}>
-        <div className="relative min-h-[240px] sm:min-h-[300px] md:min-h-[460px] lg:min-h-[560px] xl:min-h-[620px] overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
-          <div className="flex h-full w-full items-center justify-center text-sm text-neutral-500">
+<div className="relative w-full aspect-[2.82/1] overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950 shadow-[0_10px_40px_rgba(0,0,0,.5)]">          <div className="flex h-full w-full items-center justify-center text-sm text-neutral-500">
             Sin banners disponibles
           </div>
         </div>
@@ -118,8 +117,7 @@ export default function HeroSlider({
       onTouchEnd={onTouchEnd}
       aria-roledescription="Carrusel"
     >
-      <div className="relative min-h-[240px] sm:min-h-[300px] md:min-h-[460px] lg:min-h-[560px] xl:min-h-[620px] overflow-hidden rounded-2xl border border-neutral-800/60 shadow-[0_10px_40px_rgba(0,0,0,.5)]">
-        {safeSlides.map((slide, i) => {
+<div className="relative w-full aspect-[2.82/1] overflow-hidden rounded-2xl border border-neutral-800/60 shadow-[0_10px_40px_rgba(0,0,0,.5)]">        {safeSlides.map((slide, i) => {
           const isActive = i === index;
 
           const content = (
